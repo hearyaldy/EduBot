@@ -2,28 +2,30 @@ import 'package:flutter/material.dart';
 
 class AppTheme {
   // Modern EduBot brand colors - Based on #2563EB
-  static const Color primaryBlue = Color(0xFF2563EB);           // Main brand blue
-  static const Color primaryLight = Color(0xFF3B82F6);         // Lighter blue
-  static const Color primaryDark = Color(0xFF1D4ED8);          // Darker blue
-  static const Color primarySurface = Color(0xFFEFF6FF);       // Very light blue surface
-  
+  static const Color primaryBlue = Color(0xFF2563EB); // Main brand blue
+  static const Color primaryLight = Color(0xFF3B82F6); // Lighter blue
+  static const Color primaryDark = Color(0xFF1D4ED8); // Darker blue
+  static const Color primarySurface = Color(
+    0xFFEFF6FF,
+  ); // Very light blue surface
+
   // Modern accent colors
-  static const Color accent = Color(0xFF10B981);               // Modern green
-  static const Color accentLight = Color(0xFF34D399);         // Light green
-  static const Color warning = Color(0xFFF59E0B);             // Modern amber
-  static const Color error = Color(0xFFEF4444);               // Modern red
-  static const Color success = Color(0xFF10B981);             // Modern green
-  static const Color info = Color(0xFF06B6D4);                // Modern cyan
+  static const Color accent = Color(0xFF10B981); // Modern green
+  static const Color accentLight = Color(0xFF34D399); // Light green
+  static const Color warning = Color(0xFFF59E0B); // Modern amber
+  static const Color error = Color(0xFFEF4444); // Modern red
+  static const Color success = Color(0xFF10B981); // Modern green
+  static const Color info = Color(0xFF06B6D4); // Modern cyan
 
   // Modern neutral colors
-  static const Color textPrimary = Color(0xFF111827);         // Rich black
-  static const Color textSecondary = Color(0xFF6B7280);       // Modern gray
-  static const Color textTertiary = Color(0xFF9CA3AF);        // Light gray
-  static const Color background = Color(0xFFF9FAFB);          // Off-white background
-  static const Color surface = Color(0xFFFFFFFF);             // Pure white
-  static const Color surfaceVariant = Color(0xFFF3F4F6);      // Light gray surface
-  static const Color divider = Color(0xFFE5E7EB);             // Modern gray divider
-  static const Color border = Color(0xFFD1D5DB);              // Modern border gray
+  static const Color textPrimary = Color(0xFF111827); // Rich black
+  static const Color textSecondary = Color(0xFF6B7280); // Modern gray
+  static const Color textTertiary = Color(0xFF9CA3AF); // Light gray
+  static const Color background = Color(0xFFF9FAFB); // Off-white background
+  static const Color surface = Color(0xFFFFFFFF); // Pure white
+  static const Color surfaceVariant = Color(0xFFF3F4F6); // Light gray surface
+  static const Color divider = Color(0xFFE5E7EB); // Modern gray divider
+  static const Color border = Color(0xFFD1D5DB); // Modern border gray
 
   static ThemeData get lightTheme {
     return ThemeData(
@@ -109,9 +111,11 @@ class AppTheme {
           shadowColor: primaryBlue.withValues(alpha: 0.3),
           elevation: 2,
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           textStyle: const TextStyle(
-            fontSize: 16, 
+            fontSize: 16,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.5,
           ),
@@ -124,7 +128,9 @@ class AppTheme {
           backgroundColor: primaryBlue,
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       ),
 
@@ -134,7 +140,9 @@ class AppTheme {
           foregroundColor: primaryBlue,
           side: BorderSide(color: primaryBlue, width: 1.5),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       ),
 
@@ -167,7 +175,7 @@ class AppTheme {
 
       // Modern Icon Theme
       iconTheme: IconThemeData(color: textSecondary, size: 24),
-      
+
       // Modern App Bar Theme
       appBarTheme: AppBarTheme(
         elevation: 0,
