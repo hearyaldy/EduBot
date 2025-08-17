@@ -5,6 +5,16 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Load keystore properties
+import java.io.FileInputStream
+import java.util.Properties
+
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace = "com.edubot.app"
     compileSdk = 36  // Updated to support camera_android plugin
@@ -32,12 +42,18 @@ android {
 
     signingConfigs {
         create("release") {
-            // TODO: Replace with your actual keystore details before publishing
-            // For now, using debug signing for development
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
-            storeFile = file("debug.keystore")
-            storePassword = "android"
+            if (keystoreProperties.containsKey("keyAlias")) {
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+            } else {
+                // Fallback to debug signing if keystore not configured
+                keyAlias = "androiddebugkey"
+                keyPassword = "android"
+                storeFile = file("debug.keystore")
+                storePassword = "android"
+            }
         }
     }
 

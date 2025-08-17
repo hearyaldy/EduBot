@@ -1,0 +1,8 @@
+# Key Properties for EduBot Release Signing
+# Copy this file to key.properties and fill in your actual values
+# NEVER commit key.properties to version control!
+
+storePassword=your_keystore_password_here
+keyPassword=your_key_password_here
+keyAlias=upload
+storeFile=upload-keystore.jks
