@@ -47,7 +47,7 @@ class DailyTipCard extends StatelessWidget {
 
     return Card(
       elevation: 1,
-      color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
+      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(

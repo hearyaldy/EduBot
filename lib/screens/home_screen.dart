@@ -66,7 +66,7 @@ class HomeScreen extends StatelessWidget {
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   color: Theme.of(
                     context,
-                  ).colorScheme.onSurface.withOpacity(0.7),
+                  ).colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
               ),
             ],
@@ -176,7 +176,7 @@ class HomeScreen extends StatelessWidget {
                   leading: CircleAvatar(
                     backgroundColor: Theme.of(
                       context,
-                    ).colorScheme.primary.withOpacity(0.1),
+                    ).colorScheme.primary.withValues(alpha: 0.1),
                     child: Text(question.type.icon),
                   ),
                   title: Text(
@@ -245,7 +245,7 @@ class HomeScreen extends StatelessWidget {
         color: Theme.of(context).colorScheme.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, -2),
           ),
@@ -326,7 +326,7 @@ class HomeScreen extends StatelessWidget {
             icon,
             color: isActive
                 ? Theme.of(context).colorScheme.primary
-                : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
           ),
           const SizedBox(height: 4),
           Text(
@@ -335,7 +335,7 @@ class HomeScreen extends StatelessWidget {
               fontSize: 12,
               color: isActive
                   ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                  : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
         ],
