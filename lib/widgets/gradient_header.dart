@@ -63,33 +63,21 @@ class GradientHeader extends StatelessWidget {
                   Row(
                     children: [
                       // EduBot Custom Logo
-                      Container(
-                        width: 45,
-                        height: 45,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(22.5),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.3),
-                            width: 1,
-                          ),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(20),
-                          child: Image.asset(
-                            'lib/assets/icons/appicon.png',
-                            width: 35,
-                            height: 35,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              // Fallback to icon if image fails to load
-                              return const Icon(
-                                Icons.smart_toy,
-                                color: Colors.white,
-                                size: 25,
-                              );
-                            },
-                          ),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.asset(
+                          'lib/assets/icons/appicon.png',
+                          width: 45,
+                          height: 45,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            // Fallback to icon if image fails to load
+                            return const Icon(
+                              Icons.smart_toy,
+                              color: Colors.white,
+                              size: 35,
+                            );
+                          },
                         ),
                       ),
                       const SizedBox(width: 12),

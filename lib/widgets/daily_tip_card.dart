@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class DailyTipCard extends StatelessWidget {
+class DailyTipCard extends StatefulWidget {
   const DailyTipCard({super.key});
 
   // List of helpful tips for parents (20 comprehensive tips)
@@ -108,21 +108,50 @@ class DailyTipCard extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) {
-    // Get today's tip based on the day of the year
+  State<DailyTipCard> createState() => _DailyTipCardState();
+}
+
+class _DailyTipCardState extends State<DailyTipCard> {
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Start with today's tip based on the day of the year
     final dayOfYear =
         DateTime.now().difference(DateTime(DateTime.now().year, 1, 1)).inDays;
-    final todayTip = tips[dayOfYear % tips.length];
+    _currentPage = dayOfYear % DailyTipCard.tips.length;
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_pageController.hasClients) {
+        _pageController.animateToPage(
+          _currentPage,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+  }
 
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Card(
       elevation: 1,
       color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Row(
               children: [
                 Icon(
                   Icons.lightbulb_outline,
@@ -131,30 +160,132 @@ class DailyTipCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Daily Tip',
+                  'Parenting Tips',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: Theme.of(context).colorScheme.primary,
                         fontWeight: FontWeight.w600,
                       ),
                 ),
+                const Spacer(),
+                Text(
+                  '${_currentPage + 1}/${DailyTipCard.tips.length}',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                ),
               ],
             ),
-            const SizedBox(height: 12),
-            Text(
-              todayTip['title']!,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500),
+          ),
+          
+          // Carousel
+          SizedBox(
+            height: 160,
+            child: PageView.builder(
+              controller: _pageController,
+              onPageChanged: (index) {
+                setState(() {
+                  _currentPage = index;
+                });
+              },
+              itemCount: DailyTipCard.tips.length,
+              itemBuilder: (context, index) {
+                final tip = DailyTipCard.tips[index];
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        tip['title']!,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w500,
+                            ),
+                      ),
+                      const SizedBox(height: 8),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: Text(
+                            tip['content']!,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  height: 1.4,
+                                ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
-            const SizedBox(height: 8),
-            Text(
-              todayTip['content']!,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(height: 1.4),
+          ),
+          
+          // Page Indicators and Navigation
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Previous button
+                IconButton(
+                  onPressed: _currentPage > 0
+                      ? () {
+                          _pageController.previousPage(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                          );
+                        }
+                      : null,
+                  icon: Icon(
+                    Icons.chevron_left,
+                    color: _currentPage > 0
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                  ),
+                ),
+                
+                // Dot indicators
+                Expanded(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(
+                      DailyTipCard.tips.length,
+                      (index) => Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 2),
+                        width: _currentPage == index ? 8 : 6,
+                        height: _currentPage == index ? 8 : 6,
+                        decoration: BoxDecoration(
+                          color: _currentPage == index
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                
+                // Next button
+                IconButton(
+                  onPressed: _currentPage < DailyTipCard.tips.length - 1
+                      ? () {
+                          _pageController.nextPage(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                          );
+                        }
+                      : null,
+                  icon: Icon(
+                    Icons.chevron_right,
+                    color: _currentPage < DailyTipCard.tips.length - 1
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

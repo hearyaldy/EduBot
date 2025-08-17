@@ -17,10 +17,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificationsEnabled = true;
   bool _audioEnabled = true;
   double _speechRate = 0.5;
-  String _selectedLanguage = 'English';
 
   final List<String> _languages = [
     'English',
+    'Malay',
     'Spanish',
     'French',
     'German',
@@ -134,12 +134,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
             });
           },
         ),
-        ListTile(
-          leading: const Icon(Icons.language),
-          title: Text(AppLocalizations.of(context)!.language),
-          subtitle: Text(_selectedLanguage),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: _showLanguageDialog,
+        Consumer<AppProvider>(
+          builder: (context, provider, child) {
+            return ListTile(
+              leading: const Icon(Icons.language),
+              title: Text(AppLocalizations.of(context)!.language),
+              subtitle: Text(provider.selectedLanguage),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _showLanguageDialog(provider),
+            );
+          },
         ),
         ListTile(
           leading: const Icon(Icons.palette),
@@ -375,25 +379,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showLanguageDialog() {
+  void _showLanguageDialog(AppProvider provider) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Select Language'),
+        title: Text(AppLocalizations.of(context)!.selectLanguage),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: _languages.map((language) {
             return RadioListTile<String>(
               title: Text(language),
               value: language,
-              groupValue: _selectedLanguage,
+              groupValue: provider.selectedLanguage,
               onChanged: (value) {
-                setState(() {
-                  _selectedLanguage = value!;
-                });
+                provider.setSelectedLanguage(value!);
                 Navigator.pop(context);
-                if (language != 'English') {
-                  _showSnackBar('Multi-language support coming soon!');
+                if (language == 'Malay') {
+                  _showSnackBar(
+                      AppLocalizations.of(context)!.malayLanguageEnabled);
+                } else if (language != 'English') {
+                  _showSnackBar(AppLocalizations.of(context)!
+                      .languageComingSoon(language));
                 }
               },
             );
