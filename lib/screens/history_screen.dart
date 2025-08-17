@@ -17,7 +17,6 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -37,11 +36,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
             child: Consumer<AppProvider>(
               builder: (context, provider, child) {
                 final questions = provider.savedQuestions;
-                
+
                 if (questions.isEmpty) {
                   return _buildEmptyState();
                 }
-                
+
                 return _buildQuestionsList(context, questions, provider);
               },
             ),
@@ -50,7 +49,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       ),
     );
   }
-  
+
   Widget _buildEmptyState() {
     return Padding(
       padding: const EdgeInsets.all(20),
@@ -98,8 +97,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
       ),
     );
   }
-  
-  Widget _buildQuestionsList(BuildContext context, List<HomeworkQuestion> questions, AppProvider provider) {
+
+  Widget _buildQuestionsList(BuildContext context,
+      List<HomeworkQuestion> questions, AppProvider provider) {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: questions.length,
@@ -109,8 +109,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
       },
     );
   }
-  
-  Widget _buildQuestionCard(BuildContext context, HomeworkQuestion question, AppProvider provider) {
+
+  Widget _buildQuestionCard(
+      BuildContext context, HomeworkQuestion question, AppProvider provider) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: ExpansionTile(
@@ -122,8 +123,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
         ),
         title: Text(
-          question.question.length > 60 
-              ? '${question.question.substring(0, 60)}...' 
+          question.question.length > 60
+              ? '${question.question.substring(0, 60)}...'
               : question.question,
           style: const TextStyle(
             fontWeight: FontWeight.w600,
@@ -138,7 +139,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
               children: [
                 if (question.subject != null) ...[
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
                       color: AppColors.primary.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
@@ -171,8 +173,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
       ),
     );
   }
-  
-  Widget _buildQuestionDetails(BuildContext context, HomeworkQuestion question, AppProvider provider) {
+
+  Widget _buildQuestionDetails(
+      BuildContext context, HomeworkQuestion question, AppProvider provider) {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -191,15 +194,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
               style: const TextStyle(fontSize: 14),
             ),
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Action buttons
           Row(
             children: [
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: () => _viewExplanation(context, question, provider),
+                  onPressed: () =>
+                      _viewExplanation(context, question, provider),
                   icon: const Icon(Icons.visibility, size: 18),
                   label: const Text('View Answer'),
                 ),
@@ -230,7 +234,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       ),
     );
   }
-  
+
   Color _getTypeColor(QuestionType type) {
     switch (type) {
       case QuestionType.text:
@@ -241,8 +245,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
         return Colors.green;
     }
   }
-  
-  Future<void> _viewExplanation(BuildContext context, HomeworkQuestion question, AppProvider provider) async {
+
+  Future<void> _viewExplanation(BuildContext context, HomeworkQuestion question,
+      AppProvider provider) async {
     // Show loading
     showDialog(
       context: context,
@@ -251,13 +256,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
         child: CircularProgressIndicator(),
       ),
     );
-    
+
     try {
       final explanation = await provider.getExplanationForQuestion(question.id);
-      
+
       if (!mounted) return;
       Navigator.of(context).pop(); // Close loading
-      
+
       if (explanation != null) {
         _showExplanationDialog(context, question, explanation);
       } else {
@@ -269,8 +274,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
       _showSnackBar('Failed to load explanation: $e', isError: true);
     }
   }
-  
-  void _showExplanationDialog(BuildContext context, HomeworkQuestion question, Explanation explanation) {
+
+  void _showExplanationDialog(BuildContext context, HomeworkQuestion question,
+      Explanation explanation) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -312,7 +318,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.lightbulb, color: AppColors.primary, size: 16),
+                          Icon(Icons.lightbulb,
+                              color: AppColors.primary, size: 16),
                           const SizedBox(width: 8),
                           Text(
                             'Parent Tip',
@@ -346,21 +353,33 @@ class _HistoryScreenState extends State<HistoryScreen> {
       ),
     );
   }
-  
+
   Future<void> _playQuestionAudio(String text) async {
     try {
-      await AudioService.speakExplanation(text);
+      final provider = Provider.of<AppProvider>(context, listen: false);
+
+      if (!provider.audioEnabled) {
+        _showSnackBar('Audio is disabled in settings');
+        return;
+      }
+
+      await AudioService.speakExplanation(
+        text,
+        speechRate: provider.speechRate,
+      );
     } catch (e) {
       _showSnackBar('Failed to play audio: $e', isError: true);
     }
   }
-  
-  Future<void> _deleteQuestion(BuildContext context, HomeworkQuestion question, AppProvider provider) async {
+
+  Future<void> _deleteQuestion(BuildContext context, HomeworkQuestion question,
+      AppProvider provider) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Question'),
-        content: const Text('Are you sure you want to delete this question? This action cannot be undone.'),
+        content: const Text(
+            'Are you sure you want to delete this question? This action cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -374,13 +393,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
         ],
       ),
     );
-    
+
     if (confirmed == true) {
       await provider.removeQuestion(question.id);
       _showSnackBar('Question deleted successfully');
     }
   }
-  
+
   void _showSnackBar(String message, {bool isError = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(

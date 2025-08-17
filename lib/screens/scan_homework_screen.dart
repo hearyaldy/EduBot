@@ -137,7 +137,23 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
 
       // Save to provider
       if (mounted) {
-        Provider.of<AppProvider>(context, listen: false).saveQuestion(question);
+        final provider = Provider.of<AppProvider>(context, listen: false);
+        await provider.saveQuestionWithExplanation(question, explanation);
+        await provider.incrementDailyQuestions();
+
+        // Estimate token usage (rough approximation: 4 characters per token)
+        final questionTokens = (cleanText.length / 4).ceil();
+        final answerTokens = (explanation.answer.length / 4).ceil();
+        final stepsTokens = explanation.steps.fold<int>(
+            0,
+            (sum, step) =>
+                sum +
+                (step.description.length / 4).ceil() +
+                (step.title.length / 4).ceil());
+        final totalTokens = questionTokens + answerTokens + stepsTokens;
+
+        // Track token usage
+        await provider.addTokenUsage(totalTokens);
       }
 
       setState(() {
@@ -204,7 +220,23 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
 
       // Save to provider
       if (mounted) {
-        Provider.of<AppProvider>(context, listen: false).saveQuestion(question);
+        final provider = Provider.of<AppProvider>(context, listen: false);
+        await provider.saveQuestionWithExplanation(question, explanation);
+        await provider.incrementDailyQuestions();
+
+        // Estimate token usage (rough approximation: 4 characters per token)
+        final questionTokens = (cleanText.length / 4).ceil();
+        final answerTokens = (explanation.answer.length / 4).ceil();
+        final stepsTokens = explanation.steps.fold<int>(
+            0,
+            (sum, step) =>
+                sum +
+                (step.description.length / 4).ceil() +
+                (step.title.length / 4).ceil());
+        final totalTokens = questionTokens + answerTokens + stepsTokens;
+
+        // Track token usage
+        await provider.addTokenUsage(totalTokens);
       }
 
       setState(() {
@@ -234,7 +266,17 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
 
   Future<void> _playAudio(String text) async {
     try {
-      await AudioService.speakExplanation(text);
+      final provider = Provider.of<AppProvider>(context, listen: false);
+
+      if (!provider.audioEnabled) {
+        _showSnackBar('Audio is disabled in settings');
+        return;
+      }
+
+      await AudioService.speakExplanation(
+        text,
+        speechRate: provider.speechRate,
+      );
     } catch (e) {
       _showSnackBar('Failed to play audio: ${e.toString()}', isError: true);
     }
@@ -281,6 +323,8 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (_currentExplanation == null) _buildCameraSection(),
+                  if (_currentExplanation == null) const SizedBox(height: 16),
+                  if (_currentExplanation == null) _buildTokenUsageCard(),
                   if (_isProcessing) _buildProcessingWidget(),
                   if (_extractedText != null && _currentExplanation == null)
                     _buildExtractedTextWidget(),
@@ -376,6 +420,262 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildTokenUsageCard() {
+    return Consumer<AppProvider>(
+      builder: (context, provider, child) {
+        final questionsUsed = provider.dailyQuestionsUsed;
+        final questionsRemaining = provider.remainingQuestions;
+        final tokensUsed = provider.dailyTokensUsed;
+        final tokenUsagePercentage = provider.tokenUsagePercentage;
+
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.analytics_outlined,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Daily Usage',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primary,
+                          ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // Questions usage
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Questions',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Colors.grey[600],
+                                  ),
+                        ),
+                        Text(
+                          '$questionsUsed / 10',
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                        ),
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          'Remaining',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Colors.grey[600],
+                                  ),
+                        ),
+                        Text(
+                          '$questionsRemaining',
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: questionsRemaining > 0
+                                        ? AppColors.success
+                                        : AppColors.error,
+                                  ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                // AI Tokens usage
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'AI Tokens',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Colors.grey[600],
+                                  ),
+                        ),
+                        Text(
+                          '${(tokenUsagePercentage * 100).toStringAsFixed(1)}%',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Colors.grey[600],
+                                  ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    LinearProgressIndicator(
+                      value: tokenUsagePercentage,
+                      backgroundColor: Colors.grey[200],
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        tokenUsagePercentage < 0.8
+                            ? AppColors.success
+                            : tokenUsagePercentage < 0.9
+                                ? AppColors.warning
+                                : AppColors.error,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${(tokensUsed / 1000).toStringAsFixed(1)}k / ${(provider.estimatedDailyTokenLimit / 1000).toStringAsFixed(0)}k tokens',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.grey[600],
+                          ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                // Global API usage (for all users)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.public,
+                          size: 16,
+                          color: Colors.grey[600],
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Global API Usage',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Colors.grey[600],
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '${AppProvider.globalDailyRequests} / 240 requests',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Colors.grey[600],
+                                  ),
+                        ),
+                        Text(
+                          '${(AppProvider.globalRequestUsagePercentage * 100).toStringAsFixed(1)}%',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: AppProvider.isNearGlobalLimit
+                                        ? AppColors.warning
+                                        : Colors.grey[600],
+                                  ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    LinearProgressIndicator(
+                      value: AppProvider.globalRequestUsagePercentage,
+                      backgroundColor: Colors.grey[200],
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        AppProvider.globalRequestUsagePercentage < 0.8
+                            ? AppColors.success
+                            : AppProvider.globalRequestUsagePercentage < 0.9
+                                ? AppColors.warning
+                                : AppColors.error,
+                      ),
+                    ),
+                  ],
+                ),
+
+                if (questionsRemaining == 0) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.error.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          size: 16,
+                          color: AppColors.error,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Daily question limit reached. Resets at midnight.',
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: AppColors.error,
+                                    ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
+                if (AppProvider.isNearGlobalLimit) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.warning.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.warning_outlined,
+                          size: 16,
+                          color: AppColors.warning,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'High global usage detected. Service may be limited.',
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: AppColors.warning,
+                                    ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

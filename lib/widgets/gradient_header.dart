@@ -77,7 +77,7 @@ class GradientHeader extends StatelessWidget {
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(20),
                           child: Image.asset(
-                            'assets/icons/edubot_icon.png',
+                            'lib/assets/icons/appicon.png',
                             width: 35,
                             height: 35,
                             fit: BoxFit.cover,

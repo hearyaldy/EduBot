@@ -4,9 +4,10 @@ import '../screens/modern_home_screen.dart';
 import '../screens/scan_homework_screen.dart';
 import '../screens/ask_question_screen.dart';
 import '../screens/history_screen.dart';
-import '../screens/settings_screen.dart';
+import '../screens/settings_screen.dart' hide SizedBox;
 import '../widgets/glass_card.dart';
 import '../widgets/gradient_header.dart';
+import '../l10n/app_localizations.dart';
 
 class MainNavigator extends StatefulWidget {
   const MainNavigator({super.key});
@@ -34,6 +35,8 @@ class _MainNavigatorState extends State<MainNavigator> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       body: _screens[_currentIndex],
       bottomNavigationBar: Container(
@@ -57,31 +60,31 @@ class _MainNavigatorState extends State<MainNavigator> {
               fontSize: 11,
               fontWeight: FontWeight.w500,
             ),
-            items: const [
+            items: [
               BottomNavigationBarItem(
-                icon: Icon(Icons.home_outlined),
-                activeIcon: Icon(Icons.home),
-                label: 'Home',
+                icon: const Icon(Icons.home_outlined),
+                activeIcon: const Icon(Icons.home),
+                label: l10n.home,
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.camera_alt_outlined),
-                activeIcon: Icon(Icons.camera_alt),
-                label: 'Scan',
+                icon: const Icon(Icons.camera_alt_outlined),
+                activeIcon: const Icon(Icons.camera_alt),
+                label: l10n.scanHomework,
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.help_outline),
-                activeIcon: Icon(Icons.help),
-                label: 'Ask',
+                icon: const Icon(Icons.help_outline),
+                activeIcon: const Icon(Icons.help),
+                label: l10n.askQuestion,
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.bookmark_outline),
-                activeIcon: Icon(Icons.bookmark),
+                icon: const Icon(Icons.bookmark_outline),
+                activeIcon: const Icon(Icons.bookmark),
                 label: 'History',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.settings_outlined),
-                activeIcon: Icon(Icons.settings),
-                label: 'Settings',
+                icon: const Icon(Icons.settings_outlined),
+                activeIcon: const Icon(Icons.settings),
+                label: l10n.settings,
               ),
             ],
           ),

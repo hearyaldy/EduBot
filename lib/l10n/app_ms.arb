@@ -1,0 +1,173 @@
+{
+  "@@locale": "ms",
+  "appTitle": "EduBot - Pembantu Kerja Rumah AI",
+  "@appTitle": {
+    "description": "The title of the application"
+  },
+  
+  "settings": "Tetapan",
+  "@settings": {
+    "description": "Settings screen title"
+  },
+  
+  "settingsSubtitle": "Sesuaikan pengalaman pembelajaran anda",
+  "@settingsSubtitle": {
+    "description": "Settings screen subtitle"
+  },
+  
+  "account": "Akaun",
+  "@account": {
+    "description": "Account section title"
+  },
+  
+  "profile": "Profil",
+  "@profile": {
+    "description": "Profile menu item"
+  },
+  
+  "language": "Bahasa",
+  "@language": {
+    "description": "Language menu item"
+  },
+  
+  "selectLanguage": "Pilih Bahasa",
+  "@selectLanguage": {
+    "description": "Language selection dialog title"
+  },
+  
+  "notifications": "Pemberitahuan",
+  "@notifications": {
+    "description": "Notifications menu item"
+  },
+  
+  "preferences": "Keutamaan",
+  "@preferences": {
+    "description": "Preferences section title"
+  },
+  
+  "darkMode": "Mod Gelap",
+  "@darkMode": {
+    "description": "Dark mode toggle"
+  },
+  
+  "soundEffects": "Kesan Bunyi",
+  "@soundEffects": {
+    "description": "Sound effects toggle"
+  },
+  
+  "tutorialMode": "Mod Tutorial",
+  "@tutorialMode": {
+    "description": "Tutorial mode toggle"
+  },
+  
+  "about": "Mengenai",
+  "@about": {
+    "description": "About section title"
+  },
+  
+  "helpSupport": "Bantuan & Sokongan",
+  "@helpSupport": {
+    "description": "Help and support menu item"
+  },
+  
+  "version": "Versi",
+  "@version": {
+    "description": "App version label"
+  },
+  
+  "scanHomework": "Imbas Kerja Rumah",
+  "@scanHomework": {
+    "description": "Scan homework screen title"
+  },
+  
+  "askQuestion": "Tanya Soalan",
+  "@askQuestion": {
+    "description": "Ask question screen title"
+  },
+  
+  "dailyTips": "Petua Harian",
+  "@dailyTips": {
+    "description": "Daily tips screen title"
+  },
+  
+  "home": "Utama",
+  "@home": {
+    "description": "Home screen title"
+  },
+  
+  "camera": "Kamera",
+  "@camera": {
+    "description": "Camera option"
+  },
+  
+  "gallery": "Galeri",
+  "@gallery": {
+    "description": "Gallery option"
+  },
+  
+  "analyzing": "Menganalisis...",
+  "@analyzing": {
+    "description": "Analyzing status message"
+  },
+  
+  "typeYourQuestion": "Taip soalan anda di sini...",
+  "@typeYourQuestion": {
+    "description": "Question input placeholder"
+  },
+  
+  "send": "Hantar",
+  "@send": {
+    "description": "Send button text"
+  },
+  
+  "parentingTipsTitle": "Petua Keibubapaan",
+  "@parentingTipsTitle": {
+    "description": "Parenting tips card title"
+  },
+  
+  "dailyUsage": "Penggunaan Harian",
+  "@dailyUsage": {
+    "description": "Daily usage card title"
+  },
+  
+  "requests": "Permintaan",
+  "@requests": {
+    "description": "Requests label"
+  },
+  
+  "tokens": "Token",
+  "@tokens": {
+    "description": "Tokens label"
+  },
+  
+  "globalUsage": "Penggunaan Global",
+  "@globalUsage": {
+    "description": "Global usage label"
+  },
+  
+  "malayLanguageEnabled": "Sokongan bahasa Melayu diaktifkan! 🇲🇾",
+  "@malayLanguageEnabled": {
+    "description": "Malay language activation message"
+  },
+  
+  "languageComingSoon": "Sokongan {language} akan datang!",
+  "@languageComingSoon": {
+    "description": "Language coming soon message",
+    "placeholders": {
+      "language": {
+        "type": "String",
+        "example": "Spanish"
+      }
+    }
+  },
+  
+  "error": "Ralat",
+  "@error": {
+    "description": "Error message title"
+  },
+  
+  "tryAgain": "Cuba Lagi",
+  "@tryAgain": {
+    "description": "Try again button text"
+  }
+}

@@ -4,6 +4,7 @@ import '../providers/app_provider.dart';
 import '../utils/app_theme.dart';
 import '../widgets/gradient_header.dart';
 import '../core/theme/app_colors.dart';
+import '../l10n/app_localizations.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -29,13 +30,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: AppColors.gray50,
       body: Column(
         children: [
           GradientHeader(
-            title: 'Settings',
-            subtitle: 'Customize your learning experience',
+            title: l10n.settings,
+            subtitle: l10n.settingsSubtitle,
             gradientColors: [
               AppColors.settingsGradient1,
               AppColors.settingsGradient2,
@@ -133,7 +136,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         ListTile(
           leading: const Icon(Icons.language),
-          title: const Text('Language'),
+          title: Text(AppLocalizations.of(context)!.language),
           subtitle: Text(_selectedLanguage),
           trailing: const Icon(Icons.chevron_right),
           onTap: _showLanguageDialog,

@@ -20,8 +20,14 @@ class AudioService {
   }
 
   // Speak explanation text
-  static Future<void> speakExplanation(String text) async {
+  static Future<void> speakExplanation(String text,
+      {double? speechRate}) async {
     await initialize();
+
+    // Set speech rate if provided
+    if (speechRate != null) {
+      await _flutterTts!.setSpeechRate(speechRate);
+    }
 
     // Clean text for better speech
     String cleanText = _cleanTextForSpeech(text);

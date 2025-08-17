@@ -1,0 +1,173 @@
+{
+  "@@locale": "en",
+  "appTitle": "EduBot - AI Homework Helper",
+  "@appTitle": {
+    "description": "The title of the application"
+  },
+  
+  "settings": "Settings",
+  "@settings": {
+    "description": "Settings screen title"
+  },
+  
+  "settingsSubtitle": "Customize your learning experience",
+  "@settingsSubtitle": {
+    "description": "Settings screen subtitle"
+  },
+  
+  "account": "Account",
+  "@account": {
+    "description": "Account section title"
+  },
+  
+  "profile": "Profile",
+  "@profile": {
+    "description": "Profile menu item"
+  },
+  
+  "language": "Language",
+  "@language": {
+    "description": "Language menu item"
+  },
+  
+  "selectLanguage": "Select Language",
+  "@selectLanguage": {
+    "description": "Language selection dialog title"
+  },
+  
+  "notifications": "Notifications",
+  "@notifications": {
+    "description": "Notifications menu item"
+  },
+  
+  "preferences": "Preferences",
+  "@preferences": {
+    "description": "Preferences section title"
+  },
+  
+  "darkMode": "Dark Mode",
+  "@darkMode": {
+    "description": "Dark mode toggle"
+  },
+  
+  "soundEffects": "Sound Effects",
+  "@soundEffects": {
+    "description": "Sound effects toggle"
+  },
+  
+  "tutorialMode": "Tutorial Mode",
+  "@tutorialMode": {
+    "description": "Tutorial mode toggle"
+  },
+  
+  "about": "About",
+  "@about": {
+    "description": "About section title"
+  },
+  
+  "helpSupport": "Help & Support",
+  "@helpSupport": {
+    "description": "Help and support menu item"
+  },
+  
+  "version": "Version",
+  "@version": {
+    "description": "App version label"
+  },
+  
+  "scanHomework": "Scan Homework",
+  "@scanHomework": {
+    "description": "Scan homework screen title"
+  },
+  
+  "askQuestion": "Ask Question",
+  "@askQuestion": {
+    "description": "Ask question screen title"
+  },
+  
+  "dailyTips": "Daily Tips",
+  "@dailyTips": {
+    "description": "Daily tips screen title"
+  },
+  
+  "home": "Home",
+  "@home": {
+    "description": "Home screen title"
+  },
+  
+  "camera": "Camera",
+  "@camera": {
+    "description": "Camera option"
+  },
+  
+  "gallery": "Gallery",
+  "@gallery": {
+    "description": "Gallery option"
+  },
+  
+  "analyzing": "Analyzing...",
+  "@analyzing": {
+    "description": "Analyzing status message"
+  },
+  
+  "typeYourQuestion": "Type your question here...",
+  "@typeYourQuestion": {
+    "description": "Question input placeholder"
+  },
+  
+  "send": "Send",
+  "@send": {
+    "description": "Send button text"
+  },
+  
+  "parentingTipsTitle": "Parenting Tips",
+  "@parentingTipsTitle": {
+    "description": "Parenting tips card title"
+  },
+  
+  "dailyUsage": "Daily Usage",
+  "@dailyUsage": {
+    "description": "Daily usage card title"
+  },
+  
+  "requests": "Requests",
+  "@requests": {
+    "description": "Requests label"
+  },
+  
+  "tokens": "Tokens",
+  "@tokens": {
+    "description": "Tokens label"
+  },
+  
+  "globalUsage": "Global Usage",
+  "@globalUsage": {
+    "description": "Global usage label"
+  },
+  
+  "malayLanguageEnabled": "Malay language support enabled! 🇲🇾",
+  "@malayLanguageEnabled": {
+    "description": "Malay language activation message"
+  },
+  
+  "languageComingSoon": "{language} support coming soon!",
+  "@languageComingSoon": {
+    "description": "Language coming soon message",
+    "placeholders": {
+      "language": {
+        "type": "String",
+        "example": "Spanish"
+      }
+    }
+  },
+  
+  "error": "Error",
+  "@error": {
+    "description": "Error message title"
+  },
+  
+  "tryAgain": "Try Again",
+  "@tryAgain": {
+    "description": "Try again button text"
+  }
+}

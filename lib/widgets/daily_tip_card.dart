@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class DailyTipCard extends StatelessWidget {
   const DailyTipCard({super.key});
 
-  // List of helpful tips for parents
+  // List of helpful tips for parents (20 comprehensive tips)
   static const List<Map<String, String>> tips = [
     {
       'title': '📚 Stay Calm & Encouraging',
@@ -35,14 +35,83 @@ class DailyTipCard extends StatelessWidget {
       'content':
           'Show your child that learning never stops. Say "Let\'s figure this out together" instead of "I don\'t know."',
     },
+    {
+      'title': '🌟 Focus on Understanding',
+      'content':
+          'Ask "Do you understand why this works?" rather than just checking if the answer is correct. Deep understanding matters more than speed.',
+    },
+    {
+      'title': '🎨 Use Visual Learning',
+      'content':
+          'Draw pictures, use objects, or create diagrams. Many children learn better when they can see and touch concepts.',
+    },
+    {
+      'title': '💪 Build Confidence Daily',
+      'content':
+          'Start with something your child knows well before tackling harder problems. Success breeds more success.',
+    },
+    {
+      'title': '🗣️ Encourage Explanation',
+      'content':
+          'Ask your child to teach you what they learned. Teaching others is one of the best ways to reinforce knowledge.',
+    },
+    {
+      'title': '📝 Make Mistakes Learning Opportunities',
+      'content':
+          'When errors happen, say "Great! Now we know what doesn\'t work. What should we try next?" Mistakes are part of learning.',
+    },
+    {
+      'title': '🏠 Create a Learning Environment',
+      'content':
+          'Set up a quiet, well-lit space for homework. Remove distractions and have supplies ready to help focus.',
+    },
+    {
+      'title': '⭐ Use Real-World Examples',
+      'content':
+          'Connect homework to daily life. "We use fractions when cooking!" helps make abstract concepts concrete.',
+    },
+    {
+      'title': '🔄 Practice Patience',
+      'content':
+          'Learning takes time. Some days will be harder than others. Your patience teaches your child that struggling is normal.',
+    },
+    {
+      'title': '🎯 Set Small Goals',
+      'content':
+          'Instead of "finish all homework," try "let\'s solve these 3 problems first." Small achievements feel manageable.',
+    },
+    {
+      'title': '🌈 Find Their Learning Style',
+      'content':
+          'Some kids learn by listening, others by doing. Notice what works best for your child and adapt your help accordingly.',
+    },
+    {
+      'title': '🤔 Ask "What If" Questions',
+      'content':
+          'Encourage critical thinking with questions like "What if we tried this differently?" or "What patterns do you notice?"',
+    },
+    {
+      'title': '💝 Show Interest in Their Work',
+      'content':
+          'Ask about what they\'re learning, not just if homework is done. "Tell me about this math concept" shows you value learning.',
+    },
+    {
+      'title': '🎵 Make Learning Fun',
+      'content':
+          'Use songs, games, or stories when appropriate. Fun memories help children remember concepts better.',
+    },
+    {
+      'title': '🏆 Celebrate Learning Process',
+      'content':
+          'Praise the journey: "You didn\'t give up when it got hard!" Values effort over natural ability and builds resilience.',
+    },
   ];
 
   @override
   Widget build(BuildContext context) {
     // Get today's tip based on the day of the year
-    final dayOfYear = DateTime.now()
-        .difference(DateTime(DateTime.now().year, 1, 1))
-        .inDays;
+    final dayOfYear =
+        DateTime.now().difference(DateTime(DateTime.now().year, 1, 1)).inDays;
     final todayTip = tips[dayOfYear % tips.length];
 
     return Card(
@@ -64,9 +133,9 @@ class DailyTipCard extends StatelessWidget {
                 Text(
                   'Daily Tip',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
                 ),
               ],
             ),

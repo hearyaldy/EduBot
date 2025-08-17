@@ -10,10 +10,10 @@ class AIService {
   static String get _apiKey => _config.geminiApiKey;
   static int get _maxTokens => _config.geminiMaxTokens;
   static double get _temperature => _config.geminiTemperature;
-  
+
   // Initialize Gemini model
   late final GenerativeModel _geminiModel;
-  
+
   // Constructor to initialize the model
   AIService() {
     _geminiModel = GenerativeModel(
@@ -59,17 +59,63 @@ Format your response as JSON with the following structure:
 Remember: You're helping a parent help their child. Be supportive, clear, and never condescending.
 ''';
 
-  Future<Explanation> explainProblem(String question, String questionId) async {
+  String _getLanguageInstruction(String language) {
+    switch (language.toLowerCase()) {
+      case 'malay':
+        return '''
+Please respond in Bahasa Malaysia (Malay). Use simple, clear Malay language that parents can easily understand. 
+Provide explanations, tips, and examples in Malay while maintaining the same helpful and encouraging tone.
+Format your response as JSON with Malay text in all fields.
+''';
+      case 'spanish':
+        return '''
+Please respond in Spanish. Use simple, clear Spanish that parents can easily understand.
+Format your response as JSON with Spanish text in all fields.
+''';
+      case 'french':
+        return '''
+Please respond in French. Use simple, clear French that parents can easily understand.
+Format your response as JSON with French text in all fields.
+''';
+      case 'german':
+        return '''
+Please respond in German. Use simple, clear German that parents can easily understand.
+Format your response as JSON with German text in all fields.
+''';
+      case 'chinese':
+        return '''
+Please respond in Simplified Chinese. Use simple, clear Chinese that parents can easily understand.
+Format your response as JSON with Chinese text in all fields.
+''';
+      case 'japanese':
+        return '''
+Please respond in Japanese. Use simple, clear Japanese that parents can easily understand.
+Format your response as JSON with Japanese text in all fields.
+''';
+      default:
+        return '''
+Please respond in English. Use simple, clear English that parents can easily understand.
+Format your response as JSON with English text in all fields.
+''';
+    }
+  }
+
+  Future<Explanation> explainProblem(String question, String questionId,
+      {String language = 'English'}) async {
     try {
       if (!isConfigured) {
-        throw Exception('Gemini API key is not configured. Please check your .env file.');
+        throw Exception(
+            'Gemini API key is not configured. Please check your .env file.');
       }
 
+      // Create language-specific instruction
+      final languageInstruction = _getLanguageInstruction(language);
+
       // Create the prompt for the user question
-      final prompt = question;
-      
+      final prompt = '$languageInstruction\n\nQuestion: $question';
+
       if (_config.isDebugMode) {
-        print('Sending question to Gemini: $question');
+        print('Sending question to Gemini: $question (Language: $language)');
       }
 
       // Generate content using Gemini
@@ -109,13 +155,14 @@ Remember: You're helping a parent help their child. Be supportive, clear, and ne
             print('JSON Parsing Error: $jsonError');
             print('Content that failed to parse: $content');
           }
-          
+
           return Explanation(
             questionId: questionId,
             question: question,
             answer: content, // Use the raw content as answer
             steps: [],
-            parentFriendlyTip: "The AI provided a response, but it wasn't in the expected format.",
+            parentFriendlyTip:
+                "The AI provided a response, but it wasn't in the expected format.",
             realWorldExample: null,
             subject: 'General',
             difficulty: DifficultyLevel.medium,
@@ -128,30 +175,36 @@ Remember: You're helping a parent help their child. Be supportive, clear, and ne
       if (_config.isDebugMode) {
         print('AI Service Error: $e');
       }
-      
+
       // Return a fallback explanation with the actual error
-      return _createFallbackExplanation(question, questionId, error: e.toString());
+      return _createFallbackExplanation(question, questionId,
+          error: e.toString());
     }
   }
 
-  Explanation _createFallbackExplanation(String question, String questionId, {String? error}) {
+  Explanation _createFallbackExplanation(String question, String questionId,
+      {String? error}) {
     final isApiError = error?.contains('API') == true;
     final isConfigError = error?.contains('not configured') == true;
-    
+
     String fallbackAnswer;
     String fallbackDescription;
-    
+
     if (isConfigError) {
       fallbackAnswer = "OpenAI API is not properly configured.";
-      fallbackDescription = "The OpenAI API key is missing or invalid. Please check your .env file and ensure OPENAI_API_KEY is set with a valid key.";
+      fallbackDescription =
+          "The OpenAI API key is missing or invalid. Please check your .env file and ensure OPENAI_API_KEY is set with a valid key.";
     } else if (isApiError) {
       fallbackAnswer = "There was an issue with the AI service.";
-      fallbackDescription = "The AI service returned an error. This could be due to API limits, invalid requests, or temporary service issues.";
+      fallbackDescription =
+          "The AI service returned an error. This could be due to API limits, invalid requests, or temporary service issues.";
     } else {
-      fallbackAnswer = "I'm having trouble connecting to our AI service right now. Please try again in a moment.";
-      fallbackDescription = "Our AI explanation service is temporarily unavailable. This could be due to network connectivity or high demand.";
+      fallbackAnswer =
+          "I'm having trouble connecting to our AI service right now. Please try again in a moment.";
+      fallbackDescription =
+          "Our AI explanation service is temporarily unavailable. This could be due to network connectivity or high demand.";
     }
-    
+
     return Explanation(
       questionId: questionId,
       question: question,
@@ -161,7 +214,7 @@ Remember: You're helping a parent help their child. Be supportive, clear, and ne
           stepNumber: 1,
           title: isConfigError ? "Configuration Error" : "Service Unavailable",
           description: fallbackDescription,
-          tip: isConfigError 
+          tip: isConfigError
               ? "Ask the app developer to properly configure the OpenAI API key."
               : "Don't worry! You can try asking the question again, or break it down into smaller parts.",
           isKeyStep: true,
