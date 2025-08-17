@@ -28,7 +28,6 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
   bool _isListening = false;
   String _partialSpeech = '';
   String? _selectedSubject;
-  Explanation? _currentExplanation;
 
   final List<String> _subjects = [
     'Math',
@@ -111,8 +110,11 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
 
     setState(() {
       _isLoading = true;
-      _currentExplanation = null;
     });
+
+    // Clear current explanation from provider
+    final provider = Provider.of<AppProvider>(context, listen: false);
+    provider.clearCurrentExplanation();
 
     try {
       final question = HomeworkQuestion(
@@ -134,6 +136,9 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
         await provider.saveQuestionWithExplanation(question, explanation);
         await provider.incrementDailyQuestions();
 
+        // Set current explanation in provider for viewing
+        provider.setCurrentExplanation(explanation);
+
         // Estimate token usage (rough approximation: 4 characters per token)
         final questionTokens = (question.question.length / 4).ceil();
         final answerTokens = (explanation.answer.length / 4).ceil();
@@ -150,7 +155,6 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
       }
 
       setState(() {
-        _currentExplanation = explanation;
         _isLoading = false;
       });
 
@@ -196,8 +200,12 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
     setState(() {
       _questionController.clear();
       _selectedSubject = null;
-      _currentExplanation = null;
     });
+
+    // Clear current explanation from provider
+    final provider = Provider.of<AppProvider>(context, listen: false);
+    provider.clearCurrentExplanation();
+
     _questionFocusNode.requestFocus();
   }
 
@@ -205,47 +213,52 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.gray50,
-      body: Column(
-        children: [
-          GradientHeader(
-            title: 'Ask a Question',
-            subtitle: 'Get help with any homework problem',
-            gradientColors: [
-              AppColors.askGradient1,
-              AppColors.askGradient2,
-              AppColors.askGradient3,
-            ],
-            child: _currentExplanation != null
-                ? Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: ModernButton(
-                      text: 'Ask New Question',
-                      onPressed: _clearQuestion,
-                      icon: Icons.refresh,
-                      backgroundColor: Colors.white.withValues(alpha: 0.2),
-                      textColor: Colors.white,
-                    ),
-                  )
-                : null,
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildQuestionInput(),
-                  const SizedBox(height: 16),
-                  _buildTokenUsageCard(),
-                  const SizedBox(height: 24),
-                  if (_isLoading) _buildLoadingWidget(),
-                  if (_currentExplanation != null) _buildExplanationWidget(),
+      body: Consumer<AppProvider>(
+        builder: (context, provider, child) {
+          return Column(
+            children: [
+              GradientHeader(
+                title: 'Ask a Question',
+                subtitle: 'Get help with any homework problem',
+                gradientColors: [
+                  AppColors.askGradient1,
+                  AppColors.askGradient2,
+                  AppColors.askGradient3,
                 ],
+                child: provider.currentExplanation != null
+                    ? Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: ModernButton(
+                          text: 'Ask New Question',
+                          onPressed: _clearQuestion,
+                          icon: Icons.refresh,
+                          backgroundColor: Colors.white.withValues(alpha: 0.2),
+                          textColor: Colors.white,
+                        ),
+                      )
+                    : null,
               ),
-            ),
-          ),
-          _buildBottomActions(),
-        ],
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildQuestionInput(),
+                      const SizedBox(height: 16),
+                      _buildTokenUsageCard(),
+                      const SizedBox(height: 24),
+                      if (_isLoading) _buildLoadingWidget(),
+                      if (provider.currentExplanation != null)
+                        _buildExplanationWidget(),
+                    ],
+                  ),
+                ),
+              ),
+              _buildBottomActions(),
+            ],
+          );
+        },
       ),
     );
   }
@@ -705,86 +718,94 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
   }
 
   Widget _buildExplanationWidget() {
-    final explanation = _currentExplanation!;
+    return Consumer<AppProvider>(
+      builder: (context, provider, child) {
+        final explanation = provider.currentExplanation!;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Answer Card
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Answer Card
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.lightbulb, color: AppTheme.success, size: 24),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Answer',
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w600),
-                      ),
+                    Row(
+                      children: [
+                        Icon(Icons.lightbulb,
+                            color: AppTheme.success, size: 24),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Answer',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.volume_up),
+                          onPressed: () => _playAudio(explanation.answer),
+                          tooltip: 'Play audio',
+                        ),
+                      ],
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.volume_up),
-                      onPressed: () => _playAudio(explanation.answer),
-                      tooltip: 'Play audio',
+                    const SizedBox(height: 8),
+                    Text(
+                      explanation.answer,
+                      style: Theme.of(
+                        context,
+                      )
+                          .textTheme
+                          .bodyLarge
+                          ?.copyWith(fontWeight: FontWeight.w500),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  explanation.answer,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
-                ),
-              ],
+              ),
             ),
-          ),
-        ),
 
-        const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-        // Steps
-        if (explanation.steps.isNotEmpty) ...[
-          Text(
-            'Step-by-Step Explanation',
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 12),
-          ...explanation.steps.map((step) => _buildStepCard(step)),
-        ],
+            // Steps
+            if (explanation.steps.isNotEmpty) ...[
+              Text(
+                'Step-by-Step Explanation',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 12),
+              ...explanation.steps.map((step) => _buildStepCard(step)),
+            ],
 
-        const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-        // Parent Tip
-        if (explanation.parentFriendlyTip?.isNotEmpty == true)
-          _buildTipCard(
-            'Parent Tip',
-            explanation.parentFriendlyTip!,
-            Icons.favorite,
-            AppTheme.accent,
-          ),
+            // Parent Tip
+            if (explanation.parentFriendlyTip?.isNotEmpty == true)
+              _buildTipCard(
+                'Parent Tip',
+                explanation.parentFriendlyTip!,
+                Icons.favorite,
+                AppTheme.accent,
+              ),
 
-        const SizedBox(height: 12),
+            const SizedBox(height: 12),
 
-        // Real World Example
-        if (explanation.realWorldExample?.isNotEmpty == true)
-          _buildTipCard(
-            'Real World Connection',
-            explanation.realWorldExample!,
-            Icons.public,
-            AppTheme.info,
-          ),
-      ],
+            // Real World Example
+            if (explanation.realWorldExample?.isNotEmpty == true)
+              _buildTipCard(
+                'Real World Connection',
+                explanation.realWorldExample!,
+                Icons.public,
+                AppTheme.info,
+              ),
+          ],
+        );
+      },
     );
   }
 
@@ -904,39 +925,45 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
   }
 
   Widget _buildBottomActions() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        boxShadow: [AppTheme.subtleShadow],
-      ),
-      child: SafeArea(
-        child: Row(
-          children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: _isLoading ? null : _submitQuestion,
-                icon: _isLoading
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.send),
-                label: Text(_isLoading ? 'Getting Answer...' : 'Get Answer'),
-              ),
+    return Consumer<AppProvider>(
+      builder: (context, provider, child) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            boxShadow: [AppTheme.subtleShadow],
+          ),
+          child: SafeArea(
+            child: Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _isLoading ? null : _submitQuestion,
+                    icon: _isLoading
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.send),
+                    label:
+                        Text(_isLoading ? 'Getting Answer...' : 'Get Answer'),
+                  ),
+                ),
+                if (provider.currentExplanation != null) ...[
+                  const SizedBox(width: 12),
+                  IconButton.filledTonal(
+                    onPressed: () =>
+                        _playAudio(provider.currentExplanation!.answer),
+                    icon: const Icon(Icons.volume_up),
+                    tooltip: 'Play answer',
+                  ),
+                ],
+              ],
             ),
-            if (_currentExplanation != null) ...[
-              const SizedBox(width: 12),
-              IconButton.filledTonal(
-                onPressed: () => _playAudio(_currentExplanation!.answer),
-                icon: const Icon(Icons.volume_up),
-                tooltip: 'Play answer',
-              ),
-            ],
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

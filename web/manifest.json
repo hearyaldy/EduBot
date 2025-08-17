@@ -1,11 +1,11 @@
 {
-    "name": "edubot",
-    "short_name": "edubot",
+    "name": "EduBot",
+    "short_name": "EduBot",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#hexcode",
     "theme_color": "#hexcode",
-    "description": "A new Flutter project.",
+    "description": "AI-powered homework assistant for students.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

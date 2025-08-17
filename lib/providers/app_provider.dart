@@ -289,8 +289,9 @@ class AppProvider with ChangeNotifier {
 
   Future<void> removeQuestion(String questionId) async {
     try {
-      // Remove from storage
+      // Remove question and its explanation from storage
       await _storage.deleteQuestion(questionId);
+      await _storage.deleteExplanation(questionId);
 
       // Update local list
       _savedQuestions.removeWhere((q) => q.id == questionId);

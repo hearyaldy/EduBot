@@ -8,6 +8,7 @@ import '../providers/app_provider.dart';
 import '../models/homework_question.dart';
 import '../models/explanation.dart';
 import '../services/audio_service.dart';
+import 'explanation_detail_screen.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -176,62 +177,399 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _buildQuestionDetails(
       BuildContext context, HomeworkQuestion question, AppProvider provider) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Full question text
+    return FutureBuilder<Explanation?>(
+      future: provider.getExplanationForQuestion(question.id),
+      builder: (context, snapshot) {
+        return Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Full question text
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.help_outline,
+                            color: AppColors.primary, size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Question',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      question.question,
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Explanation content
+              if (snapshot.connectionState == ConnectionState.waiting)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(20),
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+              else if (snapshot.hasError)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.red[200]!),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.error_outline,
+                          color: Colors.red[700], size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Failed to load explanation',
+                          style: TextStyle(color: Colors.red[700]),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else if (snapshot.hasData && snapshot.data != null)
+                _buildExplanationContent(snapshot.data!)
+              else
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange[200]!),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline,
+                          color: Colors.orange[700], size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'No explanation available for this question',
+                          style: TextStyle(color: Colors.orange[700]),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              const SizedBox(height: 16),
+
+              // Action buttons
+              Column(
+                children: [
+                  // First row - View Details and Play Answer (when explanation exists)
+                  if (snapshot.hasData && snapshot.data != null)
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    ExplanationDetailScreen(question: question),
+                              ),
+                            ),
+                            icon: const Icon(Icons.visibility, size: 18),
+                            label: const Text('View Details'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () =>
+                                _playQuestionAudio(snapshot.data!.answer),
+                            icon: const Icon(Icons.volume_up, size: 18),
+                            label: const Text('Play Answer'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green[50],
+                              foregroundColor: Colors.green[700],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  if (snapshot.hasData && snapshot.data != null)
+                    const SizedBox(height: 8),
+                  // Second row - Play Question and Delete
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () =>
+                              _playQuestionAudio(question.question),
+                          icon: const Icon(Icons.volume_up, size: 18),
+                          label: const Text('Play Question'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.grey[100],
+                            foregroundColor: Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () =>
+                              _deleteQuestion(context, question, provider),
+                          icon: const Icon(Icons.delete, size: 18),
+                          label: const Text('Delete'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red[50],
+                            foregroundColor: Colors.red[700],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildExplanationContent(Explanation explanation) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Answer section
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.green[50],
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.green[200]!),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.lightbulb_outline,
+                      color: Colors.green[700], size: 18),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Answer',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green[700],
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                explanation.answer,
+                style: const TextStyle(fontSize: 14, height: 1.4),
+              ),
+            ],
+          ),
+        ),
+
+        // Steps section (if available)
+        if (explanation.steps.isNotEmpty) ...[
+          const SizedBox(height: 12),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.grey[50],
+              color: Colors.blue[50],
               borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.blue[200]!),
             ),
-            child: Text(
-              question.question,
-              style: const TextStyle(fontSize: 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.format_list_numbered,
+                        color: Colors.blue[700], size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Steps',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue[700],
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                ...explanation.steps.take(3).map((step) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 20,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              color: step.isKeyStep
+                                  ? Colors.blue[700]
+                                  : Colors.grey[600],
+                              shape: BoxShape.circle,
+                            ),
+                            child: Center(
+                              child: Text(
+                                '${step.stepNumber}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  step.title,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                Text(
+                                  step.description,
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    )),
+                if (explanation.steps.length > 3) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    '... and ${explanation.steps.length - 3} more steps',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.blue[600],
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ],
             ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // Action buttons
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () =>
-                      _viewExplanation(context, question, provider),
-                  icon: const Icon(Icons.visibility, size: 18),
-                  label: const Text('View Answer'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              ElevatedButton.icon(
-                onPressed: () => _playQuestionAudio(question.question),
-                icon: const Icon(Icons.volume_up, size: 18),
-                label: const Text('Play'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey[100],
-                  foregroundColor: Colors.grey[700],
-                ),
-              ),
-              const SizedBox(width: 12),
-              ElevatedButton.icon(
-                onPressed: () => _deleteQuestion(context, question, provider),
-                icon: const Icon(Icons.delete, size: 18),
-                label: const Text('Delete'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red[50],
-                  foregroundColor: Colors.red[700],
-                ),
-              ),
-            ],
           ),
         ],
-      ),
+
+        // Parent tip (if available)
+        if (explanation.parentFriendlyTip?.isNotEmpty == true) ...[
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.purple[50],
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.purple[200]!),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.family_restroom,
+                        color: Colors.purple[700], size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Parent Tip',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.purple[700],
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  explanation.parentFriendlyTip!,
+                  style: const TextStyle(fontSize: 14, height: 1.4),
+                ),
+              ],
+            ),
+          ),
+        ],
+
+        // Real world example (if available)
+        if (explanation.realWorldExample?.isNotEmpty == true) ...[
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.orange[50],
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.orange[200]!),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.public, color: Colors.orange[700], size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Real World Example',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.orange[700],
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  explanation.realWorldExample!,
+                  style: const TextStyle(fontSize: 14, height: 1.4),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
     );
   }
 
@@ -244,114 +582,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
       case QuestionType.voice:
         return Colors.green;
     }
-  }
-
-  Future<void> _viewExplanation(BuildContext context, HomeworkQuestion question,
-      AppProvider provider) async {
-    // Show loading
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
-
-    try {
-      final explanation = await provider.getExplanationForQuestion(question.id);
-
-      if (!mounted) return;
-      Navigator.of(context).pop(); // Close loading
-
-      if (explanation != null) {
-        _showExplanationDialog(context, question, explanation);
-      } else {
-        _showSnackBar('No explanation found for this question', isError: true);
-      }
-    } catch (e) {
-      if (!mounted) return;
-      Navigator.of(context).pop(); // Close loading
-      _showSnackBar('Failed to load explanation: $e', isError: true);
-    }
-  }
-
-  void _showExplanationDialog(BuildContext context, HomeworkQuestion question,
-      Explanation explanation) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Answer: ${question.subject ?? 'General'}'),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Question:',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey[700],
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(question.question),
-              const SizedBox(height: 16),
-              Text(
-                'Answer:',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey[700],
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(explanation.answer),
-              if (explanation.parentFriendlyTip?.isNotEmpty == true) ...[
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.lightbulb,
-                              color: AppColors.primary, size: 16),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Parent Tip',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(explanation.parentFriendlyTip!),
-                    ],
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-          ElevatedButton.icon(
-            onPressed: () => _playQuestionAudio(explanation.answer),
-            icon: const Icon(Icons.volume_up, size: 18),
-            label: const Text('Play Answer'),
-          ),
-        ],
-      ),
-    );
   }
 
   Future<void> _playQuestionAudio(String text) async {

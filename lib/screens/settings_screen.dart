@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../utils/app_theme.dart';
+import '../utils/environment_config.dart';
 import '../widgets/gradient_header.dart';
 import '../core/theme/app_colors.dart';
 import '../l10n/app_localizations.dart';
@@ -18,6 +18,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificationsEnabled = true;
   bool _audioEnabled = true;
   double _speechRate = 0.5;
+
+  // Get superadmin password from environment config
+  String get _superadminPassword =>
+      EnvironmentConfig.instance.superadminPassword;
 
   final List<String> _languages = [
     'English',
@@ -342,12 +346,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   size: 24,
                 ),
                 const SizedBox(width: 12),
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: isWarning ? AppTheme.error : null,
-                      ),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: isWarning ? AppTheme.error : null,
+                        ),
+                  ),
                 ),
               ],
             ),
@@ -363,11 +369,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
-        // Only show superadmin section if already enabled or in debug mode
-        if (!provider.isSuperadmin && !kDebugMode) {
-          return const SizedBox.shrink();
-        }
-
         return _buildSection(
           title: l10n.developerSettings,
           icon: Icons.admin_panel_settings,
@@ -378,7 +379,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               value: provider.isSuperadmin,
               onChanged: (value) {
                 if (value) {
-                  _showSuperadminConfirmationDialog(provider);
+                  _showPasswordDialog(provider);
                 } else {
                   provider.setSuperadmin(false);
                   _showSnackBar(l10n.superadminDisabled);
@@ -421,20 +422,104 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  void _showPasswordDialog(AppProvider provider) {
+    final TextEditingController passwordController = TextEditingController();
+    bool isPasswordVisible = false;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Admin Password'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.lock, color: Colors.orange, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: const Text(
+                        'Enter the administrator password to enable superadmin mode:'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: passwordController,
+                obscureText: !isPasswordVisible,
+                decoration: InputDecoration(
+                  labelText: 'Password',
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      isPasswordVisible
+                          ? Icons.visibility_off
+                          : Icons.visibility,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        isPasswordVisible = !isPasswordVisible;
+                      });
+                    },
+                  ),
+                ),
+                onSubmitted: (value) {
+                  if (value == _superadminPassword) {
+                    Navigator.pop(context);
+                    _showSuperadminConfirmationDialog(provider);
+                  } else {
+                    _showSnackBar('Incorrect password');
+                  }
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (passwordController.text == _superadminPassword) {
+                  Navigator.pop(context);
+                  _showSuperadminConfirmationDialog(provider);
+                } else {
+                  _showSnackBar('Incorrect password');
+                }
+              },
+              style:
+                  ElevatedButton.styleFrom(backgroundColor: AppTheme.warning),
+              child: const Text('Verify'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showSuperadminConfirmationDialog(AppProvider provider) {
     final l10n = AppLocalizations.of(context)!;
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Row(
+        title: Text(l10n.enableSuperadminMode),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.warning, color: Colors.orange),
-            const SizedBox(width: 8),
-            Text(l10n.enableSuperadminMode),
+            Row(
+              children: [
+                const Icon(Icons.warning, color: Colors.orange, size: 24),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(l10n.superadminWarning),
+                ),
+              ],
+            ),
           ],
         ),
-        content: Text(l10n.superadminWarning),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),

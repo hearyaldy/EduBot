@@ -42,6 +42,10 @@ class EnvironmentConfig {
   bool get enableLogging =>
       _parseBool(dotenv.env['ENABLE_LOGGING'], defaultValue: true);
 
+  // Security Configuration
+  String get superadminPassword =>
+      dotenv.env['SUPERADMIN_PASSWORD'] ?? 'admin123';
+
   // Feature Flags
   bool get enablePremiumFeatures =>
       _parseBool(dotenv.env['ENABLE_PREMIUM_FEATURES'], defaultValue: true);
@@ -81,7 +85,7 @@ class EnvironmentConfig {
   // Validation
   bool get isGeminiConfigured =>
       geminiApiKey.isNotEmpty && geminiApiKey != 'your_gemini_api_key_here';
-  
+
   // Legacy validation
   bool get isOpenAIConfigured =>
       openAIApiKey.isNotEmpty && openAIApiKey != 'your_openai_api_key_here';

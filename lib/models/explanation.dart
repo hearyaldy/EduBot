@@ -23,8 +23,8 @@ class Explanation {
     DateTime? createdAt,
     required this.subject,
     this.difficulty = DifficultyLevel.medium,
-  }) : id = id ?? const Uuid().v4(),
-       createdAt = createdAt ?? DateTime.now();
+  })  : id = id ?? const Uuid().v4(),
+        createdAt = createdAt ?? DateTime.now();
 
   // Convert to JSON for storage
   Map<String, dynamic> toJson() {
@@ -42,22 +42,30 @@ class Explanation {
     };
   }
 
-  // Create from JSON
-  factory Explanation.fromJson(Map<String, dynamic> json) {
+  // Create from JSON - safely handles both Map<String, dynamic> and Map<dynamic, dynamic>
+  factory Explanation.fromJson(dynamic json) {
+    // Convert any map to Map<String, dynamic>
+    Map<String, dynamic> safeJson;
+    if (json is Map<String, dynamic>) {
+      safeJson = json;
+    } else {
+      safeJson = Map<String, dynamic>.from(json);
+    }
+
     return Explanation(
-      id: json['id'],
-      questionId: json['questionId'],
-      question: json['question'],
-      answer: json['answer'],
-      steps: (json['steps'] as List)
+      id: safeJson['id'],
+      questionId: safeJson['questionId'],
+      question: safeJson['question'],
+      answer: safeJson['answer'],
+      steps: (safeJson['steps'] as List)
           .map((step) => ExplanationStep.fromJson(step))
           .toList(),
-      parentFriendlyTip: json['parentFriendlyTip'],
-      realWorldExample: json['realWorldExample'],
-      createdAt: DateTime.parse(json['createdAt']),
-      subject: json['subject'],
+      parentFriendlyTip: safeJson['parentFriendlyTip'],
+      realWorldExample: safeJson['realWorldExample'],
+      createdAt: DateTime.parse(safeJson['createdAt']),
+      subject: safeJson['subject'],
       difficulty: DifficultyLevel.values.firstWhere(
-        (e) => e.name == json['difficulty'],
+        (e) => e.name == safeJson['difficulty'],
         orElse: () => DifficultyLevel.medium,
       ),
     );
@@ -94,13 +102,21 @@ class ExplanationStep {
     };
   }
 
-  factory ExplanationStep.fromJson(Map<String, dynamic> json) {
+  factory ExplanationStep.fromJson(dynamic json) {
+    // Convert any map to Map<String, dynamic>
+    Map<String, dynamic> safeJson;
+    if (json is Map<String, dynamic>) {
+      safeJson = json;
+    } else {
+      safeJson = Map<String, dynamic>.from(json);
+    }
+
     return ExplanationStep(
-      stepNumber: json['stepNumber'],
-      title: json['title'],
-      description: json['description'],
-      tip: json['tip'],
-      isKeyStep: json['isKeyStep'] ?? false,
+      stepNumber: safeJson['stepNumber'],
+      title: safeJson['title'],
+      description: safeJson['description'],
+      tip: safeJson['tip'],
+      isKeyStep: safeJson['isKeyStep'] ?? false,
     );
   }
 }
