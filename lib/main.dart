@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'widgets/main_navigator.dart';
+import 'screens/splash_screen.dart';
 import 'providers/app_provider.dart';
 import 'services/storage_service.dart';
 import 'utils/app_theme.dart';
@@ -93,10 +94,46 @@ class EduBotApp extends StatelessWidget {
               elevatedButtonTheme: AppTheme.lightTheme.elevatedButtonTheme,
               inputDecorationTheme: AppTheme.lightTheme.inputDecorationTheme,
             ),
-            home: const MainNavigator(),
+            home: const AppNavigator(),
           );
         },
       ),
+    );
+  }
+}
+
+class AppNavigator extends StatefulWidget {
+  const AppNavigator({super.key});
+
+  @override
+  State<AppNavigator> createState() => _AppNavigatorState();
+}
+
+class _AppNavigatorState extends State<AppNavigator> {
+  bool _showSplash = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _hideSplashAfterDelay();
+  }
+
+  void _hideSplashAfterDelay() async {
+    await Future.delayed(const Duration(milliseconds: 4000));
+    if (mounted) {
+      setState(() {
+        _showSplash = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 500),
+      child: _showSplash 
+        ? const SplashScreen()
+        : const MainNavigator(),
     );
   }
 }
