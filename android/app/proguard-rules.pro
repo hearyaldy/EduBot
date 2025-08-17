@@ -21,6 +21,14 @@
 -keep class io.flutter.** { *; }
 -keep class io.flutter.embedding.** { *; }
 
+# Keep Google Play Core classes (for Flutter's deferred components)
+-keep class com.google.android.play.core.** { *; }
+-dontwarn com.google.android.play.core.**
+
 # Keep all ML Kit related dependencies
 -dontwarn com.google.mlkit.**
 -dontwarn com.google.android.gms.**
+
+# Additional rules for Flutter Play Store integration
+-keep class io.flutter.embedding.engine.deferredcomponents.** { *; }
+-keep class io.flutter.embedding.android.FlutterPlayStoreSplitApplication { *; }
