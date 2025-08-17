@@ -5,6 +5,7 @@ import '../models/explanation.dart';
 import '../providers/app_provider.dart';
 import '../services/ai_service.dart';
 import '../services/audio_service.dart';
+import '../services/voice_input_service.dart';
 import '../utils/app_theme.dart';
 import '../widgets/gradient_header.dart';
 import '../widgets/modern_button.dart';
@@ -21,8 +22,11 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
   final TextEditingController _questionController = TextEditingController();
   final FocusNode _questionFocusNode = FocusNode();
   final AIService _aiService = AIService();
+  final VoiceInputService _voiceService = VoiceInputService();
 
   bool _isLoading = false;
+  bool _isListening = false;
+  String _partialSpeech = '';
   String? _selectedSubject;
   Explanation? _currentExplanation;
 
@@ -40,7 +44,62 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
   void dispose() {
     _questionController.dispose();
     _questionFocusNode.dispose();
+    _voiceService.dispose();
     super.dispose();
+  }
+
+  Future<void> _startVoiceInput() async {
+    try {
+      final hasPermission = await _voiceService.hasPermission();
+      if (!hasPermission) {
+        final granted = await _voiceService.requestPermission();
+        if (!granted) {
+          _showSnackBar('Microphone permission is required for voice input', isError: true);
+          return;
+        }
+      }
+
+      setState(() {
+        _isListening = true;
+        _partialSpeech = '';
+      });
+
+      await _voiceService.startListening(
+        onResult: (finalText) {
+          setState(() {
+            _questionController.text = finalText;
+            _isListening = false;
+            _partialSpeech = '';
+          });
+          _showSnackBar('Voice input completed!');
+        },
+        onPartialResult: (partialText) {
+          setState(() {
+            _partialSpeech = partialText;
+          });
+        },
+        onListeningComplete: () {
+          setState(() {
+            _isListening = false;
+            _partialSpeech = '';
+          });
+        },
+      );
+    } catch (e) {
+      setState(() {
+        _isListening = false;
+        _partialSpeech = '';
+      });
+      _showSnackBar('Voice input failed: ${e.toString()}', isError: true);
+    }
+  }
+
+  Future<void> _stopVoiceInput() async {
+    await _voiceService.stopListening();
+    setState(() {
+      _isListening = false;
+      _partialSpeech = '';
+    });
   }
 
   Future<void> _submitQuestion() async {
@@ -66,9 +125,11 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
         question.id,
       );
 
-      // Add to provider
+      // Add to provider with persistent storage
       if (mounted) {
-        Provider.of<AppProvider>(context, listen: false).saveQuestion(question);
+        final provider = Provider.of<AppProvider>(context, listen: false);
+        await provider.saveQuestionWithExplanation(question, explanation);
+        await provider.incrementDailyQuestions();
       }
 
       setState(() {
@@ -197,24 +258,131 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
 
             const SizedBox(height: 16),
 
-            // Question Input
-            TextField(
-              controller: _questionController,
-              focusNode: _questionFocusNode,
-              maxLines: 4,
-              decoration: InputDecoration(
-                hintText:
-                    'Type your question here...\n\nFor example:\n• How do I solve 2x + 5 = 15?\n• What is photosynthesis?\n• How do I find the main idea in a paragraph?',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+            // Question Input with Voice
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: _questionController,
+                  focusNode: _questionFocusNode,
+                  maxLines: 4,
+                  decoration: InputDecoration(
+                    hintText: _isListening 
+                        ? 'Listening... Speak your question now'
+                        : 'Type your question here or tap the microphone...\n\nFor example:\n• How do I solve 2x + 5 = 15?\n• What is photosynthesis?\n• How do I find the main idea in a paragraph?',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: _isListening ? AppColors.primary : Colors.grey,
+                        width: _isListening ? 2 : 1,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: AppColors.primary,
+                        width: 2,
+                      ),
+                    ),
+                    prefixIcon: const Padding(
+                      padding: EdgeInsets.only(bottom: 60),
+                      child: Icon(Icons.help_outline),
+                    ),
+                    suffixIcon: Padding(
+                      padding: const EdgeInsets.only(bottom: 60, right: 8),
+                      child: IconButton(
+                        icon: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 300),
+                          child: _isListening
+                              ? Icon(
+                                  Icons.mic,
+                                  key: const ValueKey('listening'),
+                                  color: AppColors.primary,
+                                  size: 28,
+                                )
+                              : Icon(
+                                  Icons.mic_none,
+                                  key: const ValueKey('not_listening'),
+                                  color: Colors.grey[600],
+                                  size: 24,
+                                ),
+                        ),
+                        onPressed: _isListening ? _stopVoiceInput : _startVoiceInput,
+                        tooltip: _isListening ? 'Stop voice input' : 'Start voice input',
+                      ),
+                    ),
+                  ),
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => _submitQuestion(),
                 ),
-                prefixIcon: const Padding(
-                  padding: EdgeInsets.only(bottom: 60),
-                  child: Icon(Icons.help_outline),
-                ),
-              ),
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) => _submitQuestion(),
+                
+                // Show partial speech recognition results
+                if (_isListening && _partialSpeech.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: AppColors.primary.withOpacity(0.3),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.mic,
+                          color: AppColors.primary,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _partialSpeech,
+                            style: TextStyle(
+                              color: AppColors.primary,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                
+                // Voice input instructions
+                if (!_isListening) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.mic_none,
+                        size: 16,
+                        color: Colors.grey[600],
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Tap the microphone to ask your question with voice',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
             ),
           ],
         ),

@@ -19,7 +19,15 @@ class EnvironmentConfig {
     }
   }
 
-  // OpenAI Configuration
+  // Google Gemini Configuration
+  String get geminiApiKey => dotenv.env['GEMINI_API_KEY'] ?? '';
+  String get geminiModel => dotenv.env['GEMINI_MODEL'] ?? 'gemini-1.5-flash';
+  int get geminiMaxTokens =>
+      int.tryParse(dotenv.env['GEMINI_MAX_TOKENS'] ?? '1500') ?? 1500;
+  double get geminiTemperature =>
+      double.tryParse(dotenv.env['GEMINI_TEMPERATURE'] ?? '0.7') ?? 0.7;
+
+  // Legacy OpenAI Configuration (kept for reference)
   String get openAIApiKey => dotenv.env['OPENAI_API_KEY'] ?? '';
   String get openAIModel => dotenv.env['OPENAI_MODEL'] ?? 'gpt-3.5-turbo';
   int get openAIMaxTokens =>
@@ -71,6 +79,10 @@ class EnvironmentConfig {
       _parseBool(dotenv.env['ENABLE_ANALYTICS'], defaultValue: false);
 
   // Validation
+  bool get isGeminiConfigured =>
+      geminiApiKey.isNotEmpty && geminiApiKey != 'your_gemini_api_key_here';
+  
+  // Legacy validation
   bool get isOpenAIConfigured =>
       openAIApiKey.isNotEmpty && openAIApiKey != 'your_openai_api_key_here';
 
@@ -91,6 +103,8 @@ class EnvironmentConfig {
       'app_environment': appEnvironment,
       'debug_mode': isDebugMode,
       'enable_logging': enableLogging,
+      'gemini_configured': isGeminiConfigured,
+      'gemini_model': geminiModel,
       'openai_configured': isOpenAIConfigured,
       'openai_model': openAIModel,
       'daily_question_limit': dailyFreeQuestionLimit,
@@ -107,9 +121,9 @@ class EnvironmentConfig {
   List<String> validateConfiguration() {
     List<String> issues = [];
 
-    if (!isOpenAIConfigured) {
+    if (!isGeminiConfigured) {
       issues.add(
-        'OpenAI API key is not configured. Please set OPENAI_API_KEY in your .env file.',
+        'Gemini API key is not configured. Please set GEMINI_API_KEY in your .env file.',
       );
     }
 
@@ -121,12 +135,12 @@ class EnvironmentConfig {
       issues.add('Max saved questions must be greater than 0.');
     }
 
-    if (openAIMaxTokens <= 0) {
-      issues.add('OpenAI max tokens must be greater than 0.');
+    if (geminiMaxTokens <= 0) {
+      issues.add('Gemini max tokens must be greater than 0.');
     }
 
-    if (openAITemperature < 0 || openAITemperature > 2) {
-      issues.add('OpenAI temperature must be between 0 and 2.');
+    if (geminiTemperature < 0 || geminiTemperature > 2) {
+      issues.add('Gemini temperature must be between 0 and 2.');
     }
 
     return issues;

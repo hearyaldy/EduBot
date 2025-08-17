@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'widgets/main_navigator.dart';
 import 'providers/app_provider.dart';
+import 'services/storage_service.dart';
 import 'utils/app_theme.dart';
 import 'utils/environment_config.dart';
 import 'core/theme/app_colors.dart';
@@ -12,6 +13,9 @@ void main() async {
 
   // Initialize environment configuration
   await EnvironmentConfig.initialize();
+  
+  // Initialize storage service
+  await StorageService().initialize();
 
   // Validate configuration and show warnings if needed
   final config = EnvironmentConfig.instance;
@@ -33,7 +37,16 @@ class EduBotApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: [ChangeNotifierProvider(create: (_) => AppProvider())],
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) {
+            final provider = AppProvider();
+            // Initialize provider with stored data (don't await in build)
+            provider.initialize();
+            return provider;
+          },
+        ),
+      ],
       child: MaterialApp(
         title: 'EduBot - AI Homework Helper',
         debugShowCheckedModeBanner: false,
