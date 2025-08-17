@@ -122,7 +122,7 @@ class _DailyTipCardState extends State<DailyTipCard> {
     final dayOfYear =
         DateTime.now().difference(DateTime(DateTime.now().year, 1, 1)).inDays;
     _currentPage = dayOfYear % DailyTipCard.tips.length;
-    
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_pageController.hasClients) {
         _pageController.animateToPage(
@@ -177,7 +177,7 @@ class _DailyTipCardState extends State<DailyTipCard> {
               ],
             ),
           ),
-          
+
           // Carousel
           SizedBox(
             height: 160,
@@ -198,16 +198,20 @@ class _DailyTipCardState extends State<DailyTipCard> {
                     children: [
                       Text(
                         tip['title']!,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w500,
-                            ),
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w500,
+                                ),
                       ),
                       const SizedBox(height: 8),
                       Expanded(
                         child: SingleChildScrollView(
                           child: Text(
                             tip['content']!,
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
                                   height: 1.4,
                                 ),
                           ),
@@ -219,7 +223,7 @@ class _DailyTipCardState extends State<DailyTipCard> {
               },
             ),
           ),
-          
+
           // Page Indicators and Navigation
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -240,10 +244,13 @@ class _DailyTipCardState extends State<DailyTipCard> {
                     Icons.chevron_left,
                     color: _currentPage > 0
                         ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                        : Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withValues(alpha: 0.3),
                   ),
                 ),
-                
+
                 // Dot indicators
                 Expanded(
                   child: Row(
@@ -257,14 +264,17 @@ class _DailyTipCardState extends State<DailyTipCard> {
                         decoration: BoxDecoration(
                           color: _currentPage == index
                               ? Theme.of(context).colorScheme.primary
-                              : Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                              : Theme.of(context)
+                                  .colorScheme
+                                  .primary
+                                  .withValues(alpha: 0.3),
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
                     ),
                   ),
                 ),
-                
+
                 // Next button
                 IconButton(
                   onPressed: _currentPage < DailyTipCard.tips.length - 1
@@ -279,7 +289,10 @@ class _DailyTipCardState extends State<DailyTipCard> {
                     Icons.chevron_right,
                     color: _currentPage < DailyTipCard.tips.length - 1
                         ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                        : Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withValues(alpha: 0.3),
                   ),
                 ),
               ],
