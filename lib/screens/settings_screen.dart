@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../utils/app_theme.dart';
+import '../widgets/gradient_header.dart';
+import '../core/theme/app_colors.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -28,28 +30,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildAccountSection(),
-            const SizedBox(height: 24),
-            _buildPreferencesSection(),
-            const SizedBox(height: 24),
-            _buildAudioSection(),
-            const SizedBox(height: 24),
-            _buildPrivacySection(),
-            const SizedBox(height: 24),
-            _buildAboutSection(),
-            const SizedBox(height: 24),
-            _buildDangerZone(),
-          ],
-        ),
+      backgroundColor: AppColors.gray50,
+      body: Column(
+        children: [
+          GradientHeader(
+            title: 'Settings',
+            subtitle: 'Customize your learning experience',
+            gradientColors: [
+              AppColors.settingsGradient1,
+              AppColors.settingsGradient2,
+              AppColors.settingsGradient3,
+            ],
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildAccountSection(),
+                  const SizedBox(height: 24),
+                  _buildPreferencesSection(),
+                  const SizedBox(height: 24),
+                  _buildAudioSection(),
+                  const SizedBox(height: 24),
+                  _buildPrivacySection(),
+                  const SizedBox(height: 24),
+                  _buildAboutSection(),
+                  const SizedBox(height: 24),
+                  _buildDangerZone(),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -64,9 +78,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             return ListTile(
               leading: Icon(
                 provider.isPremium ? Icons.diamond : Icons.star_border,
-                color: provider.isPremium ? AppTheme.warning : AppTheme.textSecondary,
+                color: provider.isPremium
+                    ? AppTheme.warning
+                    : AppTheme.textSecondary,
               ),
-              title: Text(provider.isPremium ? 'Premium Account' : 'Free Account'),
+              title: Text(
+                provider.isPremium ? 'Premium Account' : 'Free Account',
+              ),
               subtitle: Text(
                 provider.isPremium
                     ? 'Unlimited questions and advanced features'
@@ -230,7 +248,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ListTile(
           leading: const Icon(Icons.school),
           title: const Text('EduBot'),
-          subtitle: const Text('Version 1.0.0 - AI Homework Helper for Parents'),
+          subtitle: const Text(
+            'Version 1.0.0 - AI Homework Helper for Parents',
+          ),
         ),
         ListTile(
           leading: const Icon(Icons.help_outline),
@@ -264,22 +284,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       isWarning: true,
       children: [
         ListTile(
-          leading: Icon(
-            Icons.logout,
-            color: AppTheme.error,
-          ),
-          title: Text(
-            'Sign Out',
-            style: TextStyle(color: AppTheme.error),
-          ),
+          leading: Icon(Icons.logout, color: AppTheme.error),
+          title: Text('Sign Out', style: TextStyle(color: AppTheme.error)),
           subtitle: const Text('Sign out of your account'),
           onTap: _showSignOutDialog,
         ),
         ListTile(
-          leading: Icon(
-            Icons.delete_forever,
-            color: AppTheme.error,
-          ),
+          leading: Icon(Icons.delete_forever, color: AppTheme.error),
           title: Text(
             'Delete Account',
             style: TextStyle(color: AppTheme.error),
@@ -313,9 +324,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Text(
                   title,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: isWarning ? AppTheme.error : null,
-                  ),
+                        fontWeight: FontWeight.w600,
+                        color: isWarning ? AppTheme.error : null,
+                      ),
                 ),
               ],
             ),
@@ -414,9 +425,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Navigator.pop(context);
               _showSnackBar('Question history cleared');
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.error,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.error),
             child: const Text('Clear History'),
           ),
         ],
@@ -440,9 +449,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Navigator.pop(context);
               _showSnackBar('Signed out successfully');
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.error,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.error),
             child: const Text('Sign Out'),
           ),
         ],
@@ -468,9 +475,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Navigator.pop(context);
               _showSnackBar('Account deletion process started');
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.error,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.error),
             child: const Text('Delete Account'),
           ),
         ],

@@ -6,6 +6,9 @@ import '../providers/app_provider.dart';
 import '../services/ai_service.dart';
 import '../services/audio_service.dart';
 import '../utils/app_theme.dart';
+import '../widgets/gradient_header.dart';
+import '../widgets/modern_button.dart';
+import '../core/theme/app_colors.dart';
 
 class AskQuestionScreen extends StatefulWidget {
   const AskQuestionScreen({super.key});
@@ -18,7 +21,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
   final TextEditingController _questionController = TextEditingController();
   final FocusNode _questionFocusNode = FocusNode();
   final AIService _aiService = AIService();
-  
+
   bool _isLoading = false;
   String? _selectedSubject;
   Explanation? _currentExplanation;
@@ -30,7 +33,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
     'History',
     'Geography',
     'Art',
-    'Other'
+    'Other',
   ];
 
   @override
@@ -65,8 +68,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
 
       // Add to provider
       if (mounted) {
-        Provider.of<AppProvider>(context, listen: false)
-            .saveQuestion(question);
+        Provider.of<AppProvider>(context, listen: false).saveQuestion(question);
       }
 
       setState(() {
@@ -114,38 +116,46 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Ask a Question'),
-        centerTitle: true,
-        actions: [
-          if (_currentExplanation != null)
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: _clearQuestion,
-              tooltip: 'Ask new question',
-            ),
-        ],
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildQuestionInput(),
-                    const SizedBox(height: 24),
-                    if (_isLoading) _buildLoadingWidget(),
-                    if (_currentExplanation != null) _buildExplanationWidget(),
-                  ],
-                ),
+      backgroundColor: AppColors.gray50,
+      body: Column(
+        children: [
+          GradientHeader(
+            title: 'Ask a Question',
+            subtitle: 'Get help with any homework problem',
+            gradientColors: [
+              AppColors.askGradient1,
+              AppColors.askGradient2,
+              AppColors.askGradient3,
+            ],
+            child: _currentExplanation != null
+                ? Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: ModernButton(
+                      text: 'Ask New Question',
+                      onPressed: _clearQuestion,
+                      icon: Icons.refresh,
+                      backgroundColor: Colors.white.withValues(alpha: 0.2),
+                      textColor: Colors.white,
+                    ),
+                  )
+                : null,
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildQuestionInput(),
+                  const SizedBox(height: 24),
+                  if (_isLoading) _buildLoadingWidget(),
+                  if (_currentExplanation != null) _buildExplanationWidget(),
+                ],
               ),
             ),
-            _buildBottomActions(),
-          ],
-        ),
+          ),
+          _buildBottomActions(),
+        ],
       ),
     );
   }
@@ -159,12 +169,12 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
           children: [
             Text(
               'What would you like help with?',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 12),
-            
+
             // Subject Selection
             DropdownButtonFormField<String>(
               value: _selectedSubject,
@@ -176,10 +186,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                 prefixIcon: const Icon(Icons.school),
               ),
               items: _subjects.map((subject) {
-                return DropdownMenuItem(
-                  value: subject,
-                  child: Text(subject),
-                );
+                return DropdownMenuItem(value: subject, child: Text(subject));
               }).toList(),
               onChanged: (value) {
                 setState(() {
@@ -187,16 +194,17 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                 });
               },
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Question Input
             TextField(
               controller: _questionController,
               focusNode: _questionFocusNode,
               maxLines: 4,
               decoration: InputDecoration(
-                hintText: 'Type your question here...\n\nFor example:\n• How do I solve 2x + 5 = 15?\n• What is photosynthesis?\n• How do I find the main idea in a paragraph?',
+                hintText:
+                    'Type your question here...\n\nFor example:\n• How do I solve 2x + 5 = 15?\n• What is photosynthesis?\n• How do I find the main idea in a paragraph?',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -229,9 +237,9 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
             const SizedBox(height: 8),
             Text(
               'This might take a few seconds',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppTheme.textSecondary,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
             ),
           ],
         ),
@@ -241,7 +249,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
 
   Widget _buildExplanationWidget() {
     final explanation = _currentExplanation!;
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -254,18 +262,15 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(
-                      Icons.lightbulb,
-                      color: AppTheme.success,
-                      size: 24,
-                    ),
+                    Icon(Icons.lightbulb, color: AppTheme.success, size: 24),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Answer',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w600),
                       ),
                     ),
                     IconButton(
@@ -278,31 +283,31 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                 const SizedBox(height: 8),
                 Text(
                   explanation.answer,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
                 ),
               ],
             ),
           ),
         ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Steps
         if (explanation.steps.isNotEmpty) ...[
           Text(
             'Step-by-Step Explanation',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
           ...explanation.steps.map((step) => _buildStepCard(step)),
         ],
-        
+
         const SizedBox(height: 16),
-        
+
         // Parent Tip
         if (explanation.parentFriendlyTip?.isNotEmpty == true)
           _buildTipCard(
@@ -311,9 +316,9 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
             Icons.favorite,
             AppTheme.accent,
           ),
-        
+
         const SizedBox(height: 12),
-        
+
         // Real World Example
         if (explanation.realWorldExample?.isNotEmpty == true)
           _buildTipCard(
@@ -340,14 +345,18 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(
-                    color: step.isKeyStep ? AppTheme.primaryBlue : AppTheme.primarySurface,
+                    color: step.isKeyStep
+                        ? AppTheme.primaryBlue
+                        : AppTheme.primarySurface,
                     shape: BoxShape.circle,
                   ),
                   child: Center(
                     child: Text(
                       '${step.stepNumber}',
                       style: TextStyle(
-                        color: step.isKeyStep ? Colors.white : AppTheme.primaryBlue,
+                        color: step.isKeyStep
+                            ? Colors.white
+                            : AppTheme.primaryBlue,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -358,8 +367,8 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                   child: Text(
                     step.title,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+                          fontWeight: FontWeight.w600,
+                        ),
                   ),
                 ),
               ],
@@ -389,9 +398,9 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                       child: Text(
                         step.tip!,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.primaryDark,
-                          fontStyle: FontStyle.italic,
-                        ),
+                              color: AppTheme.primaryDark,
+                              fontStyle: FontStyle.italic,
+                            ),
                       ),
                     ),
                   ],
@@ -404,7 +413,12 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
     );
   }
 
-  Widget _buildTipCard(String title, String content, IconData icon, Color color) {
+  Widget _buildTipCard(
+    String title,
+    String content,
+    IconData icon,
+    Color color,
+  ) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -418,17 +432,14 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                 Text(
                   title,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: color,
-                  ),
+                        fontWeight: FontWeight.w600,
+                        color: color,
+                      ),
                 ),
               ],
             ),
             const SizedBox(height: 8),
-            Text(
-              content,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
+            Text(content, style: Theme.of(context).textTheme.bodyMedium),
           ],
         ),
       ),
@@ -448,13 +459,13 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
             Expanded(
               child: ElevatedButton.icon(
                 onPressed: _isLoading ? null : _submitQuestion,
-                icon: _isLoading 
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.send),
+                icon: _isLoading
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.send),
                 label: Text(_isLoading ? 'Getting Answer...' : 'Get Answer'),
               ),
             ),

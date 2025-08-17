@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'screens/home_screen.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'widgets/main_navigator.dart';
 import 'providers/app_provider.dart';
 import 'utils/app_theme.dart';
 import 'utils/environment_config.dart';
+import 'core/theme/app_colors.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,8 +37,23 @@ class EduBotApp extends StatelessWidget {
       child: MaterialApp(
         title: 'EduBot - AI Homework Helper',
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        home: const HomeScreen(),
+        theme: ThemeData(
+          primarySwatch: Colors.blue,
+          scaffoldBackgroundColor: AppColors.gray50,
+          textTheme: GoogleFonts.interTextTheme(),
+          useMaterial3: true,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: AppColors.primary,
+            brightness: Brightness.light,
+          ),
+        ).copyWith(
+          // Override with our modern theme
+          primaryColor: AppColors.primary,
+          cardTheme: AppTheme.lightTheme.cardTheme,
+          elevatedButtonTheme: AppTheme.lightTheme.elevatedButtonTheme,
+          inputDecorationTheme: AppTheme.lightTheme.inputDecorationTheme,
+        ),
+        home: const MainNavigator(),
       ),
     );
   }

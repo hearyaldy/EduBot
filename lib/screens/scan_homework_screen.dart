@@ -10,6 +10,10 @@ import '../services/ai_service.dart';
 import '../services/ocr_service.dart';
 import '../services/audio_service.dart';
 import '../utils/app_theme.dart';
+import '../widgets/gradient_header.dart';
+import '../widgets/glass_card.dart';
+import '../widgets/modern_button.dart';
+import '../core/theme/app_colors.dart';
 
 class ScanHomeworkScreen extends StatefulWidget {
   const ScanHomeworkScreen({super.key});
@@ -46,7 +50,10 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
       // Request camera permission
       final status = await Permission.camera.request();
       if (status != PermissionStatus.granted) {
-        _showSnackBar('Camera permission is required to scan homework', isError: true);
+        _showSnackBar(
+          'Camera permission is required to scan homework',
+          isError: true,
+        );
         return;
       }
 
@@ -72,7 +79,10 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
         });
       }
     } catch (e) {
-      _showSnackBar('Failed to initialize camera: ${e.toString()}', isError: true);
+      _showSnackBar(
+        'Failed to initialize camera: ${e.toString()}',
+        isError: true,
+      );
     }
   }
 
@@ -94,9 +104,12 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
 
       // Extract text using OCR
       final extractedText = await OCRService.extractTextFromXFile(imageFile);
-      
+
       if (extractedText.trim().isEmpty) {
-        _showSnackBar('No text found in the image. Please try again with better lighting.', isError: true);
+        _showSnackBar(
+          'No text found in the image. Please try again with better lighting.',
+          isError: true,
+        );
         setState(() {
           _isProcessing = false;
         });
@@ -105,7 +118,7 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
 
       // Clean the extracted text
       final cleanText = OCRService.cleanExtractedText(extractedText);
-      
+
       setState(() {
         _extractedText = cleanText;
       });
@@ -158,9 +171,12 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
 
       // Extract text using OCR
       final extractedText = await OCRService.extractTextFromXFile(imageFile);
-      
+
       if (extractedText.trim().isEmpty) {
-        _showSnackBar('No text found in the image. Please try a different image.', isError: true);
+        _showSnackBar(
+          'No text found in the image. Please try a different image.',
+          isError: true,
+        );
         setState(() {
           _isProcessing = false;
         });
@@ -169,7 +185,7 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
 
       // Clean the extracted text
       final cleanText = OCRService.cleanExtractedText(extractedText);
-      
+
       setState(() {
         _extractedText = cleanText;
       });
@@ -234,46 +250,54 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Scan Homework'),
-        centerTitle: true,
-        actions: [
-          if (_currentExplanation != null)
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: _resetScan,
-              tooltip: 'Scan new problem',
-            ),
-        ],
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (_currentExplanation == null) _buildCameraSection(),
-                    if (_isProcessing) _buildProcessingWidget(),
-                    if (_extractedText != null && _currentExplanation == null)
-                      _buildExtractedTextWidget(),
-                    if (_currentExplanation != null) _buildExplanationWidget(),
-                  ],
-                ),
+      backgroundColor: AppColors.gray50,
+      body: Column(
+        children: [
+          GradientHeader(
+            title: 'Scan Homework',
+            subtitle: 'Point your camera at the problem',
+            gradientColors: [
+              AppColors.scanGradient1,
+              AppColors.scanGradient2,
+              AppColors.scanGradient3,
+            ],
+            child: _currentExplanation != null
+                ? Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: ModernButton(
+                      text: 'Scan New Problem',
+                      onPressed: _resetScan,
+                      icon: Icons.refresh,
+                      backgroundColor: Colors.white.withValues(alpha: 0.2),
+                      textColor: Colors.white,
+                    ),
+                  )
+                : null,
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (_currentExplanation == null) _buildCameraSection(),
+                  if (_isProcessing) _buildProcessingWidget(),
+                  if (_extractedText != null && _currentExplanation == null)
+                    _buildExtractedTextWidget(),
+                  if (_currentExplanation != null) _buildExplanationWidget(),
+                ],
               ),
             ),
-            if (_currentExplanation == null) _buildBottomActions(),
-          ],
-        ),
+          ),
+          if (_currentExplanation == null) _buildBottomActions(),
+        ],
       ),
     );
   }
 
   Widget _buildCameraSection() {
     if (!_isCameraInitialized) {
-      return Card(
+      return GlassCard(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -290,7 +314,7 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
       );
     }
 
-    return Card(
+    return GlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -302,15 +326,15 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
                 Text(
                   'Position your homework',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                        fontWeight: FontWeight.w600,
+                      ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Make sure the text is clear and well-lit',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.textSecondary,
-                  ),
+                        color: AppTheme.textSecondary,
+                      ),
                 ),
               ],
             ),
@@ -331,7 +355,7 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
   }
 
   Widget _buildProcessingWidget() {
-    return Card(
+    return GlassCard(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -345,9 +369,9 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
             const SizedBox(height: 8),
             Text(
               'Extracting text and analyzing content',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppTheme.textSecondary,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
             ),
           ],
         ),
@@ -356,7 +380,7 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
   }
 
   Widget _buildExtractedTextWidget() {
-    return Card(
+    return GlassCard(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -364,17 +388,13 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.text_fields,
-                  color: AppTheme.info,
-                  size: 24,
-                ),
+                Icon(Icons.text_fields, color: AppTheme.info, size: 24),
                 const SizedBox(width: 8),
                 Text(
                   'Extracted Text',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                        fontWeight: FontWeight.w600,
+                      ),
                 ),
               ],
             ),
@@ -396,9 +416,9 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
             Text(
               'Getting AI explanation...',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppTheme.textSecondary,
-                fontStyle: FontStyle.italic,
-              ),
+                    color: AppTheme.textSecondary,
+                    fontStyle: FontStyle.italic,
+                  ),
             ),
           ],
         ),
@@ -408,7 +428,7 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
 
   Widget _buildExplanationWidget() {
     final explanation = _currentExplanation!;
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -422,17 +442,13 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
                 children: [
                   Row(
                     children: [
-                      Icon(
-                        Icons.camera_alt,
-                        color: AppTheme.info,
-                        size: 20,
-                      ),
+                      Icon(Icons.camera_alt, color: AppTheme.info, size: 20),
                       const SizedBox(width: 8),
                       Text(
                         'Scanned Text',
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                              fontWeight: FontWeight.w600,
+                            ),
                       ),
                     ],
                   ),
@@ -440,16 +456,16 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
                   Text(
                     _extractedText!,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.textSecondary,
-                    ),
+                          color: AppTheme.textSecondary,
+                        ),
                   ),
                 ],
               ),
             ),
           ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Answer Card
         Card(
           child: Padding(
@@ -459,18 +475,15 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(
-                      Icons.lightbulb,
-                      color: AppTheme.success,
-                      size: 24,
-                    ),
+                    Icon(Icons.lightbulb, color: AppTheme.success, size: 24),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Answer',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w600),
                       ),
                     ),
                     IconButton(
@@ -483,31 +496,31 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
                 const SizedBox(height: 8),
                 Text(
                   explanation.answer,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
                 ),
               ],
             ),
           ),
         ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Steps
         if (explanation.steps.isNotEmpty) ...[
           Text(
             'Step-by-Step Explanation',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
           ...explanation.steps.map((step) => _buildStepCard(step)),
         ],
-        
+
         const SizedBox(height: 16),
-        
+
         // Parent Tip
         if (explanation.parentFriendlyTip?.isNotEmpty == true)
           _buildTipCard(
@@ -516,9 +529,9 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
             Icons.favorite,
             AppTheme.accent,
           ),
-        
+
         const SizedBox(height: 12),
-        
+
         // Real World Example
         if (explanation.realWorldExample?.isNotEmpty == true)
           _buildTipCard(
@@ -527,9 +540,9 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
             Icons.public,
             AppTheme.info,
           ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Action buttons for scanned result
         Row(
           children: [
@@ -568,14 +581,18 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(
-                    color: step.isKeyStep ? AppTheme.primaryBlue : AppTheme.primarySurface,
+                    color: step.isKeyStep
+                        ? AppTheme.primaryBlue
+                        : AppTheme.primarySurface,
                     shape: BoxShape.circle,
                   ),
                   child: Center(
                     child: Text(
                       '${step.stepNumber}',
                       style: TextStyle(
-                        color: step.isKeyStep ? Colors.white : AppTheme.primaryBlue,
+                        color: step.isKeyStep
+                            ? Colors.white
+                            : AppTheme.primaryBlue,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -586,8 +603,8 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
                   child: Text(
                     step.title,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+                          fontWeight: FontWeight.w600,
+                        ),
                   ),
                 ),
               ],
@@ -617,9 +634,9 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
                       child: Text(
                         step.tip!,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.primaryDark,
-                          fontStyle: FontStyle.italic,
-                        ),
+                              color: AppTheme.primaryDark,
+                              fontStyle: FontStyle.italic,
+                            ),
                       ),
                     ),
                   ],
@@ -632,7 +649,12 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
     );
   }
 
-  Widget _buildTipCard(String title, String content, IconData icon, Color color) {
+  Widget _buildTipCard(
+    String title,
+    String content,
+    IconData icon,
+    Color color,
+  ) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -646,17 +668,14 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
                 Text(
                   title,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: color,
-                  ),
+                        fontWeight: FontWeight.w600,
+                        color: color,
+                      ),
                 ),
               ],
             ),
             const SizedBox(height: 8),
-            Text(
-              content,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
+            Text(content, style: Theme.of(context).textTheme.bodyMedium),
           ],
         ),
       ),
@@ -683,14 +702,16 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: (_isProcessing || !_isCameraInitialized) ? null : _captureAndProcess,
+                onPressed: (_isProcessing || !_isCameraInitialized)
+                    ? null
+                    : _captureAndProcess,
                 icon: _isProcessing
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.camera_alt),
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.camera_alt),
                 label: Text(_isProcessing ? 'Processing...' : 'Scan Now'),
               ),
             ),
