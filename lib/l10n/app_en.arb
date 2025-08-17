@@ -169,5 +169,55 @@
   "tryAgain": "Try Again",
   "@tryAgain": {
     "description": "Try again button text"
+  },
+
+  "developerSettings": "Developer Settings",
+  "@developerSettings": {
+    "description": "Developer settings section title"
+  },
+
+  "superadminMode": "Superadmin Mode",
+  "@superadminMode": {
+    "description": "Superadmin mode toggle title"
+  },
+
+  "superadminDescription": "Override all question limits for testing purposes",
+  "@superadminDescription": {
+    "description": "Superadmin mode description"
+  },
+
+  "superadminAccount": "Superadmin Account",
+  "@superadminAccount": {
+    "description": "Superadmin account type"
+  },
+
+  "superadminSubtitle": "All limits bypassed - Developer mode",
+  "@superadminSubtitle": {
+    "description": "Superadmin account subtitle"
+  },
+
+  "enableSuperadminMode": "Enable Superadmin Mode?",
+  "@enableSuperadminMode": {
+    "description": "Superadmin confirmation dialog title"
+  },
+
+  "superadminWarning": "This will bypass all question limits and API restrictions. This mode is intended for developers and testing purposes only.\n\nAre you sure you want to continue?",
+  "@superadminWarning": {
+    "description": "Superadmin mode warning message"
+  },
+
+  "superadminActive": "Superadmin mode active - All limits bypassed",
+  "@superadminActive": {
+    "description": "Superadmin active status message"
+  },
+
+  "superadminEnabled": "Superadmin mode enabled - All limits bypassed",
+  "@superadminEnabled": {
+    "description": "Superadmin enabled confirmation message"
+  },
+
+  "superadminDisabled": "Superadmin mode disabled",
+  "@superadminDisabled": {
+    "description": "Superadmin disabled confirmation message"
   }
 }

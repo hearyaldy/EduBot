@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../utils/app_theme.dart';
@@ -61,6 +62,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 24),
                   _buildAboutSection(),
                   const SizedBox(height: 24),
+                  _buildSuperadminSection(),
+                  const SizedBox(height: 24),
                   _buildDangerZone(),
                 ],
               ),
@@ -78,27 +81,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
       children: [
         Consumer<AppProvider>(
           builder: (context, provider, child) {
+            final l10n = AppLocalizations.of(context)!;
+            String accountType = 'Free Account';
+            String accountSubtitle =
+                '${provider.dailyQuestionsUsed}/10 questions used today';
+            IconData accountIcon = Icons.star_border;
+            Color accountColor = AppTheme.textSecondary;
+
+            if (provider.isSuperadmin) {
+              accountType = l10n.superadminAccount;
+              accountSubtitle = l10n.superadminSubtitle;
+              accountIcon = Icons.admin_panel_settings;
+              accountColor = AppTheme.warning;
+            } else if (provider.isPremium) {
+              accountType = 'Premium Account';
+              accountSubtitle = 'Unlimited questions and advanced features';
+              accountIcon = Icons.diamond;
+              accountColor = AppTheme.warning;
+            }
+
             return ListTile(
               leading: Icon(
-                provider.isPremium ? Icons.diamond : Icons.star_border,
-                color: provider.isPremium
-                    ? AppTheme.warning
-                    : AppTheme.textSecondary,
+                accountIcon,
+                color: accountColor,
               ),
-              title: Text(
-                provider.isPremium ? 'Premium Account' : 'Free Account',
-              ),
-              subtitle: Text(
-                provider.isPremium
-                    ? 'Unlimited questions and advanced features'
-                    : '${provider.dailyQuestionsUsed}/10 questions used today',
-              ),
-              trailing: provider.isPremium
-                  ? null
-                  : TextButton(
+              title: Text(accountType),
+              subtitle: Text(accountSubtitle),
+              trailing: (!provider.isSuperadmin && !provider.isPremium)
+                  ? TextButton(
                       onPressed: _showUpgradeDialog,
                       child: const Text('Upgrade'),
-                    ),
+                    )
+                  : null,
             );
           },
         ),
@@ -339,6 +353,102 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSuperadminSection() {
+    final l10n = AppLocalizations.of(context)!;
+
+    return Consumer<AppProvider>(
+      builder: (context, provider, child) {
+        // Only show superadmin section if already enabled or in debug mode
+        if (!provider.isSuperadmin && !kDebugMode) {
+          return const SizedBox.shrink();
+        }
+
+        return _buildSection(
+          title: l10n.developerSettings,
+          icon: Icons.admin_panel_settings,
+          children: [
+            SwitchListTile(
+              title: Text(l10n.superadminMode),
+              subtitle: Text(l10n.superadminDescription),
+              value: provider.isSuperadmin,
+              onChanged: (value) {
+                if (value) {
+                  _showSuperadminConfirmationDialog(provider);
+                } else {
+                  provider.setSuperadmin(false);
+                  _showSnackBar(l10n.superadminDisabled);
+                }
+              },
+              secondary: Icon(
+                provider.isSuperadmin
+                    ? Icons.security
+                    : Icons.security_outlined,
+                color: provider.isSuperadmin
+                    ? AppTheme.warning
+                    : AppTheme.textSecondary,
+              ),
+            ),
+            if (provider.isSuperadmin)
+              Container(
+                margin: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.warning.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppTheme.warning.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.warning, color: AppTheme.warning, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        l10n.superadminActive,
+                        style: const TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showSuperadminConfirmationDialog(AppProvider provider) {
+    final l10n = AppLocalizations.of(context)!;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            const Icon(Icons.warning, color: Colors.orange),
+            const SizedBox(width: 8),
+            Text(l10n.enableSuperadminMode),
+          ],
+        ),
+        content: Text(l10n.superadminWarning),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              provider.setSuperadmin(true);
+              Navigator.pop(context);
+              _showSnackBar(l10n.superadminEnabled);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.warning),
+            child: const Text('Enable'),
+          ),
         ],
       ),
     );

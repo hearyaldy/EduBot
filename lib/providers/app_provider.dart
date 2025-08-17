@@ -32,6 +32,9 @@ class AppProvider with ChangeNotifier {
   String _selectedLanguage = 'English';
   bool _showDailyTips = true;
 
+  // Superadmin override (for development/testing)
+  bool _isSuperadmin = false;
+
   // Questions history
   List<HomeworkQuestion> _savedQuestions = [];
 
@@ -47,10 +50,12 @@ class AppProvider with ChangeNotifier {
   // Getters
   int get dailyQuestionsUsed => _dailyQuestionsUsed;
   bool get isPremium => _isPremium;
+  bool get isSuperadmin => _isSuperadmin;
   bool get canAskQuestion =>
+      _isSuperadmin ||
       _isPremium ||
       (_dailyQuestionsUsed < 10 &&
-          canMakeGlobalRequest); // Check both user and global limits
+          canMakeGlobalRequest); // Check superadmin first, then premium, then limits
   List<HomeworkQuestion> get savedQuestions =>
       List.unmodifiable(_savedQuestions);
   Explanation? get currentExplanation => _currentExplanation;
@@ -125,6 +130,9 @@ class AppProvider with ChangeNotifier {
       _showDailyTips =
           _storage.getSetting<bool>('show_daily_tips', defaultValue: true) ??
               true;
+      _isSuperadmin =
+          _storage.getSetting<bool>('is_superadmin', defaultValue: false) ??
+              false;
 
       // Load token usage data
       _dailyTokensUsed =
@@ -367,6 +375,12 @@ class AppProvider with ChangeNotifier {
   Future<void> setShowDailyTips(bool show) async {
     _showDailyTips = show;
     await _storage.saveSetting('show_daily_tips', show);
+    notifyListeners();
+  }
+
+  Future<void> setSuperadmin(bool isSuperadmin) async {
+    _isSuperadmin = isSuperadmin;
+    await _storage.saveSetting('is_superadmin', isSuperadmin);
     notifyListeners();
   }
 

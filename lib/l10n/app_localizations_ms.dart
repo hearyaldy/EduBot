@@ -108,4 +108,37 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get tryAgain => 'Cuba Lagi';
+
+  @override
+  String get developerSettings => 'Tetapan Pembangun';
+
+  @override
+  String get superadminMode => 'Mod Superadmin';
+
+  @override
+  String get superadminDescription =>
+      'Mengatasi semua had soalan untuk tujuan ujian';
+
+  @override
+  String get superadminAccount => 'Akaun Superadmin';
+
+  @override
+  String get superadminSubtitle => 'Semua had dilepasi - Mod pembangun';
+
+  @override
+  String get enableSuperadminMode => 'Dayakan Mod Superadmin?';
+
+  @override
+  String get superadminWarning =>
+      'Ini akan melepasi semua had soalan dan sekatan API. Mod ini bertujuan untuk pembangun dan tujuan ujian sahaja.\n\nAdakah anda pasti mahu meneruskan?';
+
+  @override
+  String get superadminActive => 'Mod superadmin aktif - Semua had dilepasi';
+
+  @override
+  String get superadminEnabled =>
+      'Mod superadmin didayakan - Semua had dilepasi';
+
+  @override
+  String get superadminDisabled => 'Mod superadmin dilumpuhkan';
 }

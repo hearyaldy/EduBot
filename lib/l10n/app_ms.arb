@@ -169,5 +169,55 @@
   "tryAgain": "Cuba Lagi",
   "@tryAgain": {
     "description": "Try again button text"
+  },
+
+  "developerSettings": "Tetapan Pembangun",
+  "@developerSettings": {
+    "description": "Developer settings section title"
+  },
+
+  "superadminMode": "Mod Superadmin",
+  "@superadminMode": {
+    "description": "Superadmin mode toggle title"
+  },
+
+  "superadminDescription": "Mengatasi semua had soalan untuk tujuan ujian",
+  "@superadminDescription": {
+    "description": "Superadmin mode description"
+  },
+
+  "superadminAccount": "Akaun Superadmin",
+  "@superadminAccount": {
+    "description": "Superadmin account type"
+  },
+
+  "superadminSubtitle": "Semua had dilepasi - Mod pembangun",
+  "@superadminSubtitle": {
+    "description": "Superadmin account subtitle"
+  },
+
+  "enableSuperadminMode": "Dayakan Mod Superadmin?",
+  "@enableSuperadminMode": {
+    "description": "Superadmin confirmation dialog title"
+  },
+
+  "superadminWarning": "Ini akan melepasi semua had soalan dan sekatan API. Mod ini bertujuan untuk pembangun dan tujuan ujian sahaja.\n\nAdakah anda pasti mahu meneruskan?",
+  "@superadminWarning": {
+    "description": "Superadmin mode warning message"
+  },
+
+  "superadminActive": "Mod superadmin aktif - Semua had dilepasi",
+  "@superadminActive": {
+    "description": "Superadmin active status message"
+  },
+
+  "superadminEnabled": "Mod superadmin didayakan - Semua had dilepasi",
+  "@superadminEnabled": {
+    "description": "Superadmin enabled confirmation message"
+  },
+
+  "superadminDisabled": "Mod superadmin dilumpuhkan",
+  "@superadminDisabled": {
+    "description": "Superadmin disabled confirmation message"
   }
 }

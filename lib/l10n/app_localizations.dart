@@ -295,6 +295,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Try Again'**
   String get tryAgain;
+
+  /// Developer settings section title
+  ///
+  /// In en, this message translates to:
+  /// **'Developer Settings'**
+  String get developerSettings;
+
+  /// Superadmin mode toggle title
+  ///
+  /// In en, this message translates to:
+  /// **'Superadmin Mode'**
+  String get superadminMode;
+
+  /// Superadmin mode description
+  ///
+  /// In en, this message translates to:
+  /// **'Override all question limits for testing purposes'**
+  String get superadminDescription;
+
+  /// Superadmin account type
+  ///
+  /// In en, this message translates to:
+  /// **'Superadmin Account'**
+  String get superadminAccount;
+
+  /// Superadmin account subtitle
+  ///
+  /// In en, this message translates to:
+  /// **'All limits bypassed - Developer mode'**
+  String get superadminSubtitle;
+
+  /// Superadmin confirmation dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Enable Superadmin Mode?'**
+  String get enableSuperadminMode;
+
+  /// Superadmin mode warning message
+  ///
+  /// In en, this message translates to:
+  /// **'This will bypass all question limits and API restrictions. This mode is intended for developers and testing purposes only.\n\nAre you sure you want to continue?'**
+  String get superadminWarning;
+
+  /// Superadmin active status message
+  ///
+  /// In en, this message translates to:
+  /// **'Superadmin mode active - All limits bypassed'**
+  String get superadminActive;
+
+  /// Superadmin enabled confirmation message
+  ///
+  /// In en, this message translates to:
+  /// **'Superadmin mode enabled - All limits bypassed'**
+  String get superadminEnabled;
+
+  /// Superadmin disabled confirmation message
+  ///
+  /// In en, this message translates to:
+  /// **'Superadmin mode disabled'**
+  String get superadminDisabled;
 }
 
 class _AppLocalizationsDelegate

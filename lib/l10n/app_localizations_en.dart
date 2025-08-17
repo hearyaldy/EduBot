@@ -108,4 +108,37 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tryAgain => 'Try Again';
+
+  @override
+  String get developerSettings => 'Developer Settings';
+
+  @override
+  String get superadminMode => 'Superadmin Mode';
+
+  @override
+  String get superadminDescription =>
+      'Override all question limits for testing purposes';
+
+  @override
+  String get superadminAccount => 'Superadmin Account';
+
+  @override
+  String get superadminSubtitle => 'All limits bypassed - Developer mode';
+
+  @override
+  String get enableSuperadminMode => 'Enable Superadmin Mode?';
+
+  @override
+  String get superadminWarning =>
+      'This will bypass all question limits and API restrictions. This mode is intended for developers and testing purposes only.\n\nAre you sure you want to continue?';
+
+  @override
+  String get superadminActive => 'Superadmin mode active - All limits bypassed';
+
+  @override
+  String get superadminEnabled =>
+      'Superadmin mode enabled - All limits bypassed';
+
+  @override
+  String get superadminDisabled => 'Superadmin mode disabled';
 }
