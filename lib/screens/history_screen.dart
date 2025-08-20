@@ -196,11 +196,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
+                    const Row(
                       children: [
                         Icon(Icons.help_outline,
                             color: AppColors.primary, size: 18),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                         Text(
                           'Question',
                           style: TextStyle(

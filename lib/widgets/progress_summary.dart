@@ -18,8 +18,8 @@ class ProgressSummary extends StatelessWidget {
                 Text(
                   'Today\'s Progress',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                        fontWeight: FontWeight.w600,
+                      ),
                 ),
                 const SizedBox(height: 16),
                 Row(
@@ -63,7 +63,7 @@ class ProgressSummary extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.warning_amber_rounded,
                           color: Colors.orange,
                           size: 20,
@@ -72,7 +72,9 @@ class ProgressSummary extends StatelessWidget {
                         Expanded(
                           child: Text(
                             'Almost at your daily limit! Upgrade to Premium for unlimited questions.',
-                            style: Theme.of(context).textTheme.bodySmall
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
                                 ?.copyWith(color: Colors.orange.shade700),
                           ),
                         ),
@@ -106,10 +108,10 @@ class ProgressSummary extends StatelessWidget {
             Text(
               title,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
             ),
           ],
         ),
@@ -117,17 +119,17 @@ class ProgressSummary extends StatelessWidget {
         Text(
           value,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
         ),
         Text(
           subtitle,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurface.withValues(alpha: 0.6),
-          ),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
         ),
       ],
     );

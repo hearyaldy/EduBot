@@ -32,6 +32,7 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
   bool _isProcessing = false;
   String? _extractedText;
   Explanation? _currentExplanation;
+  bool _isFullViewMode = false;
 
   @override
   void initState() {
@@ -44,6 +45,7 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
     _cameraController?.dispose();
     super.dispose();
   }
+
 
   Future<void> _initializeCamera() async {
     try {
@@ -289,8 +291,218 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
     });
   }
 
+  void _toggleFullViewMode() {
+    setState(() {
+      _isFullViewMode = !_isFullViewMode;
+    });
+  }
+
+  Widget _buildFullViewCamera() {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          // Full screen camera preview
+          Positioned.fill(
+            child: CameraPreview(_cameraController!),
+          ),
+          
+          // Top controls bar
+          SafeArea(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.7),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: _toggleFullViewMode,
+                    icon: const Icon(
+                      Icons.fullscreen_exit,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                    tooltip: 'Exit full view',
+                  ),
+                  const Spacer(),
+                  Text(
+                    'Full View Camera',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: _pickImageFromGallery,
+                    icon: const Icon(
+                      Icons.photo_library,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                    tooltip: 'Gallery',
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Bottom controls bar
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.8),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Instructions
+                    Text(
+                      'Position homework clearly in the frame',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.white,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 20),
+                    
+                    // Capture button
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: _isProcessing ? Colors.grey : Colors.white,
+                            border: Border.all(
+                              color: Colors.white,
+                              width: 4,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: (_isProcessing || !_isCameraInitialized)
+                                  ? null
+                                  : _captureAndProcess,
+                              borderRadius: BorderRadius.circular(40),
+                              child: _isProcessing
+                                  ? const Center(
+                                      child: CircularProgressIndicator(
+                                        color: Colors.black,
+                                        strokeWidth: 3,
+                                      ),
+                                    )
+                                  : const Center(
+                                      child: Icon(
+                                        Icons.camera_alt,
+                                        color: Colors.black,
+                                        size: 36,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    
+                    // Processing status
+                    if (_isProcessing)
+                      Text(
+                        'Processing your homework...',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.white70,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // Center focus frame
+          Center(
+            child: Container(
+              width: MediaQuery.of(context).size.width * 0.8,
+              height: MediaQuery.of(context).size.height * 0.4,
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.8),
+                  width: 2,
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Stack(
+                children: [
+                  // Corner indicators
+                  ...[
+                    Alignment.topLeft,
+                    Alignment.topRight,
+                    Alignment.bottomLeft,
+                    Alignment.bottomRight,
+                  ].map((alignment) => 
+                    Align(
+                      alignment: alignment,
+                      child: Container(
+                        width: 20,
+                        height: 20,
+                        margin: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: Colors.white,
+                            width: 3,
+                          ),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_isFullViewMode && _isCameraInitialized) {
+      return _buildFullViewCamera();
+    }
+
     return Scaffold(
       backgroundColor: AppColors.gray50,
       body: Column(
@@ -298,7 +510,7 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
           GradientHeader(
             title: 'Scan Homework',
             subtitle: 'Point your camera at the problem',
-            gradientColors: [
+            gradientColors: const [
               AppColors.scanGradient1,
               AppColors.scanGradient2,
               AppColors.scanGradient3,
@@ -374,11 +586,25 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
                       ),
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  'Make sure the text is clear and well-lit',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.textSecondary,
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Make sure the text is clear and well-lit',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: AppTheme.textSecondary,
+                            ),
                       ),
+                    ),
+                    IconButton(
+                      onPressed: _toggleFullViewMode,
+                      icon: Icon(
+                        _isFullViewMode ? Icons.fullscreen_exit : Icons.fullscreen,
+                        color: AppColors.primary,
+                      ),
+                      tooltip: _isFullViewMode ? 'Exit full view' : 'Full view',
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -439,7 +665,7 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.analytics_outlined,
                       color: AppColors.primary,
                       size: 20,
@@ -622,7 +848,7 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
                     ),
                     child: Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.info_outline,
                           size: 16,
                           color: AppColors.error,
@@ -652,7 +878,7 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
                     ),
                     child: Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.warning_outlined,
                           size: 16,
                           color: AppColors.warning,
@@ -688,7 +914,7 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.text_fields, color: AppTheme.info, size: 24),
+                const Icon(Icons.text_fields, color: AppTheme.info, size: 24),
                 const SizedBox(width: 8),
                 Text(
                   'Extracted Text',
@@ -742,7 +968,8 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.camera_alt, color: AppTheme.info, size: 20),
+                      const Icon(Icons.camera_alt,
+                          color: AppTheme.info, size: 20),
                       const SizedBox(width: 8),
                       Text(
                         'Scanned Text',
@@ -775,7 +1002,8 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.lightbulb, color: AppTheme.success, size: 24),
+                    const Icon(Icons.lightbulb,
+                        color: AppTheme.success, size: 24),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -924,7 +1152,7 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
                 ),
                 child: Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.tips_and_updates,
                       size: 16,
                       color: AppTheme.primaryBlue,

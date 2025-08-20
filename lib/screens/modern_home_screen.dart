@@ -5,6 +5,7 @@ import '../core/theme/app_text_styles.dart';
 import '../widgets/gradient_header.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/modern_button.dart';
+import '../widgets/daily_tip_card.dart';
 import '../providers/app_provider.dart';
 import '../models/homework_question.dart';
 
@@ -124,21 +125,27 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
                       Row(
                         children: [
                           Expanded(
-                            child: _buildActionCard(
+                            child: _buildEnhancedActionCard(
                               title: 'Ask Question',
                               subtitle: 'Type or speak',
                               icon: Icons.chat_bubble_outline,
-                              color: AppColors.primary,
+                              gradientColors: const [
+                                Color(0xFF667eea),
+                                Color(0xFF764ba2),
+                              ],
                               onTap: () => _navigateToAsk(context),
                             ),
                           ),
                           const SizedBox(width: 15),
                           Expanded(
-                            child: _buildActionCard(
+                            child: _buildEnhancedActionCard(
                               title: 'Saved Problems',
                               subtitle: 'Review anytime',
                               icon: Icons.bookmark_outline,
-                              color: AppColors.warning,
+                              gradientColors: const [
+                                Color(0xFFf093fb),
+                                Color(0xFFf5576c),
+                              ],
                               onTap: () => _navigateToSaved(context),
                             ),
                           ),
@@ -147,8 +154,8 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
 
                       const SizedBox(height: 25),
 
-                      // Parent Tip Card
-                      _buildTipCard(),
+                      // Interactive Daily Tips Card
+                      const DailyTipCard(),
 
                       const SizedBox(height: 25),
 
@@ -213,55 +220,89 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
     );
   }
 
-  Widget _buildTipCard() {
-    return GlassCard(
-      backgroundColor: AppColors.warning.withValues(alpha: 0.1),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppColors.warning.withValues(alpha: 0.3),
-                  AppColors.warning.withValues(alpha: 0.1),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Icon(
-              Icons.lightbulb_outline,
-              color: AppColors.warning,
-              size: 24,
-            ),
+  Widget _buildEnhancedActionCard({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required List<Color> gradientColors,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      height: 130,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: gradientColors,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: gradientColors.first.withValues(alpha: 0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
           ),
-          const SizedBox(width: 15),
-          Expanded(
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  'Daily Parent Tip',
-                  style: AppTextStyles.bodyLarge.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.warning,
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: Colors.white,
+                    size: 24,
                   ),
                 ),
-                const SizedBox(height: 5),
+                const SizedBox(height: 8),
                 Text(
-                  'When helping with fractions, use real objects like pizza slices or cookies. It makes abstract concepts concrete!',
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    color: AppColors.gray700,
+                  title,
+                  style: AppTextStyles.bodyLarge.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    fontSize: 14,
                   ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: Colors.white.withValues(alpha: 0.9),
+                    fontWeight: FontWeight.w500,
+                    fontSize: 11,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
           ),
-          const Text('🍪', style: TextStyle(fontSize: 24)),
-        ],
+        ),
       ),
     );
   }
+
 
   Widget _buildRecentActivity() {
     return Consumer<AppProvider>(
@@ -278,7 +319,8 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   children: [
-                    Icon(Icons.history, size: 48, color: AppColors.gray400),
+                    const Icon(Icons.history,
+                        size: 48, color: AppColors.gray400),
                     const SizedBox(height: 12),
                     Text(
                       'No recent activities',

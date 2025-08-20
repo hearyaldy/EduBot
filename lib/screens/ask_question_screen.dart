@@ -220,7 +220,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
               GradientHeader(
                 title: 'Ask a Question',
                 subtitle: 'Get help with any homework problem',
-                gradientColors: [
+                gradientColors: const [
                   AppColors.askGradient1,
                   AppColors.askGradient2,
                   AppColors.askGradient3,
@@ -321,7 +321,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
+                      borderSide: const BorderSide(
                         color: AppColors.primary,
                         width: 2,
                       ),
@@ -336,9 +336,9 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                         icon: AnimatedSwitcher(
                           duration: const Duration(milliseconds: 300),
                           child: _isListening
-                              ? Icon(
+                              ? const Icon(
                                   Icons.mic,
-                                  key: const ValueKey('listening'),
+                                  key: ValueKey('listening'),
                                   color: AppColors.primary,
                                   size: 28,
                                 )
@@ -376,7 +376,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                     ),
                     child: Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.mic,
                           color: AppColors.primary,
                           size: 16,
@@ -385,13 +385,13 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                         Expanded(
                           child: Text(
                             _partialSpeech,
-                            style: TextStyle(
+                            style: const TextStyle(
                               color: AppColors.primary,
                               fontStyle: FontStyle.italic,
                             ),
                           ),
                         ),
-                        SizedBox(
+                        const SizedBox(
                           width: 16,
                           height: 16,
                           child: CircularProgressIndicator(
@@ -477,7 +477,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.analytics_outlined,
                       color: AppColors.primary,
                       size: 20,
@@ -660,7 +660,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                     ),
                     child: Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.info_outline,
                           size: 16,
                           color: AppColors.error,
@@ -690,7 +690,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                     ),
                     child: Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.warning_outlined,
                           size: 16,
                           color: AppColors.warning,
@@ -734,7 +734,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.lightbulb,
+                        const Icon(Icons.lightbulb,
                             color: AppTheme.success, size: 24),
                         const SizedBox(width: 8),
                         Expanded(
@@ -866,7 +866,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                 ),
                 child: Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.tips_and_updates,
                       size: 16,
                       color: AppTheme.primaryBlue,

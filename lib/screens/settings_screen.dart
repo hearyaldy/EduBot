@@ -44,7 +44,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           GradientHeader(
             title: l10n.settings,
             subtitle: l10n.settingsSubtitle,
-            gradientColors: [
+            gradientColors: const [
               AppColors.settingsGradient1,
               AppColors.settingsGradient2,
               AppColors.settingsGradient3,
@@ -270,10 +270,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       title: 'About',
       icon: Icons.info_outline,
       children: [
-        ListTile(
-          leading: const Icon(Icons.school),
-          title: const Text('EduBot'),
-          subtitle: const Text(
+        const ListTile(
+          leading: Icon(Icons.school),
+          title: Text('EduBot'),
+          subtitle: Text(
             'Version 1.0.0 - AI Homework Helper for Parents',
           ),
         ),
@@ -309,14 +309,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
       isWarning: true,
       children: [
         ListTile(
-          leading: Icon(Icons.logout, color: AppTheme.error),
-          title: Text('Sign Out', style: TextStyle(color: AppTheme.error)),
+          leading: const Icon(Icons.logout, color: AppTheme.error),
+          title:
+              const Text('Sign Out', style: TextStyle(color: AppTheme.error)),
           subtitle: const Text('Sign out of your account'),
           onTap: _showSignOutDialog,
         ),
         ListTile(
-          leading: Icon(Icons.delete_forever, color: AppTheme.error),
-          title: Text(
+          leading: const Icon(Icons.delete_forever, color: AppTheme.error),
+          title: const Text(
             'Delete Account',
             style: TextStyle(color: AppTheme.error),
           ),
@@ -405,7 +406,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.warning, color: AppTheme.warning, size: 20),
+                    const Icon(Icons.warning,
+                        color: AppTheme.warning, size: 20),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -434,12 +436,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Row(
+              const Row(
                 children: [
-                  const Icon(Icons.lock, color: Colors.orange, size: 20),
-                  const SizedBox(width: 8),
+                  Icon(Icons.lock, color: Colors.orange, size: 20),
+                  SizedBox(width: 8),
                   Expanded(
-                    child: const Text(
+                    child: Text(
                         'Enter the administrator password to enable superadmin mode:'),
                   ),
                 ],

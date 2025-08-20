@@ -36,13 +36,25 @@ class StorageService {
 
       _isInitialized = true;
 
-      if (_config.isDebugMode) {
+      try {
+        if (_config.isDebugMode) {
+          print('Storage service initialized successfully');
+          print('Questions stored: ${_questionsBox.length}');
+          print('Explanations stored: ${_explanationsBox.length}');
+        }
+      } catch (_) {
+        // Fallback if environment config is not ready yet
         print('Storage service initialized successfully');
         print('Questions stored: ${_questionsBox.length}');
         print('Explanations stored: ${_explanationsBox.length}');
       }
     } catch (e) {
-      if (_config.isDebugMode) {
+      try {
+        if (_config.isDebugMode) {
+          print('Failed to initialize storage service: $e');
+        }
+      } catch (_) {
+        // Fallback if environment config is not ready yet
         print('Failed to initialize storage service: $e');
       }
       throw Exception('Storage initialization failed: $e');

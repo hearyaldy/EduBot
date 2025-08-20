@@ -158,14 +158,14 @@ class _ExplanationDetailScreenState extends State<ExplanationDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             children: [
               Icon(
                 Icons.help_outline,
                 color: AppColors.primary,
                 size: 20,
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               Text(
                 'Question',
                 style: TextStyle(
@@ -196,7 +196,7 @@ class _ExplanationDetailScreenState extends State<ExplanationDetailScreen> {
         children: [
           Row(
             children: [
-              Icon(
+              const Icon(
                 Icons.lightbulb_outline,
                 color: Colors.green,
                 size: 20,
@@ -236,15 +236,15 @@ class _ExplanationDetailScreenState extends State<ExplanationDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             children: [
               Icon(
                 Icons.format_list_numbered,
                 color: Colors.blue,
                 size: 20,
               ),
-              const SizedBox(width: 8),
-              const Text(
+              SizedBox(width: 8),
+              Text(
                 'Step-by-Step Solution',
                 style: TextStyle(
                   fontSize: 18,
@@ -357,15 +357,15 @@ class _ExplanationDetailScreenState extends State<ExplanationDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             children: [
               Icon(
                 Icons.family_restroom,
                 color: Colors.purple,
                 size: 20,
               ),
-              const SizedBox(width: 8),
-              const Text(
+              SizedBox(width: 8),
+              Text(
                 'Parent Tip',
                 style: TextStyle(
                   fontSize: 18,
@@ -400,15 +400,15 @@ class _ExplanationDetailScreenState extends State<ExplanationDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             children: [
               Icon(
                 Icons.public,
                 color: Colors.orange,
                 size: 20,
               ),
-              const SizedBox(width: 8),
-              const Text(
+              SizedBox(width: 8),
+              Text(
                 'Real World Example',
                 style: TextStyle(
                   fontSize: 18,

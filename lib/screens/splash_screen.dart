@@ -19,7 +19,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
-    
+
     // Set system UI overlay style for splash
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
@@ -51,19 +51,19 @@ class _SplashScreenState extends State<SplashScreen>
   void _startAnimation() async {
     // Start logo animation
     _logoController.forward();
-    
+
     // Delay text animation
     await Future.delayed(const Duration(milliseconds: 800));
     if (mounted) {
       _textController.forward();
     }
-    
+
     // Start background animation
     await Future.delayed(const Duration(milliseconds: 400));
     if (mounted) {
       _controller.forward();
     }
-    
+
     // Animations complete, navigation is handled by parent
   }
 
@@ -96,7 +96,7 @@ class _SplashScreenState extends State<SplashScreen>
             children: [
               // Background particles
               _buildBackgroundAnimation(),
-              
+
               // Main content
               Center(
                 child: Column(
@@ -104,25 +104,25 @@ class _SplashScreenState extends State<SplashScreen>
                   children: [
                     // App logo with animations
                     _buildAnimatedLogo(),
-                    
+
                     const SizedBox(height: 32),
-                    
+
                     // App name
                     _buildAnimatedTitle(),
-                    
+
                     const SizedBox(height: 16),
-                    
+
                     // Tagline
                     _buildAnimatedTagline(),
-                    
+
                     const SizedBox(height: 80),
-                    
+
                     // Loading indicator
                     _buildLoadingIndicator(),
                   ],
                 ),
               ),
-              
+
               // Floating elements
               _buildFloatingElements(),
             ],
@@ -185,7 +185,7 @@ class _SplashScreenState extends State<SplashScreen>
                         return Container(
                           width: 124,
                           height: 124,
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                             shape: BoxShape.circle,
                             gradient: LinearGradient(
                               begin: Alignment.topLeft,
@@ -207,7 +207,7 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                 ),
               ),
-              
+
               // Animated pulsing ring
               AnimatedBuilder(
                 animation: _controller,
@@ -230,7 +230,7 @@ class _SplashScreenState extends State<SplashScreen>
                   );
                 },
               ),
-              
+
               // Secondary pulsing ring
               AnimatedBuilder(
                 animation: _logoController,
@@ -253,7 +253,7 @@ class _SplashScreenState extends State<SplashScreen>
                   );
                 },
               ),
-              
+
               // Sparkle effects around the logo
               ..._buildSparkleEffects(),
             ],
@@ -292,7 +292,7 @@ class _SplashScreenState extends State<SplashScreen>
           },
         ),
       ),
-      
+
       // Right sparkle
       Positioned(
         right: 15,
@@ -321,7 +321,7 @@ class _SplashScreenState extends State<SplashScreen>
           },
         ),
       ),
-      
+
       // Left sparkle
       Positioned(
         left: 25,
@@ -353,7 +353,6 @@ class _SplashScreenState extends State<SplashScreen>
     ];
   }
 
-
   Widget _buildAnimatedTitle() {
     return AnimatedBuilder(
       animation: _textController,
@@ -371,10 +370,10 @@ class _SplashScreenState extends State<SplashScreen>
                 letterSpacing: 2,
               ),
             ).animate().shimmer(
-              duration: const Duration(milliseconds: 1500),
-              delay: const Duration(milliseconds: 800),
-              color: Colors.white.withValues(alpha: 0.5),
-            ),
+                  duration: const Duration(milliseconds: 1500),
+                  delay: const Duration(milliseconds: 800),
+                  color: Colors.white.withValues(alpha: 0.5),
+                ),
           ),
         );
       },
@@ -415,8 +414,8 @@ class _SplashScreenState extends State<SplashScreen>
         backgroundColor: Colors.white.withValues(alpha: 0.2),
       ),
     ).animate(onPlay: (controller) => controller.repeat()).rotate(
-      duration: const Duration(milliseconds: 1000),
-    );
+          duration: const Duration(milliseconds: 1000),
+        );
   }
 
   Widget _buildFloatingElements() {
@@ -433,7 +432,8 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
 
-  Widget _buildFloatingIcon(IconData icon, double left, double top, int duration) {
+  Widget _buildFloatingIcon(
+      IconData icon, double left, double top, int duration) {
     return Positioned(
       left: MediaQuery.of(context).size.width * left,
       top: MediaQuery.of(context).size.height * top,
@@ -441,19 +441,18 @@ class _SplashScreenState extends State<SplashScreen>
         icon,
         color: Colors.white.withValues(alpha: 0.1),
         size: 24,
-      ).animate(onPlay: (controller) => controller.repeat(reverse: true))
+      )
+          .animate(onPlay: (controller) => controller.repeat(reverse: true))
           .move(
-            begin: const Offset(0, -20), 
-            end: const Offset(0, 20), 
-            duration: Duration(milliseconds: duration)
-          )
+              begin: const Offset(0, -20),
+              end: const Offset(0, 20),
+              duration: Duration(milliseconds: duration))
           .then()
           .fadeIn(duration: const Duration(milliseconds: 500))
           .scale(
-            begin: const Offset(0.8, 0.8), 
-            end: const Offset(1.2, 1.2), 
-            duration: Duration(milliseconds: duration)
-          ),
+              begin: const Offset(0.8, 0.8),
+              end: const Offset(1.2, 1.2),
+              duration: Duration(milliseconds: duration)),
     );
   }
 }
@@ -473,14 +472,14 @@ class BubblePainter extends CustomPainter {
     // Create floating bubbles
     for (int i = 0; i < 8; i++) {
       final offset = Offset(
-        (size.width * (i * 0.15 + 0.1)) + 
-        (30 * animationValue * (i.isEven ? 1 : -1)),
-        (size.height * (i * 0.12 + 0.1)) + 
-        (50 * animationValue * (i.isOdd ? 1 : -1)),
+        (size.width * (i * 0.15 + 0.1)) +
+            (30 * animationValue * (i.isEven ? 1 : -1)),
+        (size.height * (i * 0.12 + 0.1)) +
+            (50 * animationValue * (i.isOdd ? 1 : -1)),
       );
-      
+
       final radius = 20 + (i * 5) + (10 * animationValue);
-      
+
       canvas.drawCircle(offset, radius, paint);
     }
   }

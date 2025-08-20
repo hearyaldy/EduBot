@@ -39,8 +39,8 @@ class AppTheme {
         onPrimaryContainer: primaryDark,
         secondary: accent,
         onSecondary: Colors.white,
-        secondaryContainer: Color(0xFFD1FAE5),
-        onSecondaryContainer: Color(0xFF064E3B),
+        secondaryContainer: const Color(0xFFD1FAE5),
+        onSecondaryContainer: const Color(0xFF064E3B),
         tertiary: info,
         onTertiary: Colors.white,
         surface: surface,
@@ -51,8 +51,8 @@ class AppTheme {
         outlineVariant: divider,
         error: error,
         onError: Colors.white,
-        errorContainer: Color(0xFFFEE2E2),
-        onErrorContainer: Color(0xFF7F1D1D),
+        errorContainer: const Color(0xFFFEE2E2),
+        onErrorContainer: const Color(0xFF7F1D1D),
       ),
 
       // Text Theme
@@ -138,7 +138,7 @@ class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: primaryBlue,
-          side: BorderSide(color: primaryBlue, width: 1.5),
+          side: const BorderSide(color: primaryBlue, width: 1.5),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -150,19 +150,19 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: border),
+          borderSide: const BorderSide(color: border),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: border),
+          borderSide: const BorderSide(color: border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: primaryBlue, width: 2),
+          borderSide: const BorderSide(color: primaryBlue, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: error),
+          borderSide: const BorderSide(color: error),
         ),
         filled: true,
         fillColor: surfaceVariant,
@@ -170,14 +170,14 @@ class AppTheme {
           horizontal: 16,
           vertical: 16,
         ),
-        hintStyle: TextStyle(color: textTertiary),
+        hintStyle: const TextStyle(color: textTertiary),
       ),
 
       // Modern Icon Theme
-      iconTheme: IconThemeData(color: textSecondary, size: 24),
+      iconTheme: const IconThemeData(color: textSecondary, size: 24),
 
       // Modern App Bar Theme
-      appBarTheme: AppBarTheme(
+      appBarTheme: const AppBarTheme(
         elevation: 0,
         scrolledUnderElevation: 1,
         centerTitle: true,
@@ -205,32 +205,32 @@ class AppTheme {
       chipTheme: ChipThemeData(
         backgroundColor: primarySurface,
         selectedColor: primaryBlue,
-        labelStyle: TextStyle(color: primaryDark),
+        labelStyle: const TextStyle(color: primaryDark),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),
     );
   }
 
   // Additional utility methods for gradients and shadows
-  static LinearGradient get primaryGradient => LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [primaryLight, primaryBlue, primaryDark],
-    stops: [0.0, 0.5, 1.0],
-  );
+  static LinearGradient get primaryGradient => const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [primaryLight, primaryBlue, primaryDark],
+        stops: [0.0, 0.5, 1.0],
+      );
 
   static BoxShadow get modernShadow => BoxShadow(
-    color: primaryBlue.withValues(alpha: 0.1),
-    blurRadius: 20,
-    offset: Offset(0, 4),
-    spreadRadius: 0,
-  );
+        color: primaryBlue.withValues(alpha: 0.1),
+        blurRadius: 20,
+        offset: const Offset(0, 4),
+        spreadRadius: 0,
+      );
 
   static BoxShadow get subtleShadow => BoxShadow(
-    color: Colors.black.withValues(alpha: 0.05),
-    blurRadius: 10,
-    offset: Offset(0, 2),
-    spreadRadius: 0,
-  );
+        color: Colors.black.withValues(alpha: 0.05),
+        blurRadius: 10,
+        offset: const Offset(0, 2),
+        spreadRadius: 0,
+      );
 }

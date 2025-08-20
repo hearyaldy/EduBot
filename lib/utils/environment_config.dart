@@ -13,9 +13,12 @@ class EnvironmentConfig {
   static Future<void> initialize() async {
     try {
       await dotenv.load(fileName: ".env");
+      debugPrint('Environment configuration loaded successfully');
     } catch (e) {
-      // If .env file doesn't exist, use default values
-      debugPrint('Warning: .env file not found. Using default configuration.');
+      // If .env file doesn't exist, initialize with empty map
+      debugPrint('Warning: .env file not found. Using default configuration: $e');
+      // Manually initialize the dotenv to prevent NotInitializedError
+      dotenv.testLoad(fileInput: '');
     }
   }
 

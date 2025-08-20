@@ -4,7 +4,7 @@ import '../screens/modern_home_screen.dart';
 import '../screens/scan_homework_screen.dart';
 import '../screens/ask_question_screen.dart';
 import '../screens/history_screen.dart';
-import '../screens/settings_screen.dart' hide SizedBox;
+import '../screens/settings_screen.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/gradient_header.dart';
 import '../l10n/app_localizations.dart';
@@ -76,9 +76,9 @@ class _MainNavigatorState extends State<MainNavigator> {
                 activeIcon: const Icon(Icons.help),
                 label: l10n.askQuestion,
               ),
-              BottomNavigationBarItem(
-                icon: const Icon(Icons.bookmark_outline),
-                activeIcon: const Icon(Icons.bookmark),
+              const BottomNavigationBarItem(
+                icon: Icon(Icons.bookmark_outline),
+                activeIcon: Icon(Icons.bookmark),
                 label: 'History',
               ),
               BottomNavigationBarItem(
@@ -104,7 +104,7 @@ class ProgressScreen extends StatelessWidget {
       backgroundColor: AppColors.gray50,
       body: Column(
         children: [
-          GradientHeader(
+          const GradientHeader(
             title: 'Learning Progress',
             subtitle: 'Track your homework journey',
             gradientColors: [
@@ -122,7 +122,7 @@ class ProgressScreen extends StatelessWidget {
                   children: [
                     Container(
                       padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         gradient: AppColors.analyticsGradient,
                         shape: BoxShape.circle,
                       ),
@@ -183,9 +183,9 @@ class ProfileScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 'Learning Progress',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
                   color: AppColors.gray900,
@@ -200,7 +200,7 @@ class ProfileScreen extends StatelessWidget {
                       children: [
                         Container(
                           padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                             gradient: AppColors.analyticsGradient,
                             shape: BoxShape.circle,
                           ),
