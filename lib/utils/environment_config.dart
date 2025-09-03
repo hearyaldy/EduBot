@@ -85,9 +85,8 @@ class EnvironmentConfig {
   bool get enableAnalytics =>
       _parseBool(dotenv.env['ENABLE_ANALYTICS'], defaultValue: false);
 
-  // Validation
-  bool get isGeminiConfigured =>
-      geminiApiKey.isNotEmpty && geminiApiKey != 'your_gemini_api_key_here';
+  // Validation - Gemini API key is now user-specific
+  bool get isGeminiConfigured => false; // Always false since API key is user-specific
 
   // Legacy validation
   bool get isOpenAIConfigured =>
@@ -128,11 +127,8 @@ class EnvironmentConfig {
   List<String> validateConfiguration() {
     List<String> issues = [];
 
-    if (!isGeminiConfigured) {
-      issues.add(
-        'Gemini API key is not configured. Please set GEMINI_API_KEY in your .env file.',
-      );
-    }
+    // Note: Gemini API key validation is now handled per-user in the app
+    // No longer checking for global API key in .env file
 
     if (dailyFreeQuestionLimit <= 0) {
       issues.add('Daily free question limit must be greater than 0.');

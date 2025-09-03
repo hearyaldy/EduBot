@@ -2,30 +2,55 @@ import 'dart:convert';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import '../models/explanation.dart';
 import '../utils/environment_config.dart';
+import 'storage_service.dart';
 
 class AIService {
   // Get configuration from environment
   static final _config = EnvironmentConfig.instance;
+  static final _storage = StorageService();
   static String get _model => _config.geminiModel;
-  static String get _apiKey => _config.geminiApiKey;
   static int get _maxTokens => _config.geminiMaxTokens;
   static double get _temperature => _config.geminiTemperature;
 
-  // Initialize Gemini model
-  late final GenerativeModel _geminiModel;
+  // Initialize Gemini model with user's API key
+  GenerativeModel? _geminiModel;
 
-  // Constructor to initialize the model
-  AIService() {
-    _geminiModel = GenerativeModel(
-      model: _model,
-      apiKey: _apiKey,
-      generationConfig: GenerationConfig(
-        temperature: _temperature,
-        maxOutputTokens: _maxTokens,
-        responseMimeType: 'application/json',
-      ),
-      systemInstruction: Content.system(_systemPrompt),
-    );
+  // Constructor
+  AIService();
+
+  // Get user's API key from storage
+  Future<String?> _getUserApiKey() async {
+    try {
+      await _storage.initialize();
+      return _storage.getSetting<String>('user_gemini_api_key');
+    } catch (e) {
+      if (_config.isDebugMode) {
+        print('Error getting user API key: $e');
+      }
+      return null;
+    }
+  }
+
+  // Initialize or recreate the model with user's API key
+  Future<GenerativeModel?> _getModel() async {
+    final apiKey = await _getUserApiKey();
+    if (apiKey == null || apiKey.isEmpty) {
+      return null;
+    }
+
+    if (_geminiModel == null) {
+      _geminiModel = GenerativeModel(
+        model: _model,
+        apiKey: apiKey,
+        generationConfig: GenerationConfig(
+          temperature: _temperature,
+          maxOutputTokens: _maxTokens,
+          responseMimeType: 'application/json',
+        ),
+        systemInstruction: Content.system(_systemPrompt),
+      );
+    }
+    return _geminiModel;
   }
 
   static const String _systemPrompt = '''
@@ -103,9 +128,10 @@ Format your response as JSON with English text in all fields.
   Future<Explanation> explainProblem(String question, String questionId,
       {String language = 'English'}) async {
     try {
-      if (!isConfigured) {
+      final model = await _getModel();
+      if (model == null) {
         throw Exception(
-            'Gemini API key is not configured. Please check your .env file.');
+            'Gemini API key is not configured. Please add your API key in Settings.');
       }
 
       // Create language-specific instruction
@@ -119,7 +145,7 @@ Format your response as JSON with English text in all fields.
       }
 
       // Generate content using Gemini
-      final response = await _geminiModel.generateContent([
+      final response = await model.generateContent([
         Content.text(prompt),
       ]);
 
@@ -191,9 +217,9 @@ Format your response as JSON with English text in all fields.
     String fallbackDescription;
 
     if (isConfigError) {
-      fallbackAnswer = "OpenAI API is not properly configured.";
+      fallbackAnswer = "Gemini API is not properly configured.";
       fallbackDescription =
-          "The OpenAI API key is missing or invalid. Please check your .env file and ensure OPENAI_API_KEY is set with a valid key.";
+          "The Gemini API key is missing or invalid. Please add your API key in the Settings screen.";
     } else if (isApiError) {
       fallbackAnswer = "There was an issue with the AI service.";
       fallbackDescription =
@@ -215,7 +241,7 @@ Format your response as JSON with English text in all fields.
           title: isConfigError ? "Configuration Error" : "Service Unavailable",
           description: fallbackDescription,
           tip: isConfigError
-              ? "Ask the app developer to properly configure the OpenAI API key."
+              ? "Please add your Gemini API key in the Settings screen to use AI explanations."
               : "Don't worry! You can try asking the question again, or break it down into smaller parts.",
           isKeyStep: true,
         ),
@@ -238,12 +264,15 @@ Format your response as JSON with English text in all fields.
   }
 
   // Check if API is properly configured
-  static bool get isConfigured => _config.isGeminiConfigured;
+  Future<bool> get isConfigured async {
+    final apiKey = await _getUserApiKey();
+    return apiKey != null && apiKey.isNotEmpty && apiKey != 'your_gemini_api_key_here';
+  }
 
   // Get configuration status for debugging
-  static Map<String, dynamic> getConfigStatus() {
+  Future<Map<String, dynamic>> getConfigStatus() async {
     return {
-      'api_key_configured': isConfigured,
+      'api_key_configured': await isConfigured,
       'model': _model,
       'max_tokens': _maxTokens,
       'temperature': _temperature,
@@ -251,9 +280,44 @@ Format your response as JSON with English text in all fields.
     };
   }
 
+  // Save user's API key
+  Future<void> saveUserApiKey(String apiKey) async {
+    try {
+      await _storage.initialize();
+      await _storage.saveSetting('user_gemini_api_key', apiKey);
+      // Reset model to use new API key
+      _geminiModel = null;
+      if (_config.isDebugMode) {
+        print('User API key saved successfully');
+      }
+    } catch (e) {
+      if (_config.isDebugMode) {
+        print('Error saving user API key: $e');
+      }
+      throw Exception('Failed to save API key: $e');
+    }
+  }
+
+  // Remove user's API key
+  Future<void> removeUserApiKey() async {
+    try {
+      await _storage.initialize();
+      await _storage.deleteSetting('user_gemini_api_key');
+      _geminiModel = null;
+      if (_config.isDebugMode) {
+        print('User API key removed successfully');
+      }
+    } catch (e) {
+      if (_config.isDebugMode) {
+        print('Error removing user API key: $e');
+      }
+      throw Exception('Failed to remove API key: $e');
+    }
+  }
+
   // Method to test if the API key is valid
   Future<bool> testConnection() async {
-    if (!isConfigured) {
+    if (!await isConfigured) {
       return false;
     }
 

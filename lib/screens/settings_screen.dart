@@ -6,6 +6,7 @@ import '../utils/environment_config.dart';
 import '../widgets/gradient_header.dart';
 import '../core/theme/app_colors.dart';
 import '../l10n/app_localizations.dart';
+import '../services/ai_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -18,6 +19,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificationsEnabled = true;
   bool _audioEnabled = true;
   double _speechRate = 0.5;
+  final _aiService = AIService();
+  bool _isApiKeyConfigured = false;
+  bool _isTestingConnection = false;
 
   // Get superadmin password from environment config
   String get _superadminPassword =>
@@ -32,6 +36,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
     'Chinese',
     'Japanese',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _checkApiKeyConfiguration();
+  }
+
+  Future<void> _checkApiKeyConfiguration() async {
+    final isConfigured = await _aiService.isConfigured;
+    if (mounted) {
+      setState(() {
+        _isApiKeyConfigured = isConfigured;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,6 +76,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildAccountSection(),
+                  const SizedBox(height: 24),
+                  _buildAIConfigSection(),
                   const SizedBox(height: 24),
                   _buildPreferencesSection(),
                   const SizedBox(height: 24),
@@ -133,6 +154,95 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Navigator.pushNamed(context, '/history');
           },
         ),
+      ],
+    );
+  }
+
+  Widget _buildAIConfigSection() {
+    return _buildSection(
+      title: 'AI Configuration',
+      icon: Icons.smart_toy,
+      children: [
+        ListTile(
+          leading: Icon(
+            _isApiKeyConfigured ? Icons.check_circle : Icons.error_outline,
+            color: _isApiKeyConfigured ? AppTheme.success : AppTheme.error,
+          ),
+          title: Text(
+            _isApiKeyConfigured ? 'API Key Configured' : 'API Key Required',
+          ),
+          subtitle: Text(
+            _isApiKeyConfigured
+                ? 'Your Gemini API key is active'
+                : 'Add your Google Gemini API key to use AI explanations',
+          ),
+          trailing: _isTestingConnection
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Icon(
+                  _isApiKeyConfigured ? Icons.edit : Icons.add,
+                  color: AppTheme.primaryBlue,
+                ),
+          onTap: _showApiKeyDialog,
+        ),
+        if (_isApiKeyConfigured) ...[
+          ListTile(
+            leading: const Icon(Icons.network_check),
+            title: const Text('Test Connection'),
+            subtitle: const Text('Verify your API key is working'),
+            onTap: _testApiConnection,
+          ),
+          ListTile(
+            leading: const Icon(Icons.delete_outline, color: AppTheme.error),
+            title: const Text(
+              'Remove API Key',
+              style: TextStyle(color: AppTheme.error),
+            ),
+            subtitle: const Text('Delete your stored API key'),
+            onTap: _showRemoveApiKeyDialog,
+          ),
+        ],
+        if (!_isApiKeyConfigured)
+          Container(
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppTheme.info.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppTheme.info.withOpacity(0.3)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.info, color: AppTheme.info, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'How to get your API key:',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  '1. Visit console.cloud.google.com\n'
+                  '2. Create a new project or select existing\n'
+                  '3. Enable the Gemini API\n'
+                  '4. Go to "Credentials" and create API key\n'
+                  '5. Copy your API key and paste it here',
+                  style: TextStyle(fontSize: 14),
+                ),
+              ],
+            ),
+          ),
       ],
     );
   }
@@ -707,6 +817,227 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _rateApp() {
     // Platform-specific app store rating logic would go here
     _showSnackBar('Thank you for your feedback!');
+  }
+
+  void _showApiKeyDialog() {
+    final TextEditingController apiKeyController = TextEditingController();
+    bool isPasswordVisible = false;
+    bool isSaving = false;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text(
+            _isApiKeyConfigured ? 'Update API Key' : 'Add Gemini API Key',
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.security, color: AppTheme.info, size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Your API key is stored securely on your device and never shared.',
+                      style: TextStyle(fontSize: 14),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: apiKeyController,
+                obscureText: !isPasswordVisible,
+                decoration: InputDecoration(
+                  labelText: 'Google Gemini API Key',
+                  hintText: 'AIzaSy...',
+                  border: const OutlineInputBorder(),
+                  suffixIcon: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: Icon(
+                          isPasswordVisible
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            isPasswordVisible = !isPasswordVisible;
+                          });
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.help_outline),
+                        onPressed: _showApiKeyInstructions,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: isSaving ? null : () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: isSaving
+                  ? null
+                  : () async {
+                      final apiKey = apiKeyController.text.trim();
+                      if (apiKey.isEmpty) {
+                        _showSnackBar('Please enter an API key', isError: true);
+                        return;
+                      }
+
+                      setState(() {
+                        isSaving = true;
+                      });
+
+                      try {
+                        await _aiService.saveUserApiKey(apiKey);
+                        if (mounted) {
+                          Navigator.pop(context);
+                          await _checkApiKeyConfiguration();
+                          _showSnackBar('API key saved successfully!');
+                        }
+                      } catch (e) {
+                        _showSnackBar('Failed to save API key: ${e.toString()}',
+                            isError: true);
+                      } finally {
+                        if (mounted) {
+                          setState(() {
+                            isSaving = false;
+                          });
+                        }
+                      }
+                    },
+              child: isSaving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(_isApiKeyConfigured ? 'Update' : 'Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showApiKeyInstructions() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('How to Get Your API Key'),
+        content: const SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Follow these steps to get your Google Gemini API key:',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              SizedBox(height: 16),
+              Text('1. Visit console.cloud.google.com'),
+              SizedBox(height: 8),
+              Text('2. Create a new project or select an existing one'),
+              SizedBox(height: 8),
+              Text('3. Enable the "Gemini API" for your project'),
+              SizedBox(height: 8),
+              Text('4. Go to "Credentials" in the left sidebar'),
+              SizedBox(height: 8),
+              Text('5. Click "Create Credentials" > "API key"'),
+              SizedBox(height: 8),
+              Text('6. Copy your new API key and paste it in the previous dialog'),
+              SizedBox(height: 16),
+              Text(
+                'Important:',
+                style: TextStyle(fontWeight: FontWeight.w600, color: Colors.orange),
+              ),
+              Text(
+                '• Keep your API key secure and never share it\n'
+                '• API usage may incur charges based on Google\'s pricing\n'
+                '• You can set usage limits in the Google Cloud Console',
+                style: TextStyle(fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Got it'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _testApiConnection() async {
+    setState(() {
+      _isTestingConnection = true;
+    });
+
+    try {
+      final isWorking = await _aiService.testConnection();
+      if (isWorking) {
+        _showSnackBar('API connection successful!');
+      } else {
+        _showSnackBar('API connection failed. Please check your key.',
+            isError: true);
+      }
+    } catch (e) {
+      _showSnackBar('Connection test failed: ${e.toString()}', isError: true);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isTestingConnection = false;
+        });
+      }
+    }
+  }
+
+  void _showRemoveApiKeyDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remove API Key'),
+        content: const Text(
+          'Are you sure you want to remove your API key? You will not be able to get AI explanations until you add a new key.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                await _aiService.removeUserApiKey();
+                if (mounted) {
+                  Navigator.pop(context);
+                  await _checkApiKeyConfiguration();
+                  _showSnackBar('API key removed successfully');
+                }
+              } catch (e) {
+                _showSnackBar('Failed to remove API key: ${e.toString()}',
+                    isError: true);
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.error),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showSnackBar(String message, {bool isError = false}) {
