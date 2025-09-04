@@ -6,6 +6,8 @@ import 'widgets/main_navigator.dart';
 import 'screens/splash_screen.dart';
 import 'providers/app_provider.dart';
 import 'services/storage_service.dart';
+import 'services/ad_service.dart';
+import 'services/supabase_service.dart';
 import 'utils/app_theme.dart';
 import 'utils/environment_config.dart';
 import 'core/theme/app_colors.dart';
@@ -19,6 +21,26 @@ void main() async {
 
   // Initialize storage service
   await StorageService().initialize();
+
+  // Initialize ad service
+  await AdService().initialize();
+
+  // Initialize Supabase service
+  try {
+    final config = EnvironmentConfig.instance;
+    debugPrint('=== Supabase Configuration Debug ===');
+    debugPrint('Supabase URL: ${config.supabaseUrl.substring(0, config.supabaseUrl.length > 20 ? 20 : config.supabaseUrl.length)}...');
+    debugPrint('Supabase URL configured: ${config.supabaseUrl.isNotEmpty}');
+    debugPrint('Supabase Anon Key configured: ${config.supabaseAnonKey.isNotEmpty}');
+    debugPrint('Supabase configuration valid: ${config.isSupabaseConfigured}');
+    debugPrint('=====================================');
+    
+    await SupabaseService.initialize();
+    debugPrint('Supabase initialized successfully');
+  } catch (e) {
+    debugPrint('Supabase initialization failed: $e');
+    debugPrint('App will continue with limited functionality');
+  }
 
   // Validate configuration and show warnings if needed
   final config = EnvironmentConfig.instance;

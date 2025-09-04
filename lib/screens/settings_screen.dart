@@ -7,6 +7,9 @@ import '../widgets/gradient_header.dart';
 import '../core/theme/app_colors.dart';
 import '../l10n/app_localizations.dart';
 import '../services/ai_service.dart';
+import '../services/supabase_service.dart';
+import '../screens/registration_screen.dart';
+import '../screens/admin_dashboard_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -107,11 +110,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         Consumer<AppProvider>(
           builder: (context, provider, child) {
             final l10n = AppLocalizations.of(context)!;
-            String accountType = 'Free Account';
+            String accountType = provider.isRegistered ? 'Registered User' : 'Guest User';
+            int maxQuestions = provider.isRegistered ? 60 : 30;
             String accountSubtitle =
-                '${provider.dailyQuestionsUsed}/10 questions used today';
-            IconData accountIcon = Icons.star_border;
-            Color accountColor = AppTheme.textSecondary;
+                '${provider.dailyQuestionsUsed}/$maxQuestions questions used today';
+            IconData accountIcon = provider.isRegistered ? Icons.person : Icons.person_outline;
+            Color accountColor = provider.isRegistered ? AppTheme.success : AppTheme.textSecondary;
 
             if (provider.isSuperadmin) {
               accountType = l10n.superadminAccount;
@@ -123,6 +127,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
               accountSubtitle = 'Unlimited questions and advanced features';
               accountIcon = Icons.diamond;
               accountColor = AppTheme.warning;
+            } else if (provider.isRegistered) {
+              accountType = 'Registered User';
+              accountSubtitle = '${provider.dailyQuestionsUsed}/60 questions used today';
+              accountIcon = Icons.person;
+              accountColor = AppTheme.success;
+            } else {
+              accountType = 'Guest User';
+              accountSubtitle = '${provider.dailyQuestionsUsed}/30 questions used today';
+              accountIcon = Icons.person_outline;
+              accountColor = AppTheme.textSecondary;
             }
 
             return ListTile(
@@ -132,12 +146,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               title: Text(accountType),
               subtitle: Text(accountSubtitle),
-              trailing: (!provider.isSuperadmin && !provider.isPremium)
-                  ? TextButton(
-                      onPressed: _showUpgradeDialog,
-                      child: const Text('Upgrade'),
-                    )
-                  : null,
+              trailing: _buildAccountActionButton(provider),
             );
           },
         ),
@@ -210,9 +219,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             margin: const EdgeInsets.all(16),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppTheme.info.withOpacity(0.1),
+              color: AppTheme.info.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppTheme.info.withOpacity(0.3)),
+              border: Border.all(color: AppTheme.info.withValues(alpha: 0.3)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -505,14 +514,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     : AppTheme.textSecondary,
               ),
             ),
-            if (provider.isSuperadmin)
+            if (provider.isSuperadmin) ...[
               Container(
                 margin: const EdgeInsets.all(16),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppTheme.warning.withOpacity(0.1),
+                  color: AppTheme.warning.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppTheme.warning.withOpacity(0.3)),
+                  border: Border.all(color: AppTheme.warning.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
@@ -528,9 +537,91 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ],
                 ),
               ),
+              ListTile(
+                leading: const Icon(Icons.admin_panel_settings, color: AppTheme.warning),
+                title: const Text('Admin Dashboard'),
+                subtitle: const Text('Manage users and view analytics'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: _openAdminDashboard,
+              ),
+            ],
           ],
         );
       },
+    );
+  }
+
+  Widget? _buildAccountActionButton(AppProvider provider) {
+    final supabaseService = SupabaseService.instance;
+    
+    if (provider.isSuperadmin || provider.isPremium) {
+      return null;
+    } else if (provider.isRegistered) {
+      if (supabaseService.isAuthenticated) {
+        return PopupMenuButton<String>(
+          onSelected: (value) async {
+            if (value == 'upgrade') {
+              _showUpgradeDialog();
+            } else if (value == 'signout') {
+              await _handleSignOut();
+            }
+          },
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: 'upgrade',
+              child: Text('Upgrade to Premium'),
+            ),
+            const PopupMenuItem(
+              value: 'signout',
+              child: Text('Sign Out'),
+            ),
+          ],
+          child: const Icon(Icons.more_vert),
+        );
+      } else {
+        return TextButton(
+          onPressed: _showUpgradeDialog,
+          child: const Text('Upgrade'),
+        );
+      }
+    } else {
+      return TextButton(
+        onPressed: _showRegistrationDialog,
+        child: const Text('Register'),
+      );
+    }
+  }
+
+  void _showRegistrationDialog() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const RegistrationScreen(),
+      ),
+    );
+  }
+
+  Future<void> _handleSignOut() async {
+    try {
+      final supabaseService = SupabaseService.instance;
+      await supabaseService.signOut();
+      
+      if (mounted) {
+        final provider = Provider.of<AppProvider>(context, listen: false);
+        await provider.setRegisteredStatus(false);
+        _showSnackBar('Signed out successfully');
+      }
+    } catch (e) {
+      if (mounted) {
+        _showSnackBar('Error signing out: ${e.toString()}');
+      }
+    }
+  }
+
+  void _openAdminDashboard() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const AdminDashboardScreen(),
+      ),
     );
   }
 
@@ -663,6 +754,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Text('Get unlimited access to EduBot with Premium:'),
             SizedBox(height: 12),
             Text('• Unlimited daily questions'),
+            Text('• Ad-free experience'),
             Text('• Priority support'),
             Text('• Advanced explanations'),
             Text('• Offline mode (coming soon)'),
@@ -900,9 +992,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       });
 
                       try {
+                        final navigator = Navigator.of(context);
                         await _aiService.saveUserApiKey(apiKey);
                         if (mounted) {
-                          Navigator.pop(context);
+                          navigator.pop();
                           await _checkApiKeyConfiguration();
                           _showSnackBar('API key saved successfully!');
                         }
@@ -1021,9 +1114,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ElevatedButton(
             onPressed: () async {
               try {
+                final navigator = Navigator.of(context);
                 await _aiService.removeUserApiKey();
                 if (mounted) {
-                  Navigator.pop(context);
+                  navigator.pop();
                   await _checkApiKeyConfiguration();
                   _showSnackBar('API key removed successfully');
                 }

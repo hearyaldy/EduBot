@@ -4,11 +4,13 @@ import '../models/homework_question.dart';
 import '../models/explanation.dart';
 import '../providers/app_provider.dart';
 import '../services/ai_service.dart';
+import '../services/ad_service.dart';
 import '../services/audio_service.dart';
 import '../services/voice_input_service.dart';
 import '../utils/app_theme.dart';
 import '../widgets/gradient_header.dart';
 import '../widgets/modern_button.dart';
+import '../widgets/ad_banner_widget.dart';
 import '../core/theme/app_colors.dart';
 
 class AskQuestionScreen extends StatefulWidget {
@@ -22,6 +24,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
   final TextEditingController _questionController = TextEditingController();
   final FocusNode _questionFocusNode = FocusNode();
   final AIService _aiService = AIService();
+  final AdService _adService = AdService();
   final VoiceInputService _voiceService = VoiceInputService();
 
   bool _isLoading = false;
@@ -108,13 +111,24 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
       return;
     }
 
+    final provider = Provider.of<AppProvider>(context, listen: false);
+    
+    // Show interstitial ad for non-premium users (every 3rd question)
+    if (!provider.isPremium && !provider.isSuperadmin) {
+      await _adService.showInterstitialAdConditionally(
+        actionCount: provider.dailyQuestionsUsed + 1,
+        showAfterActions: 3,
+      );
+    }
+
     setState(() {
       _isLoading = true;
     });
 
     // Clear current explanation from provider
-    final provider = Provider.of<AppProvider>(context, listen: false);
     provider.clearCurrentExplanation();
+
+    if (!mounted) return;
 
     try {
       final question = HomeworkQuestion(
@@ -247,6 +261,9 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                       _buildQuestionInput(),
                       const SizedBox(height: 16),
                       _buildTokenUsageCard(),
+                      const SizedBox(height: 16),
+                      // Ad Banner
+                      const AdBannerWidget(),
                       const SizedBox(height: 24),
                       if (_isLoading) _buildLoadingWidget(),
                       if (provider.currentExplanation != null)

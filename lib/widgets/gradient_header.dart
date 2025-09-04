@@ -6,6 +6,7 @@ class GradientHeader extends StatelessWidget {
   final String title;
   final String subtitle;
   final Widget? child;
+  final Widget? action;
   final List<Color> gradientColors;
   final double height;
 
@@ -14,6 +15,7 @@ class GradientHeader extends StatelessWidget {
     required this.title,
     required this.subtitle,
     this.child,
+    this.action,
     this.gradientColors = const [
       AppColors.gradientStart,
       AppColors.gradientMiddle,
@@ -55,7 +57,7 @@ class GradientHeader extends StatelessWidget {
           // Content
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
@@ -67,15 +69,15 @@ class GradientHeader extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                         child: Image.asset(
                           'lib/assets/icons/appicon.png',
-                          width: 45,
-                          height: 45,
+                          width: 35,
+                          height: 35,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) {
                             // Fallback to icon if image fails to load
                             return const Icon(
                               Icons.smart_toy,
                               color: Colors.white,
-                              size: 35,
+                              size: 28,
                             );
                           },
                         ),
@@ -89,16 +91,15 @@ class GradientHeader extends StatelessWidget {
                             Text(
                               title,
                               style: AppTextStyles.headline1
-                                  .copyWith(fontSize: 24),
+                                  .copyWith(fontSize: 20),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
-                            const SizedBox(height: 2),
                             Text(
                               subtitle,
                               style: AppTextStyles.bodyMedium.copyWith(
                                 color: Colors.white.withValues(alpha: 0.9),
-                                fontSize: 13,
+                                fontSize: 12,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -106,6 +107,10 @@ class GradientHeader extends StatelessWidget {
                           ],
                         ),
                       ),
+                      if (action != null) ...[
+                        const SizedBox(width: 12),
+                        action!,
+                      ],
                     ],
                   ),
                   if (child != null) ...[

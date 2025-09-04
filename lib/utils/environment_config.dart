@@ -14,9 +14,24 @@ class EnvironmentConfig {
     try {
       await dotenv.load(fileName: ".env");
       debugPrint('Environment configuration loaded successfully');
+      debugPrint('Loaded environment variables count: ${dotenv.env.length}');
+      debugPrint('Supabase URL from env: ${dotenv.env['SUPABASE_URL']?.substring(0, 20)}...');
+      
+      // Additional validation for critical variables
+      final supabaseUrl = dotenv.env['SUPABASE_URL'];
+      final supabaseKey = dotenv.env['SUPABASE_ANON_KEY'];
+      
+      if (supabaseUrl == null || supabaseUrl.isEmpty) {
+        debugPrint('WARNING: SUPABASE_URL is not set in .env file');
+      }
+      if (supabaseKey == null || supabaseKey.isEmpty) {
+        debugPrint('WARNING: SUPABASE_ANON_KEY is not set in .env file');
+      }
+      
     } catch (e) {
       // If .env file doesn't exist, initialize with empty map
       debugPrint('Warning: .env file not found. Using default configuration: $e');
+      debugPrint('This might be normal for release builds, but configuration will be limited');
       // Manually initialize the dotenv to prevent NotInitializedError
       dotenv.testLoad(fileInput: '');
     }
@@ -61,11 +76,18 @@ class EnvironmentConfig {
 
   // Limits
   int get dailyFreeQuestionLimit =>
-      int.tryParse(dotenv.env['DAILY_FREE_QUESTION_LIMIT'] ?? '10') ?? 10;
+      int.tryParse(dotenv.env['DAILY_FREE_QUESTION_LIMIT'] ?? '30') ?? 30;
+  int get dailyRegisteredQuestionLimit =>
+      int.tryParse(dotenv.env['DAILY_REGISTERED_QUESTION_LIMIT'] ?? '60') ?? 60;
   int get maxSavedQuestions =>
       int.tryParse(dotenv.env['MAX_SAVED_QUESTIONS'] ?? '100') ?? 100;
   int get maxQuestionLength =>
       int.tryParse(dotenv.env['MAX_QUESTION_LENGTH'] ?? '500') ?? 500;
+
+  // Supabase Configuration
+  String get supabaseUrl => dotenv.env['SUPABASE_URL'] ?? '';
+  String get supabaseAnonKey => dotenv.env['SUPABASE_ANON_KEY'] ?? '';
+  String get supabaseServiceRoleKey => dotenv.env['SUPABASE_SERVICE_ROLE_KEY'] ?? '';
 
   // Support Information
   String get supportEmail =>
@@ -85,8 +107,39 @@ class EnvironmentConfig {
   bool get enableAnalytics =>
       _parseBool(dotenv.env['ENABLE_ANALYTICS'], defaultValue: false);
 
+  // AdMob Configuration
+  String get admobAppIdAndroid => dotenv.env['ADMOB_APP_ID_ANDROID'] ?? '';
+  String get admobAppIdIOS => dotenv.env['ADMOB_APP_ID_IOS'] ?? '';
+  String get admobBannerAdUnitIdAndroid =>
+      dotenv.env['ADMOB_BANNER_AD_UNIT_ID_ANDROID'] ?? '';
+  String get admobBannerAdUnitIdIOS =>
+      dotenv.env['ADMOB_BANNER_AD_UNIT_ID_IOS'] ?? '';
+  String get admobInterstitialAdUnitIdAndroid =>
+      dotenv.env['ADMOB_INTERSTITIAL_AD_UNIT_ID_ANDROID'] ?? '';
+  String get admobInterstitialAdUnitIdIOS =>
+      dotenv.env['ADMOB_INTERSTITIAL_AD_UNIT_ID_IOS'] ?? '';
+  
+  bool get isAdMobConfigured =>
+      admobAppIdAndroid.isNotEmpty && 
+      admobAppIdIOS.isNotEmpty && 
+      admobBannerAdUnitIdAndroid.isNotEmpty &&
+      admobBannerAdUnitIdIOS.isNotEmpty;
+
   // Validation - Gemini API key is now user-specific
   bool get isGeminiConfigured => false; // Always false since API key is user-specific
+
+  // Supabase validation
+  bool get isSupabaseConfigured =>
+      supabaseUrl.isNotEmpty && 
+      supabaseAnonKey.isNotEmpty && 
+      supabaseUrl != 'your_supabase_url_here' &&
+      supabaseAnonKey != 'your_supabase_anon_key_here';
+
+  // Supabase admin validation (for admin operations)
+  bool get isSupabaseAdminConfigured =>
+      isSupabaseConfigured &&
+      supabaseServiceRoleKey.isNotEmpty &&
+      supabaseServiceRoleKey != 'your_supabase_service_role_key_here';
 
   // Legacy validation
   bool get isOpenAIConfigured =>
@@ -114,12 +167,16 @@ class EnvironmentConfig {
       'openai_configured': isOpenAIConfigured,
       'openai_model': openAIModel,
       'daily_question_limit': dailyFreeQuestionLimit,
+      'daily_registered_question_limit': dailyRegisteredQuestionLimit,
       'max_saved_questions': maxSavedQuestions,
+      'supabase_configured': isSupabaseConfigured,
+      'supabase_admin_configured': isSupabaseAdminConfigured,
       'enable_premium_features': enablePremiumFeatures,
       'enable_voice_input': enableVoiceInput,
       'enable_audio_output': enableAudioOutput,
       'enable_camera_scanning': enableCameraScanning,
       'analytics_enabled': enableAnalytics,
+      'admob_configured': isAdMobConfigured,
     };
   }
 

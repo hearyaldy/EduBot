@@ -38,18 +38,16 @@ class AIService {
       return null;
     }
 
-    if (_geminiModel == null) {
-      _geminiModel = GenerativeModel(
-        model: _model,
-        apiKey: apiKey,
-        generationConfig: GenerationConfig(
-          temperature: _temperature,
-          maxOutputTokens: _maxTokens,
-          responseMimeType: 'application/json',
-        ),
-        systemInstruction: Content.system(_systemPrompt),
-      );
-    }
+    _geminiModel ??= GenerativeModel(
+      model: _model,
+      apiKey: apiKey,
+      generationConfig: GenerationConfig(
+        temperature: _temperature,
+        maxOutputTokens: _maxTokens,
+        responseMimeType: 'application/json',
+      ),
+      systemInstruction: Content.system(_systemPrompt),
+    );
     return _geminiModel;
   }
 
@@ -266,7 +264,9 @@ Format your response as JSON with English text in all fields.
   // Check if API is properly configured
   Future<bool> get isConfigured async {
     final apiKey = await _getUserApiKey();
-    return apiKey != null && apiKey.isNotEmpty && apiKey != 'your_gemini_api_key_here';
+    return apiKey != null &&
+        apiKey.isNotEmpty &&
+        apiKey != 'your_gemini_api_key_here';
   }
 
   // Get configuration status for debugging

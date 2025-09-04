@@ -2,13 +2,16 @@ import 'package:flutter/foundation.dart';
 import '../models/homework_question.dart';
 import '../models/explanation.dart';
 import '../services/storage_service.dart';
+import '../services/ad_service.dart';
 
 class AppProvider with ChangeNotifier {
   final StorageService _storage = StorageService();
+  final AdService _adService = AdService();
 
   // Current user session
   int _dailyQuestionsUsed = 0;
   bool _isPremium = false;
+  bool _isRegistered = false;
 
   // AI Token tracking
   int _dailyTokensUsed = 0;
@@ -51,10 +54,11 @@ class AppProvider with ChangeNotifier {
   int get dailyQuestionsUsed => _dailyQuestionsUsed;
   bool get isPremium => _isPremium;
   bool get isSuperadmin => _isSuperadmin;
+  bool get isRegistered => _isRegistered;
   bool get canAskQuestion =>
       _isSuperadmin ||
       _isPremium ||
-      (_dailyQuestionsUsed < 10 &&
+      (_dailyQuestionsUsed < _getMaxQuestionsPerDay() &&
           canMakeGlobalRequest); // Check superadmin first, then premium, then limits
   List<HomeworkQuestion> get savedQuestions =>
       List.unmodifiable(_savedQuestions);
@@ -68,7 +72,7 @@ class AppProvider with ChangeNotifier {
   int get dailyTokensUsed => _dailyTokensUsed;
   int get totalTokensUsed => _totalTokensUsed;
   int get lastQuestionTokens => _lastQuestionTokens;
-  int get remainingQuestions => _isPremium ? -1 : (10 - _dailyQuestionsUsed);
+  int get remainingQuestions => _isPremium ? -1 : (_getMaxQuestionsPerDay() - _dailyQuestionsUsed);
   int get estimatedDailyTokenLimit =>
       _isPremium ? -1 : 50000; // 50k tokens per day for free users
   int get remainingTokens =>
@@ -100,6 +104,13 @@ class AppProvider with ChangeNotifier {
   String get selectedLanguage => _selectedLanguage;
   bool get showDailyTips => _showDailyTips;
 
+  // Get max questions per day based on user status
+  int _getMaxQuestionsPerDay() {
+    if (_isPremium) return -1; // Unlimited for premium
+    if (_isRegistered) return 60; // 60 for registered users
+    return 30; // 30 for non-registered users
+  }
+
   // Initialize app provider with stored data
   Future<void> initialize() async {
     if (_isInitialized) return;
@@ -114,6 +125,8 @@ class AppProvider with ChangeNotifier {
               0;
       _isPremium =
           _storage.getSetting<bool>('is_premium', defaultValue: false) ?? false;
+      _isRegistered =
+          _storage.getSetting<bool>('is_registered', defaultValue: false) ?? false;
 
       // Load user preferences
       _notificationsEnabled = _storage.getSetting<bool>('notifications_enabled',
@@ -145,6 +158,9 @@ class AppProvider with ChangeNotifier {
 
       // Load global usage data and check for daily reset
       await _loadGlobalUsageData();
+
+      // Configure ad service based on user status
+      _adService.setAdsEnabled(!_isPremium && !_isSuperadmin);
 
       _isInitialized = true;
       notifyListeners();
@@ -251,6 +267,10 @@ class AppProvider with ChangeNotifier {
   Future<void> setPremiumStatus(bool premium) async {
     _isPremium = premium;
     await _storage.saveSetting('is_premium', _isPremium);
+    
+    // Enable/disable ads based on premium status
+    _adService.setAdsEnabled(!premium && !_isSuperadmin);
+    
     notifyListeners();
   }
 
@@ -382,6 +402,16 @@ class AppProvider with ChangeNotifier {
   Future<void> setSuperadmin(bool isSuperadmin) async {
     _isSuperadmin = isSuperadmin;
     await _storage.saveSetting('is_superadmin', isSuperadmin);
+    
+    // Enable/disable ads based on superadmin status
+    _adService.setAdsEnabled(!_isPremium && !isSuperadmin);
+    
+    notifyListeners();
+  }
+
+  Future<void> setRegisteredStatus(bool registered) async {
+    _isRegistered = registered;
+    await _storage.saveSetting('is_registered', registered);
     notifyListeners();
   }
 

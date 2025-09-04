@@ -6,8 +6,11 @@ import '../widgets/gradient_header.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/modern_button.dart';
 import '../widgets/daily_tip_card.dart';
+import '../widgets/ad_banner_widget.dart';
+import '../widgets/profile_avatar_button.dart';
 import '../providers/app_provider.dart';
 import '../models/homework_question.dart';
+import '../services/supabase_service.dart';
 
 class ModernHomeScreen extends StatefulWidget {
   final Function(int)? onNavigate;
@@ -23,6 +26,7 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+  final _supabaseService = SupabaseService.instance;
 
   @override
   void initState() {
@@ -55,30 +59,44 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
             GradientHeader(
               title: 'EduBot',
               subtitle: 'AI Homework Helper',
+              action: ProfileAvatarButton(
+                onProfileTap: () => widget.onNavigate?.call(4), // Navigate to settings
+              ),
               child: GlassCard(
                 backgroundColor: Colors.white.withValues(alpha: 0.2),
                 padding: const EdgeInsets.all(15),
                 child: Row(
                   children: [
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Good evening, Parent! 👋',
-                            style: AppTextStyles.bodyLarge.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 5),
-                          Text(
-                            'Ready to tackle homework together?',
-                            style: AppTextStyles.bodyMedium.copyWith(
-                              color: Colors.white.withValues(alpha: 0.8),
-                            ),
-                          ),
-                        ],
+                      child: Builder(
+                        builder: (context) {
+                          final userInfo = _getUserInfo();
+                          final greeting = _getTimeBasedGreeting();
+                          final displayName = _getDisplayName(userInfo);
+                          final isAuthenticated = userInfo['isAuthenticated'] as bool;
+                          
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '$greeting, $displayName! 👋',
+                                style: AppTextStyles.bodyLarge.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                isAuthenticated 
+                                  ? 'Ready to tackle homework together?'
+                                  : 'Ready to get homework help?',
+                                style: AppTextStyles.bodyMedium.copyWith(
+                                  color: Colors.white.withValues(alpha: 0.8),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
                       ),
                     ),
                     Container(
@@ -158,6 +176,9 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
                       const DailyTipCard(),
 
                       const SizedBox(height: 25),
+
+                      // Ad Banner (only for non-premium users)
+                      const AdBannerWidget(),
 
                       // Recent Activity
                       _buildRecentActivity(),
@@ -456,6 +477,63 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
       widget.onNavigate!(3); // Index 3 for History tab
     } else {
       Navigator.pushNamed(context, '/history');
+    }
+  }
+
+  // Helper method to get time-based greeting
+  String _getTimeBasedGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) {
+      return 'Good morning';
+    } else if (hour < 17) {
+      return 'Good afternoon';
+    } else {
+      return 'Good evening';
+    }
+  }
+
+  // Helper method to get user name and authentication status
+  Map<String, dynamic> _getUserInfo() {
+    bool isAuthenticated = false;
+    String? userName;
+    String? userEmail;
+    
+    try {
+      isAuthenticated = _supabaseService.isAuthenticated;
+      userName = _supabaseService.userName;
+      userEmail = _supabaseService.currentUserEmail;
+    } catch (e) {
+      isAuthenticated = false;
+      userName = null;
+      userEmail = null;
+    }
+    
+    return {
+      'isAuthenticated': isAuthenticated,
+      'userName': userName,
+      'userEmail': userEmail,
+    };
+  }
+
+  // Helper method to get display name
+  String _getDisplayName(Map<String, dynamic> userInfo) {
+    if (!userInfo['isAuthenticated']) {
+      return 'there';
+    }
+    
+    final userName = userInfo['userName'] as String?;
+    final userEmail = userInfo['userEmail'] as String?;
+    
+    if (userName != null && userName.isNotEmpty) {
+      // If name is available, use first name only
+      final nameParts = userName.split(' ');
+      return nameParts.first;
+    } else if (userEmail != null && userEmail.isNotEmpty) {
+      // If no name but email available, use part before @
+      final emailParts = userEmail.split('@');
+      return emailParts.first;
+    } else {
+      return 'there';
     }
   }
 
