@@ -15,12 +15,14 @@ class AdminService {
 
   static SupabaseClient get _client => Supabase.instance.client;
   static final _config = EnvironmentConfig.instance;
-  final _supabaseService = SupabaseService.instance;
 
   // Check if current user has admin privileges
   bool get isAdmin {
-    final user = _supabaseService.currentUser;
-    return user?.userMetadata?['is_superadmin'] == true;
+    final user = _client.auth.currentUser;
+    final superadminValue = user?.userMetadata?['is_superadmin'];
+    
+    // Handle both boolean and string values
+    return superadminValue == true || superadminValue == "true";
   }
 
   // Check if admin operations are properly configured
@@ -58,8 +60,8 @@ class AdminService {
       
       var query = _client.from('profiles').select('''
         id, email, name, account_type, status, is_email_verified,
-        created_at, last_sign_in, premium_expires_at, total_questions,
-        daily_questions, last_question_at, metadata
+        created_at, premium_expires_at, total_questions,
+        daily_questions, last_question_at, metadata, updated_at
       ''');
 
       if (searchQuery != null && searchQuery.isNotEmpty) {
@@ -106,8 +108,8 @@ class AdminService {
           .from('profiles')
           .select('''
             id, email, name, account_type, status, is_email_verified,
-            created_at, last_sign_in, premium_expires_at, total_questions,
-            daily_questions, last_question_at, metadata
+            created_at, premium_expires_at, total_questions,
+            daily_questions, last_question_at, metadata, updated_at
           ''')
           .eq('id', userId)
           .single();
@@ -336,8 +338,8 @@ class AdminService {
           .from('profiles')
           .select('''
             id, email, name, account_type, status, is_email_verified,
-            created_at, last_sign_in, premium_expires_at, total_questions,
-            daily_questions, last_question_at, metadata
+            created_at, premium_expires_at, total_questions,
+            daily_questions, last_question_at, metadata, updated_at
           ''')
           .or('email.ilike.%$query%,name.ilike.%$query%')
           .limit(limit);

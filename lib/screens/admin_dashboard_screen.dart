@@ -25,6 +25,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   bool _isLoading = false;
   AccountType? _selectedAccountFilter;
   UserStatus? _selectedStatusFilter;
+  final Set<String> _expandedUsers = {};
 
   @override
   void initState() {
@@ -128,6 +129,72 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             ),
           ),
         ],
+      ),
+      bottomNavigationBar: Container(
+        margin: const EdgeInsets.all(16),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.95),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: BottomNavigationBar(
+            type: BottomNavigationBarType.fixed,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            selectedItemColor: AppColors.primary,
+            unselectedItemColor: AppColors.gray400,
+            selectedLabelStyle: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+            unselectedLabelStyle: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+            ),
+            currentIndex: _tabController.index + 1, // Offset by 1 since Home is index 0
+            onTap: (index) {
+              if (index == 0) {
+                // Navigate to Home (main app)
+                Navigator.of(context).pop();
+              } else {
+                // Navigate to admin tabs
+                setState(() {
+                  _tabController.animateTo(index - 1);
+                });
+              }
+            },
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.home_outlined),
+                activeIcon: Icon(Icons.home),
+                label: 'Home',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.people_outlined),
+                activeIcon: Icon(Icons.people),
+                label: 'Users',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.analytics_outlined),
+                activeIcon: Icon(Icons.analytics),
+                label: 'Analytics',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.admin_panel_settings_outlined),
+                activeIcon: Icon(Icons.admin_panel_settings),
+                label: 'Actions',
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -268,172 +335,274 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                   : ListView.builder(
                       padding: const EdgeInsets.all(16),
                       itemCount: _users.length,
-                      itemBuilder: (context, index) => _buildUserCard(_users[index]),
+                      itemBuilder: (context, index) => _buildExpandableUserItem(_users[index]),
                     ),
         ),
       ],
     );
   }
 
-  Widget _buildUserCard(AdminUser user) {
+  Widget _buildExpandableUserItem(AdminUser user) {
+    final isExpanded = _expandedUsers.contains(user.id);
+    
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 8),
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Row(
+      child: Column(
+        children: [
+          // Main user info - always visible
+          ListTile(
+            leading: CircleAvatar(
+              backgroundColor: _getStatusColor(user.status),
+              child: Text(
+                user.name?.substring(0, 1).toUpperCase() ?? user.email.substring(0, 1).toUpperCase(),
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+            ),
+            title: Text(
+              user.name ?? 'No Name',
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CircleAvatar(
-                  backgroundColor: _getAccountTypeColor(user.accountType),
-                  child: Text(
-                    user.name?.substring(0, 1).toUpperCase() ?? 
-                    user.email.substring(0, 1).toUpperCase(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                Text(user.email),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    _buildAccountTypeBadge(user.accountType),
+                    _buildStatusBadge(user.status),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        user.name ?? 'No name',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16,
+              ],
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // User actions dropdown
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert),
+                  onSelected: (action) => _handleUserAction(user, action),
+                  itemBuilder: (context) => [
+                    // Account Type Actions
+                    if (user.accountType != AccountType.premium)
+                      PopupMenuItem(
+                        value: 'upgrade_premium',
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.diamond,
+                              color: Colors.amber,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text('Upgrade to Premium'),
+                          ],
                         ),
                       ),
-                      Text(
-                        user.email,
-                        style: TextStyle(
-                          color: AppTheme.textSecondary,
-                          fontSize: 14,
+                    if (user.accountType == AccountType.premium)
+                      PopupMenuItem(
+                        value: 'downgrade_premium',
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.diamond_outlined,
+                              color: Colors.grey,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text('Remove Premium'),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                _buildAccountTypeBadge(user.accountType),
-              ],
-            ),
-            const SizedBox(height: 12),
-            
-            // Details
-            Row(
-              children: [
-                Expanded(
-                  child: _buildDetailItem('Questions', '${user.dailyQuestions}/${user.dailyQuestionLimit == -1 ? '∞' : user.dailyQuestionLimit}'),
-                ),
-                Expanded(
-                  child: _buildDetailItem('Total', '${user.totalQuestions}'),
-                ),
-                Expanded(
-                  child: _buildDetailItem('Status', user.statusDisplay),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            
-            Row(
-              children: [
-                Expanded(
-                  child: _buildDetailItem('Joined', _formatDate(user.createdAt)),
-                ),
-                Expanded(
-                  child: _buildDetailItem('Last Active', user.lastSignIn != null ? _formatDate(user.lastSignIn!) : 'Never'),
-                ),
-                if (user.accountType == AccountType.premium)
-                  Expanded(
-                    child: _buildDetailItem('Premium', user.premiumStatus),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            
-            // Actions
-            Row(
-              children: [
-                if (user.accountType != AccountType.premium && user.accountType != AccountType.superadmin)
-                  ElevatedButton.icon(
-                    onPressed: () => _upgradeToPremium(user),
-                    icon: const Icon(Icons.upgrade, size: 16),
-                    label: const Text('Upgrade'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.success,
-                      foregroundColor: Colors.white,
+                    PopupMenuItem(
+                      value: 'divider',
+                      enabled: false,
+                      child: Divider(),
                     ),
-                  ),
-                if (user.accountType == AccountType.premium)
-                  ElevatedButton.icon(
-                    onPressed: () => _downgradeFromPremium(user),
-                    icon: const Icon(Icons.trending_down, size: 16),
-                    label: const Text('Downgrade'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.warning,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                const SizedBox(width: 8),
-                if (user.status == UserStatus.active)
-                  TextButton.icon(
-                    onPressed: () => _suspendUser(user),
-                    icon: const Icon(Icons.block, size: 16),
-                    label: const Text('Suspend'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.error,
-                    ),
-                  ),
-                if (user.status == UserStatus.suspended)
-                  TextButton.icon(
-                    onPressed: () => _unsuspendUser(user),
-                    icon: const Icon(Icons.check_circle, size: 16),
-                    label: const Text('Unsuspend'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.success,
-                    ),
-                  ),
-                const Spacer(),
+                    // Status Actions
+                    if (user.status != UserStatus.active)
+                      PopupMenuItem(
+                        value: 'activate',
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.check_circle,
+                              color: Colors.green,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text('Activate'),
+                          ],
+                        ),
+                      ),
+                    if (user.status != UserStatus.suspended)
+                      PopupMenuItem(
+                        value: 'suspend',
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.pause_circle,
+                              color: Colors.orange,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text('Suspend'),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+                // Expand/collapse button
                 IconButton(
-                  onPressed: () => _showUserDetailsDialog(user),
-                  icon: const Icon(Icons.info_outline),
+                  icon: Icon(
+                    isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      if (isExpanded) {
+                        _expandedUsers.remove(user.id);
+                      } else {
+                        _expandedUsers.add(user.id);
+                      }
+                    });
+                  },
                 ),
               ],
+            ),
+            isThreeLine: true,
+          ),
+          
+          // Expanded details - only visible when expanded
+          if (isExpanded) ...[
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildDetailRow('User ID', user.id),
+                  _buildDetailRow('Email Verified', user.isEmailVerified ? 'Yes' : 'No'),
+                  _buildDetailRow('Created', _formatDate(user.createdAt)),
+                  if (user.lastSignIn != null)
+                    _buildDetailRow('Last Updated', _formatDate(user.lastSignIn!)),
+                  _buildDetailRow('Total Questions', user.totalQuestions.toString()),
+                  _buildDetailRow('Daily Questions', user.dailyQuestions.toString()),
+                  if (user.lastQuestionAt != null)
+                    _buildDetailRow('Last Question', _formatDate(user.lastQuestionAt!)),
+                  if (user.accountType == AccountType.premium && user.premiumExpiresAt != null)
+                    _buildDetailRow('Premium Expires', _formatDate(user.premiumExpiresAt!)),
+                ],
+              ),
             ),
           ],
-        ),
+        ],
       ),
     );
   }
 
-  Widget _buildDetailItem(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: AppTheme.textSecondary,
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontWeight: FontWeight.w500,
+                color: Colors.grey,
+              ),
+            ),
           ),
-        ),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontWeight: FontWeight.w400),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
+
+  Color _getStatusColor(UserStatus status) {
+    switch (status) {
+      case UserStatus.active:
+        return Colors.green;
+      case UserStatus.suspended:
+        return Colors.orange;
+      case UserStatus.deleted:
+        return Colors.red;
+    }
+  }
+
+  IconData _getStatusIcon(UserStatus status) {
+    switch (status) {
+      case UserStatus.active:
+        return Icons.check_circle;
+      case UserStatus.suspended:
+        return Icons.pause_circle;
+      case UserStatus.deleted:
+        return Icons.cancel;
+    }
+  }
+
+
+  Future<void> _handleUserAction(AdminUser user, String action) async {
+    if (action == 'divider') return; // Ignore divider clicks
+    
+    try {
+      bool success = false;
+      String message = '';
+      
+      switch (action) {
+        case 'upgrade_premium':
+          success = await _adminService.upgradeToPremium(
+            user.id,
+            expiresAt: DateTime.now().add(const Duration(days: 365)), // 1 year
+          );
+          message = success ? 'User upgraded to Premium successfully' : 'Failed to upgrade user to Premium';
+          break;
+          
+        case 'downgrade_premium':
+          success = await _adminService.downgradeFromPremium(user.id);
+          message = success ? 'User downgraded from Premium successfully' : 'Failed to downgrade user from Premium';
+          break;
+          
+        case 'activate':
+          if (user.status == UserStatus.suspended) {
+            success = await _adminService.unsuspendUser(user.id);
+            message = success ? 'User activated successfully' : 'Failed to activate user';
+          }
+          break;
+          
+        case 'suspend':
+          if (user.status == UserStatus.active) {
+            success = await _adminService.suspendUser(user.id, 'Suspended by admin');
+            message = success ? 'User suspended successfully' : 'Failed to suspend user';
+          }
+          break;
+          
+        default:
+          _showSnackBar('Unknown action: $action');
+          return;
+      }
+      
+      _showSnackBar(message);
+      if (success) {
+        _loadInitialData(); // Refresh the user list
+      }
+    } catch (e) {
+      _showSnackBar('Error: ${e.toString()}');
+    }
+  }
+
 
   Widget _buildAccountTypeBadge(AccountType type) {
     Color color;
@@ -483,18 +652,32 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     );
   }
 
-  Color _getAccountTypeColor(AccountType type) {
-    switch (type) {
-      case AccountType.guest:
-        return AppTheme.textSecondary;
-      case AccountType.registered:
-        return AppColors.info;
-      case AccountType.premium:
-        return AppColors.warning;
-      case AccountType.superadmin:
-        return AppColors.error;
-    }
+  Widget _buildStatusBadge(UserStatus status) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: _getStatusColor(status).withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _getStatusColor(status).withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(_getStatusIcon(status), size: 14, color: _getStatusColor(status)),
+          const SizedBox(width: 4),
+          Text(
+            status.name.toUpperCase(),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: _getStatusColor(status),
+            ),
+          ),
+        ],
+      ),
+    );
   }
+
 
   Widget _buildAnalyticsTab() {
     return SingleChildScrollView(
@@ -685,227 +868,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     }
   }
 
-  Future<void> _upgradeToPremium(AdminUser user) async {
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Upgrade to Premium'),
-        content: Text('Upgrade ${user.email} to Premium account?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Upgrade'),
-          ),
-        ],
-      ),
-    );
 
-    if (result == true) {
-      try {
-        final success = await _adminService.upgradeToPremium(
-          user.id,
-          isLifetime: true,
-        );
-        
-        if (success) {
-          _showSnackBar('User upgraded to Premium successfully');
-          _loadInitialData();
-        } else {
-          _showSnackBar('Failed to upgrade user');
-        }
-      } catch (e) {
-        _showSnackBar('Error: ${e.toString()}');
-      }
-    }
-  }
-
-  Future<void> _downgradeFromPremium(AdminUser user) async {
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Downgrade from Premium'),
-        content: Text('Downgrade ${user.email} from Premium account?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.warning),
-            child: const Text('Downgrade'),
-          ),
-        ],
-      ),
-    );
-
-    if (result == true) {
-      try {
-        final success = await _adminService.downgradeFromPremium(user.id);
-        
-        if (success) {
-          _showSnackBar('User downgraded from Premium successfully');
-          _loadInitialData();
-        } else {
-          _showSnackBar('Failed to downgrade user');
-        }
-      } catch (e) {
-        _showSnackBar('Error: ${e.toString()}');
-      }
-    }
-  }
-
-  Future<void> _suspendUser(AdminUser user) async {
-    final reasonController = TextEditingController();
-    
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Suspend User'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Suspend ${user.email}?'),
-            const SizedBox(height: 16),
-            TextField(
-              controller: reasonController,
-              decoration: const InputDecoration(
-                labelText: 'Reason (optional)',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 3,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Suspend'),
-          ),
-        ],
-      ),
-    );
-
-    if (result == true) {
-      try {
-        final success = await _adminService.suspendUser(
-          user.id,
-          reasonController.text.trim().isEmpty ? 'No reason provided' : reasonController.text.trim(),
-        );
-        
-        if (success) {
-          _showSnackBar('User suspended successfully');
-          _loadInitialData();
-        } else {
-          _showSnackBar('Failed to suspend user');
-        }
-      } catch (e) {
-        _showSnackBar('Error: ${e.toString()}');
-      }
-    }
-  }
-
-  Future<void> _unsuspendUser(AdminUser user) async {
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Unsuspend User'),
-        content: Text('Unsuspend ${user.email} and restore their access?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Unsuspend'),
-          ),
-        ],
-      ),
-    );
-
-    if (result == true) {
-      try {
-        final success = await _adminService.unsuspendUser(user.id);
-        
-        if (success) {
-          _showSnackBar('User unsuspended successfully');
-          _loadInitialData();
-        } else {
-          _showSnackBar('Failed to unsuspend user');
-        }
-      } catch (e) {
-        _showSnackBar('Error: ${e.toString()}');
-      }
-    }
-  }
-
-  void _showUserDetailsDialog(AdminUser user) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('User Details - ${user.name ?? 'No name'}'),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildDialogDetailItem('ID', user.id),
-              _buildDialogDetailItem('Email', user.email),
-              _buildDialogDetailItem('Name', user.name ?? 'Not provided'),
-              _buildDialogDetailItem('Account Type', user.accountTypeDisplay),
-              _buildDialogDetailItem('Status', user.statusDisplay),
-              _buildDialogDetailItem('Email Verified', user.isEmailVerified ? 'Yes' : 'No'),
-              _buildDialogDetailItem('Created', _formatDate(user.createdAt)),
-              _buildDialogDetailItem('Last Sign In', user.lastSignIn != null ? _formatDate(user.lastSignIn!) : 'Never'),
-              _buildDialogDetailItem('Total Questions', user.totalQuestions.toString()),
-              _buildDialogDetailItem('Daily Questions', user.dailyQuestions.toString()),
-              if (user.lastQuestionAt != null)
-                _buildDialogDetailItem('Last Question', _formatDate(user.lastQuestionAt!)),
-              if (user.accountType == AccountType.premium)
-                _buildDialogDetailItem('Premium Status', user.premiumStatus),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDialogDetailItem(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 120,
-            child: Text(
-              '$label:',
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-          ),
-          Expanded(
-            child: Text(value),
-          ),
-        ],
-      ),
-    );
-  }
 
   void _exportUsers() {
     _showSnackBar('Export functionality would be implemented here');

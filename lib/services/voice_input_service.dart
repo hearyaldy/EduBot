@@ -87,12 +87,14 @@ class VoiceInputService {
       },
       listenFor: const Duration(seconds: 30), // Maximum listening time
       pauseFor: const Duration(seconds: 3), // Pause detection
-      partialResults: true,
       localeId: localeId,
       onSoundLevelChange: (level) {
         // Could be used for visual feedback (sound wave animation)
       },
-      listenMode: ListenMode.confirmation,
+      listenOptions: SpeechListenOptions(
+        partialResults: true,
+        listenMode: ListenMode.confirmation,
+      ),
     );
   }
   

@@ -652,7 +652,6 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
   Widget _buildTokenUsageCard() {
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
-        final questionsUsed = provider.dailyQuestionsUsed;
         final questionsRemaining = provider.remainingQuestions;
         final tokensUsed = provider.dailyTokensUsed;
         final tokenUsagePercentage = provider.tokenUsagePercentage;
@@ -671,12 +670,32 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
                       size: 20,
                     ),
                     const SizedBox(width: 8),
-                    Text(
-                      'Daily Usage',
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.primary,
-                          ),
+                    Expanded(
+                      child: Text(
+                        'Gemini API Usage (Free Tier)',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primary,
+                            ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _getUsageLevelColor(provider.usageLevel).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: _getUsageLevelColor(provider.usageLevel).withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Text(
+                        provider.apiUsageStatus.split(' - ')[0], // First part only
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: _getUsageLevelColor(provider.usageLevel),
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -697,7 +716,7 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
                                   ),
                         ),
                         Text(
-                          '$questionsUsed / 10',
+                          provider.questionUsageDisplay,
                           style:
                               Theme.of(context).textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.w600,
@@ -732,6 +751,49 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
 
                 const SizedBox(height: 16),
 
+                // API Requests usage
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Daily Requests',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Colors.grey[600],
+                                  ),
+                        ),
+                        Text(
+                          '${(provider.dailyRequestUsagePercentage * 100).toStringAsFixed(1)}%',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Colors.grey[600],
+                                  ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    LinearProgressIndicator(
+                      value: provider.dailyRequestUsagePercentage,
+                      backgroundColor: Colors.grey[200],
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        _getUsageLevelColor(provider.usageLevel),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${provider.dailyRequestsUsed} / 1,500 requests',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.grey[600],
+                          ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
                 // AI Tokens usage
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -740,7 +802,7 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'AI Tokens',
+                          'Daily Tokens',
                           style:
                               Theme.of(context).textTheme.bodySmall?.copyWith(
                                     color: Colors.grey[600],
@@ -760,16 +822,12 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
                       value: tokenUsagePercentage,
                       backgroundColor: Colors.grey[200],
                       valueColor: AlwaysStoppedAnimation<Color>(
-                        tokenUsagePercentage < 0.8
-                            ? AppColors.success
-                            : tokenUsagePercentage < 0.9
-                                ? AppColors.warning
-                                : AppColors.error,
+                        _getUsageLevelColor(provider.usageLevel),
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${(tokensUsed / 1000).toStringAsFixed(1)}k / ${(provider.estimatedDailyTokenLimit / 1000).toStringAsFixed(0)}k tokens',
+                      '${(tokensUsed / 1000).toStringAsFixed(1)}k / 1,000k tokens',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: Colors.grey[600],
                           ),
@@ -1247,5 +1305,18 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
         ),
       ),
     );
+  }
+
+  Color _getUsageLevelColor(ApiUsageLevel level) {
+    switch (level) {
+      case ApiUsageLevel.excellent:
+        return AppColors.success;
+      case ApiUsageLevel.moderate:
+        return AppColors.info;
+      case ApiUsageLevel.warning:
+        return AppColors.warning;
+      case ApiUsageLevel.critical:
+        return AppColors.error;
+    }
   }
 }

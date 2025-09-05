@@ -3,6 +3,7 @@ import '../models/homework_question.dart';
 import '../models/explanation.dart';
 import '../services/storage_service.dart';
 import '../services/ad_service.dart';
+import '../services/admin_service.dart';
 
 class AppProvider with ChangeNotifier {
   final StorageService _storage = StorageService();
@@ -23,10 +24,18 @@ class AppProvider with ChangeNotifier {
   static int _globalDailyTokens = 0;
   static String _lastResetDate = '';
 
-  // Global API limits (Gemini 2.5 Flash free tier)
-  static const int _maxGlobalDailyRequests =
-      240; // Keep 10 request buffer from 250 limit
-  static const int _maxGlobalDailyTokens = 200000; // Conservative token limit
+  // Gemini API Free Tier Limits (actual Google limits)
+  // Daily limits (Free tier: ai.google.dev)
+  static const int _maxDailyRequests = 1500;
+  static const int _maxDailyTokens = 1000000; // 1 million tokens per day
+  
+  // Per-minute rate limits (for future rate limiting implementation)
+  // static const int _maxRequestsPerMinute = 15;
+  // static const int _maxTokensPerMinute = 32000;
+  
+  // Conservative app limits (safety buffer)
+  static const int _maxGlobalDailyRequests = 1400; // Keep 100 request buffer
+  static const int _maxGlobalDailyTokens = 950000; // Keep 50k token buffer
 
   // User preferences
   bool _notificationsEnabled = true;
@@ -35,8 +44,6 @@ class AppProvider with ChangeNotifier {
   String _selectedLanguage = 'English';
   bool _showDailyTips = true;
 
-  // Superadmin override (for development/testing)
-  bool _isSuperadmin = false;
 
   // Questions history
   List<HomeworkQuestion> _savedQuestions = [];
@@ -53,10 +60,10 @@ class AppProvider with ChangeNotifier {
   // Getters
   int get dailyQuestionsUsed => _dailyQuestionsUsed;
   bool get isPremium => _isPremium;
-  bool get isSuperadmin => _isSuperadmin;
+  bool get isSuperadmin => AdminService.instance.isAdmin;
   bool get isRegistered => _isRegistered;
   bool get canAskQuestion =>
-      _isSuperadmin ||
+      isSuperadmin ||
       _isPremium ||
       (_dailyQuestionsUsed < _getMaxQuestionsPerDay() &&
           canMakeGlobalRequest); // Check superadmin first, then premium, then limits
@@ -73,8 +80,12 @@ class AppProvider with ChangeNotifier {
   int get totalTokensUsed => _totalTokensUsed;
   int get lastQuestionTokens => _lastQuestionTokens;
   int get remainingQuestions => _isPremium ? -1 : (_getMaxQuestionsPerDay() - _dailyQuestionsUsed);
+  int get maxQuestionsPerDay => _getMaxQuestionsPerDay();
+  String get questionUsageDisplay => isSuperadmin || _isPremium 
+      ? '$_dailyQuestionsUsed / ∞'
+      : '$_dailyQuestionsUsed / ${_getMaxQuestionsPerDay()}';
   int get estimatedDailyTokenLimit =>
-      _isPremium ? -1 : 50000; // 50k tokens per day for free users
+      _isPremium ? -1 : _maxDailyTokens; // 1M tokens per day for free users (Gemini free tier)
   int get remainingTokens =>
       _isPremium ? -1 : (estimatedDailyTokenLimit - _dailyTokensUsed);
   double get tokenUsagePercentage => _isPremium
@@ -96,6 +107,40 @@ class AppProvider with ChangeNotifier {
       _globalDailyRequests < _maxGlobalDailyRequests;
   static bool get isNearGlobalLimit =>
       _globalDailyRequests > (_maxGlobalDailyRequests * 0.9); // 90% threshold
+
+  // Gemini API limit monitoring
+  int get dailyRequestsUsed => _dailyQuestionsUsed;
+  int get remainingDailyRequests => _maxDailyRequests - _dailyQuestionsUsed;
+  double get dailyRequestUsagePercentage => 
+      (_dailyQuestionsUsed / _maxDailyRequests).clamp(0.0, 1.0);
+  
+  // Usage warnings (different thresholds)
+  bool get isNearDailyRequestLimit => dailyRequestUsagePercentage > 0.8; // 80%
+  bool get isNearDailyTokenLimit => tokenUsagePercentage > 0.8; // 80%
+  bool get isApproachingRequestLimit => dailyRequestUsagePercentage > 0.9; // 90%
+  bool get isApproachingTokenLimit => tokenUsagePercentage > 0.9; // 90%
+  
+  // Status text for UI
+  String get apiUsageStatus {
+    if (isApproachingRequestLimit || isApproachingTokenLimit) {
+      return 'Near daily limit - use carefully';
+    } else if (isNearDailyRequestLimit || isNearDailyTokenLimit) {
+      return 'Approaching daily limit';
+    } else if (dailyRequestUsagePercentage > 0.5 || tokenUsagePercentage > 0.5) {
+      return 'Good usage - plenty remaining';
+    } else {
+      return 'Excellent - minimal usage today';
+    }
+  }
+  
+  // Usage level for UI colors
+  ApiUsageLevel get usageLevel {
+    final maxUsage = [dailyRequestUsagePercentage, tokenUsagePercentage].reduce((a, b) => a > b ? a : b);
+    if (maxUsage > 0.9) return ApiUsageLevel.critical;
+    if (maxUsage > 0.8) return ApiUsageLevel.warning;
+    if (maxUsage > 0.5) return ApiUsageLevel.moderate;
+    return ApiUsageLevel.excellent;
+  }
 
   // Settings getters
   bool get notificationsEnabled => _notificationsEnabled;
@@ -143,9 +188,6 @@ class AppProvider with ChangeNotifier {
       _showDailyTips =
           _storage.getSetting<bool>('show_daily_tips', defaultValue: true) ??
               true;
-      _isSuperadmin =
-          _storage.getSetting<bool>('is_superadmin', defaultValue: false) ??
-              false;
 
       // Load token usage data
       _dailyTokensUsed =
@@ -160,7 +202,7 @@ class AppProvider with ChangeNotifier {
       await _loadGlobalUsageData();
 
       // Configure ad service based on user status
-      _adService.setAdsEnabled(!_isPremium && !_isSuperadmin);
+      _adService.setAdsEnabled(!_isPremium && !isSuperadmin);
 
       _isInitialized = true;
       notifyListeners();
@@ -269,7 +311,7 @@ class AppProvider with ChangeNotifier {
     await _storage.saveSetting('is_premium', _isPremium);
     
     // Enable/disable ads based on premium status
-    _adService.setAdsEnabled(!premium && !_isSuperadmin);
+    _adService.setAdsEnabled(!premium && !isSuperadmin);
     
     notifyListeners();
   }
@@ -399,15 +441,6 @@ class AppProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setSuperadmin(bool isSuperadmin) async {
-    _isSuperadmin = isSuperadmin;
-    await _storage.saveSetting('is_superadmin', isSuperadmin);
-    
-    // Enable/disable ads based on superadmin status
-    _adService.setAdsEnabled(!_isPremium && !isSuperadmin);
-    
-    notifyListeners();
-  }
 
   Future<void> setRegisteredStatus(bool registered) async {
     _isRegistered = registered;
@@ -431,4 +464,12 @@ class AppProvider with ChangeNotifier {
       return {};
     }
   }
+}
+
+// API usage levels for UI indication
+enum ApiUsageLevel {
+  excellent,    // 0-50% usage - green
+  moderate,     // 50-80% usage - blue  
+  warning,      // 80-90% usage - orange
+  critical,     // 90-100% usage - red
 }

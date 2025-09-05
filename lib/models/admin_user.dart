@@ -48,13 +48,13 @@ class AdminUser extends Equatable {
     return AdminUser(
       id: data['id'],
       email: data['email'] ?? '',
-      name: data['raw_user_meta_data']?['name'] as String?,
-      accountType: _parseAccountType(data),
+      name: data['name'] as String?,
+      accountType: _parseAccountTypeFromProfiles(data['account_type']),
       status: _parseUserStatus(data['status']),
-      isEmailVerified: data['email_confirmed_at'] != null,
+      isEmailVerified: data['is_email_verified'] ?? false,
       createdAt: DateTime.parse(data['created_at']),
-      lastSignIn: data['last_sign_in_at'] != null 
-          ? DateTime.parse(data['last_sign_in_at']) 
+      lastSignIn: data['updated_at'] != null 
+          ? DateTime.parse(data['updated_at']) 
           : null,
       premiumExpiresAt: data['premium_expires_at'] != null 
           ? DateTime.parse(data['premium_expires_at']) 
@@ -64,27 +64,25 @@ class AdminUser extends Equatable {
       lastQuestionAt: data['last_question_at'] != null 
           ? DateTime.parse(data['last_question_at']) 
           : null,
-      metadata: data['raw_user_meta_data'] as Map<String, dynamic>?,
+      metadata: data['metadata'] as Map<String, dynamic>?,
     );
   }
 
-  static AccountType _parseAccountType(Map<String, dynamic> data) {
-    final metadata = data['raw_user_meta_data'] as Map<String, dynamic>?;
-    
-    if (metadata?['is_superadmin'] == true) {
-      return AccountType.superadmin;
+  static AccountType _parseAccountTypeFromProfiles(String? accountType) {
+    switch (accountType) {
+      case 'superadmin':
+        return AccountType.superadmin;
+      case 'premium':
+        return AccountType.premium;
+      case 'registered':
+        return AccountType.registered;
+      case 'guest':
+      default:
+        return AccountType.guest;
     }
-    
-    if (metadata?['is_premium'] == true || data['premium_expires_at'] != null) {
-      return AccountType.premium;
-    }
-    
-    if (data['email_confirmed_at'] != null) {
-      return AccountType.registered;
-    }
-    
-    return AccountType.guest;
   }
+
+  // Removed unused _parseAccountType method - using _parseAccountTypeFromProfiles instead
 
   static UserStatus _parseUserStatus(String? status) {
     switch (status?.toLowerCase()) {

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../utils/app_theme.dart';
-import '../utils/environment_config.dart';
 import '../widgets/gradient_header.dart';
 import '../core/theme/app_colors.dart';
 import '../l10n/app_localizations.dart';
@@ -25,10 +24,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _aiService = AIService();
   bool _isApiKeyConfigured = false;
   bool _isTestingConnection = false;
+  bool _showDetailedInstructions = false;
 
-  // Get superadmin password from environment config
-  String get _superadminPassword =>
-      EnvironmentConfig.instance.superadminPassword;
 
   final List<String> _languages = [
     'English',
@@ -116,6 +113,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 '${provider.dailyQuestionsUsed}/$maxQuestions questions used today';
             IconData accountIcon = provider.isRegistered ? Icons.person : Icons.person_outline;
             Color accountColor = provider.isRegistered ? AppTheme.success : AppTheme.textSecondary;
+
 
             if (provider.isSuperadmin) {
               accountType = l10n.superadminAccount;
@@ -214,13 +212,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onTap: _showRemoveApiKeyDialog,
           ),
         ],
-        if (!_isApiKeyConfigured)
+        if (!_isApiKeyConfigured) _buildApiKeyInstructions(),
+      ],
+    );
+  }
+
+  Widget _buildApiKeyInstructions() {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Basic Instructions Card
           Container(
-            margin: const EdgeInsets.all(16),
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: AppTheme.info.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppTheme.info.withValues(alpha: 0.3)),
             ),
             child: Column(
@@ -228,31 +236,341 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.info, color: AppTheme.info, size: 20),
-                    const SizedBox(width: 8),
+                    const Icon(Icons.key, color: AppTheme.info, size: 22),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'How to get your API key:',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        'Get Your Google Gemini API Key',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w600,
+                              color: AppTheme.info,
                             ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 const Text(
-                  '1. Visit console.cloud.google.com\n'
-                  '2. Create a new project or select existing\n'
-                  '3. Enable the Gemini API\n'
-                  '4. Go to "Credentials" and create API key\n'
-                  '5. Copy your API key and paste it here',
-                  style: TextStyle(fontSize: 14),
+                  'Quick Steps:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _buildQuickStep('1', 'Visit ai.google.dev/aistudio', Icons.web),
+                _buildQuickStep('2', 'Click "Get API key in Google AI Studio"', Icons.login),
+                _buildQuickStep('3', 'Create new project or use existing', Icons.create_new_folder),
+                _buildQuickStep('4', 'Generate and copy your API key', Icons.content_copy),
+                const SizedBox(height: 16),
+                
+                // Expandable detailed instructions
+                InkWell(
+                  onTap: () {
+                    setState(() {
+                      _showDetailedInstructions = !_showDetailedInstructions;
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.7),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppTheme.info.withValues(alpha: 0.2)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          color: AppTheme.primaryBlue,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _showDetailedInstructions 
+                                ? 'Hide detailed instructions'
+                                : 'Show detailed step-by-step instructions',
+                            style: TextStyle(
+                              color: AppTheme.primaryBlue,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                        Icon(
+                          _showDetailedInstructions 
+                              ? Icons.keyboard_arrow_up
+                              : Icons.keyboard_arrow_down,
+                          color: AppTheme.primaryBlue,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                
+                // Detailed instructions (expandable)
+                if (_showDetailedInstructions) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppTheme.info.withValues(alpha: 0.2)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Detailed Instructions:',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                            color: AppTheme.primaryBlue,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        _buildDetailedStep(
+                          '1',
+                          'Visit Google AI Studio',
+                          'Go to ai.google.dev/aistudio in your web browser',
+                          Icons.web,
+                        ),
+                        
+                        _buildDetailedStep(
+                          '2',
+                          'Sign in with Google Account',
+                          'Use your existing Google account or create a new one if needed',
+                          Icons.account_circle,
+                        ),
+                        
+                        _buildDetailedStep(
+                          '3',
+                          'Access API Keys',
+                          'Click "Get API key in Google AI Studio" button',
+                          Icons.vpn_key,
+                        ),
+                        
+                        _buildDetailedStep(
+                          '4',
+                          'Create or Select Project',
+                          'Choose "Create API key in new project" or select an existing Google Cloud project',
+                          Icons.create_new_folder,
+                        ),
+                        
+                        _buildDetailedStep(
+                          '5',
+                          'Generate API Key',
+                          'Click "Create API key" - your key will be generated instantly',
+                          Icons.auto_awesome,
+                        ),
+                        
+                        _buildDetailedStep(
+                          '6',
+                          'Copy Your Key',
+                          'Copy the generated API key (starts with "AIzaSy...") and paste it above',
+                          Icons.content_copy,
+                        ),
+                        
+                        const SizedBox(height: 16),
+                        
+                        // Important notes section
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.security, color: Colors.orange, size: 18),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Important Security Notes:',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.orange[800],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              _buildSecurityNote('Your API key is stored securely on this device only'),
+                              _buildSecurityNote('Never share your API key with others'),
+                              _buildSecurityNote('You can set usage limits in Google AI Studio'),
+                              _buildSecurityNote('API usage may incur charges based on Google\'s pricing'),
+                            ],
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 16),
+                        
+                        // Help section
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppTheme.success.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppTheme.success.withValues(alpha: 0.3)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.help_outline, color: AppTheme.success, size: 18),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Need Help?',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color: AppTheme.success,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                '• The API key is completely free to get\n'
+                                '• You get a generous free usage quota\n'
+                                '• It only takes 2-3 minutes to set up\n'
+                                '• Contact support if you have issues',
+                                style: TextStyle(fontSize: 14),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickStep(String number, String text, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: AppTheme.info,
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                number,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Icon(icon, size: 16, color: AppTheme.textSecondary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(fontSize: 14),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailedStep(String number, String title, String description, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: AppTheme.primaryBlue,
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                number,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(icon, size: 18, color: AppTheme.primaryBlue),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.primaryBlue,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    height: 1.4,
+                  ),
                 ),
               ],
             ),
           ),
-      ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSecurityNote(String note) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('• ', style: TextStyle(fontWeight: FontWeight.bold)),
+          Expanded(
+            child: Text(
+              note,
+              style: const TextStyle(fontSize: 14),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -493,19 +811,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           title: l10n.developerSettings,
           icon: Icons.admin_panel_settings,
           children: [
-            SwitchListTile(
-              title: Text(l10n.superadminMode),
-              subtitle: Text(l10n.superadminDescription),
-              value: provider.isSuperadmin,
-              onChanged: (value) {
-                if (value) {
-                  _showPasswordDialog(provider);
-                } else {
-                  provider.setSuperadmin(false);
-                  _showSnackBar(l10n.superadminDisabled);
-                }
-              },
-              secondary: Icon(
+            ListTile(
+              leading: Icon(
                 provider.isSuperadmin
                     ? Icons.security
                     : Icons.security_outlined,
@@ -513,6 +820,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ? AppTheme.warning
                     : AppTheme.textSecondary,
               ),
+              title: Text(l10n.superadminMode),
+              subtitle: Text(provider.isSuperadmin 
+                  ? 'Active (managed via Supabase)'
+                  : 'Inactive (managed via Supabase)'),
+              trailing: provider.isSuperadmin 
+                  ? const Icon(Icons.check_circle, color: AppTheme.success)
+                  : const Icon(Icons.cancel, color: AppTheme.textSecondary),
             ),
             if (provider.isSuperadmin) ...[
               Container(
@@ -625,122 +939,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showPasswordDialog(AppProvider provider) {
-    final TextEditingController passwordController = TextEditingController();
-    bool isPasswordVisible = false;
-
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Admin Password'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Row(
-                children: [
-                  Icon(Icons.lock, color: Colors.orange, size: 20),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                        'Enter the administrator password to enable superadmin mode:'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: passwordController,
-                obscureText: !isPasswordVisible,
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  border: const OutlineInputBorder(),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      isPasswordVisible
-                          ? Icons.visibility_off
-                          : Icons.visibility,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        isPasswordVisible = !isPasswordVisible;
-                      });
-                    },
-                  ),
-                ),
-                onSubmitted: (value) {
-                  if (value == _superadminPassword) {
-                    Navigator.pop(context);
-                    _showSuperadminConfirmationDialog(provider);
-                  } else {
-                    _showSnackBar('Incorrect password');
-                  }
-                },
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (passwordController.text == _superadminPassword) {
-                  Navigator.pop(context);
-                  _showSuperadminConfirmationDialog(provider);
-                } else {
-                  _showSnackBar('Incorrect password');
-                }
-              },
-              style:
-                  ElevatedButton.styleFrom(backgroundColor: AppTheme.warning),
-              child: const Text('Verify'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showSuperadminConfirmationDialog(AppProvider provider) {
-    final l10n = AppLocalizations.of(context)!;
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.enableSuperadminMode),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.warning, color: Colors.orange, size: 24),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(l10n.superadminWarning),
-                ),
-              ],
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              provider.setSuperadmin(true);
-              Navigator.pop(context);
-              _showSnackBar(l10n.superadminEnabled);
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.warning),
-            child: const Text('Enable'),
-          ),
-        ],
-      ),
-    );
-  }
 
   void _showUpgradeDialog() {
     showDialog(

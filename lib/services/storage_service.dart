@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/homework_question.dart';
 import '../models/explanation.dart';
 import '../utils/environment_config.dart';
+import 'questions_service.dart';
 
 class StorageService {
   static const String _questionsBoxName = 'homework_questions';
@@ -9,6 +11,7 @@ class StorageService {
   static const String _settingsBoxName = 'app_settings';
 
   static final _config = EnvironmentConfig.instance;
+  final _questionsService = QuestionsService.instance;
 
   // Singleton pattern
   static final StorageService _instance = StorageService._internal();
@@ -38,24 +41,24 @@ class StorageService {
 
       try {
         if (_config.isDebugMode) {
-          print('Storage service initialized successfully');
-          print('Questions stored: ${_questionsBox.length}');
-          print('Explanations stored: ${_explanationsBox.length}');
+          debugPrint('Storage service initialized successfully');
+          debugPrint('Questions stored: ${_questionsBox.length}');
+          debugPrint('Explanations stored: ${_explanationsBox.length}');
         }
       } catch (_) {
         // Fallback if environment config is not ready yet
-        print('Storage service initialized successfully');
-        print('Questions stored: ${_questionsBox.length}');
-        print('Explanations stored: ${_explanationsBox.length}');
+        debugPrint('Storage service initialized successfully');
+        debugPrint('Questions stored: ${_questionsBox.length}');
+        debugPrint('Explanations stored: ${_explanationsBox.length}');
       }
     } catch (e) {
       try {
         if (_config.isDebugMode) {
-          print('Failed to initialize storage service: $e');
+          debugPrint('Failed to initialize storage service: $e');
         }
       } catch (_) {
         // Fallback if environment config is not ready yet
-        print('Failed to initialize storage service: $e');
+        debugPrint('Failed to initialize storage service: $e');
       }
       throw Exception('Storage initialization failed: $e');
     }
@@ -63,14 +66,21 @@ class StorageService {
 
   // === HOMEWORK QUESTIONS ===
 
-  // Save a homework question
+  // Save a homework question (saves to both local storage and Supabase)
   Future<void> saveQuestion(HomeworkQuestion question) async {
     if (!_isInitialized) await initialize();
 
     try {
+      // Save to local storage first (always works)
       await _questionsBox.put(question.id, question.toJson());
       if (_config.isDebugMode) {
-        print('Question saved: ${question.id}');
+        print('Question saved locally: ${question.id}');
+      }
+
+      // Also save to Supabase if user is authenticated
+      final supabaseSuccess = await _questionsService.saveQuestion(question);
+      if (_config.isDebugMode) {
+        print('Question saved to Supabase: $supabaseSuccess');
       }
     } catch (e) {
       if (_config.isDebugMode) {
@@ -80,20 +90,28 @@ class StorageService {
     }
   }
 
-  // Get all homework questions (sorted by creation date, newest first)
+  // Get all homework questions (synced with Supabase if authenticated)
   Future<List<HomeworkQuestion>> getAllQuestions() async {
     if (!_isInitialized) await initialize();
 
     try {
-      final questions = _questionsBox.values
+      // Get local questions first
+      final localQuestions = _questionsBox.values
           .map((json) =>
               HomeworkQuestion.fromJson(Map<String, dynamic>.from(json)))
           .toList();
 
       // Sort by creation date (newest first)
-      questions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      localQuestions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
-      return questions;
+      // Sync with Supabase if user is authenticated
+      final syncedQuestions = await _questionsService.syncQuestions(localQuestions);
+      
+      if (_config.isDebugMode) {
+        print('Questions loaded: ${syncedQuestions.length} (local: ${localQuestions.length})');
+      }
+
+      return syncedQuestions;
     } catch (e) {
       if (_config.isDebugMode) {
         print('Failed to get questions: $e');
@@ -120,16 +138,21 @@ class StorageService {
     }
   }
 
-  // Delete a question
+  // Delete a question (deletes from both local storage and Supabase)
   Future<void> deleteQuestion(String id) async {
     if (!_isInitialized) await initialize();
 
     try {
+      // Delete from local storage
       await _questionsBox.delete(id);
-      // Also delete associated explanation
       await deleteExplanation(id);
+      
+      // Also delete from Supabase if user is authenticated
+      final supabaseSuccess = await _questionsService.deleteQuestion(id);
+      
       if (_config.isDebugMode) {
-        print('Question deleted: $id');
+        print('Question deleted locally: $id');
+        print('Question deleted from Supabase: $supabaseSuccess');
       }
     } catch (e) {
       if (_config.isDebugMode) {
@@ -159,14 +182,21 @@ class StorageService {
 
   // === EXPLANATIONS ===
 
-  // Save an explanation
+  // Save an explanation (saves to both local storage and Supabase)
   Future<void> saveExplanation(Explanation explanation) async {
     if (!_isInitialized) await initialize();
 
     try {
+      // Save to local storage first (always works)
       await _explanationsBox.put(explanation.questionId, explanation.toJson());
       if (_config.isDebugMode) {
-        print('Explanation saved for question: ${explanation.questionId}');
+        print('Explanation saved locally for question: ${explanation.questionId}');
+      }
+
+      // Also save to Supabase if user is authenticated
+      final supabaseSuccess = await _questionsService.saveExplanation(explanation);
+      if (_config.isDebugMode) {
+        print('Explanation saved to Supabase: $supabaseSuccess');
       }
     } catch (e) {
       if (_config.isDebugMode) {
@@ -176,14 +206,27 @@ class StorageService {
     }
   }
 
-  // Get explanation for a question
+  // Get explanation for a question (tries Supabase first, then local)
   Future<Explanation?> getExplanation(String questionId) async {
     if (!_isInitialized) await initialize();
 
     try {
+      // Try Supabase first if user is authenticated
+      final supabaseExplanation = await _questionsService.getExplanation(questionId);
+      if (supabaseExplanation != null) {
+        if (_config.isDebugMode) {
+          print('Explanation loaded from Supabase for $questionId');
+        }
+        return supabaseExplanation;
+      }
+
+      // Fall back to local storage
       final json = _explanationsBox.get(questionId);
       if (json != null) {
         final explanation = Explanation.fromJson(json);
+        if (_config.isDebugMode) {
+          print('Explanation loaded locally for $questionId');
+        }
         return explanation;
       }
       return null;
