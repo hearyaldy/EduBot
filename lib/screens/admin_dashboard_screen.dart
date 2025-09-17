@@ -19,7 +19,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   late TabController _tabController;
   final _adminService = AdminService.instance;
   final _searchController = TextEditingController();
-  
+
   List<AdminUser> _users = [];
   Map<String, dynamic> _stats = {};
   bool _isLoading = false;
@@ -56,7 +56,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     try {
       final users = await _adminService.getAllUsers();
       final stats = await _adminService.getUserStats();
-      
+
       if (mounted) {
         setState(() {
           _users = users;
@@ -91,16 +91,22 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
-                  Expanded(child: _buildStatsCard('Total Users', _stats['total_users']?.toString() ?? '0')),
+                  Expanded(
+                      child: _buildStatsCard('Total Users',
+                          _stats['total_users']?.toString() ?? '0')),
                   const SizedBox(width: 12),
-                  Expanded(child: _buildStatsCard('Premium', _stats['premium_users']?.toString() ?? '0')),
+                  Expanded(
+                      child: _buildStatsCard('Premium',
+                          _stats['premium_users']?.toString() ?? '0')),
                   const SizedBox(width: 12),
-                  Expanded(child: _buildStatsCard('New (30d)', _stats['new_users_30_days']?.toString() ?? '0')),
+                  Expanded(
+                      child: _buildStatsCard('New (30d)',
+                          _stats['new_users_30_days']?.toString() ?? '0')),
                 ],
               ),
             ),
           ),
-          
+
           // Tab Bar
           Container(
             color: Colors.white,
@@ -116,7 +122,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
               ],
             ),
           ),
-          
+
           // Tab Content
           Expanded(
             child: TabBarView(
@@ -159,7 +165,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
               fontSize: 11,
               fontWeight: FontWeight.w500,
             ),
-            currentIndex: _tabController.index + 1, // Offset by 1 since Home is index 0
+            currentIndex:
+                _tabController.index + 1, // Offset by 1 since Home is index 0
             onTap: (index) {
               if (index == 0) {
                 // Navigate to Home (main app)
@@ -261,7 +268,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 onChanged: (_) => _filterUsers(),
               ),
               const SizedBox(height: 12),
-              
+
               // Filters
               Row(
                 children: [
@@ -282,9 +289,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                           child: Text('All Types'),
                         ),
                         ...AccountType.values.map((type) => DropdownMenuItem(
-                          value: type,
-                          child: Text(type.name.toUpperCase()),
-                        )),
+                              value: type,
+                              child: Text(type.name.toUpperCase()),
+                            )),
                       ],
                       onChanged: (value) {
                         setState(() => _selectedAccountFilter = value);
@@ -310,9 +317,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                           child: Text('All Status'),
                         ),
                         ...UserStatus.values.map((status) => DropdownMenuItem(
-                          value: status,
-                          child: Text(status.name.toUpperCase()),
-                        )),
+                              value: status,
+                              child: Text(status.name.toUpperCase()),
+                            )),
                       ],
                       onChanged: (value) {
                         setState(() => _selectedStatusFilter = value);
@@ -325,7 +332,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             ],
           ),
         ),
-        
+
         // User List
         Expanded(
           child: _isLoading
@@ -335,7 +342,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                   : ListView.builder(
                       padding: const EdgeInsets.all(16),
                       itemCount: _users.length,
-                      itemBuilder: (context, index) => _buildExpandableUserItem(_users[index]),
+                      itemBuilder: (context, index) =>
+                          _buildExpandableUserItem(_users[index]),
                     ),
         ),
       ],
@@ -344,7 +352,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
 
   Widget _buildExpandableUserItem(AdminUser user) {
     final isExpanded = _expandedUsers.contains(user.id);
-    
+
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       elevation: 2,
@@ -356,8 +364,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             leading: CircleAvatar(
               backgroundColor: _getStatusColor(user.status),
               child: Text(
-                user.name?.substring(0, 1).toUpperCase() ?? user.email.substring(0, 1).toUpperCase(),
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                user.name?.substring(0, 1).toUpperCase() ??
+                    user.email.substring(0, 1).toUpperCase(),
+                style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold),
               ),
             ),
             title: Text(
@@ -389,7 +399,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                   itemBuilder: (context) => [
                     // Account Type Actions
                     if (user.accountType != AccountType.premium)
-                      PopupMenuItem(
+                      const PopupMenuItem(
                         value: 'upgrade_premium',
                         child: Row(
                           children: [
@@ -398,13 +408,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                               color: Colors.amber,
                               size: 20,
                             ),
-                            const SizedBox(width: 8),
+                            SizedBox(width: 8),
                             Text('Upgrade to Premium'),
                           ],
                         ),
                       ),
                     if (user.accountType == AccountType.premium)
-                      PopupMenuItem(
+                      const PopupMenuItem(
                         value: 'downgrade_premium',
                         child: Row(
                           children: [
@@ -413,19 +423,19 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                               color: Colors.grey,
                               size: 20,
                             ),
-                            const SizedBox(width: 8),
+                            SizedBox(width: 8),
                             Text('Remove Premium'),
                           ],
                         ),
                       ),
-                    PopupMenuItem(
+                    const PopupMenuItem(
                       value: 'divider',
                       enabled: false,
                       child: Divider(),
                     ),
                     // Status Actions
                     if (user.status != UserStatus.active)
-                      PopupMenuItem(
+                      const PopupMenuItem(
                         value: 'activate',
                         child: Row(
                           children: [
@@ -434,13 +444,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                               color: Colors.green,
                               size: 20,
                             ),
-                            const SizedBox(width: 8),
+                            SizedBox(width: 8),
                             Text('Activate'),
                           ],
                         ),
                       ),
                     if (user.status != UserStatus.suspended)
-                      PopupMenuItem(
+                      const PopupMenuItem(
                         value: 'suspend',
                         child: Row(
                           children: [
@@ -449,7 +459,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                               color: Colors.orange,
                               size: 20,
                             ),
-                            const SizedBox(width: 8),
+                            SizedBox(width: 8),
                             Text('Suspend'),
                           ],
                         ),
@@ -459,7 +469,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 // Expand/collapse button
                 IconButton(
                   icon: Icon(
-                    isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                    isExpanded
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
                   ),
                   onPressed: () {
                     setState(() {
@@ -475,7 +487,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             ),
             isThreeLine: true,
           ),
-          
+
           // Expanded details - only visible when expanded
           if (isExpanded) ...[
             const Divider(height: 1),
@@ -485,16 +497,23 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildDetailRow('User ID', user.id),
-                  _buildDetailRow('Email Verified', user.isEmailVerified ? 'Yes' : 'No'),
+                  _buildDetailRow(
+                      'Email Verified', user.isEmailVerified ? 'Yes' : 'No'),
                   _buildDetailRow('Created', _formatDate(user.createdAt)),
                   if (user.lastSignIn != null)
-                    _buildDetailRow('Last Updated', _formatDate(user.lastSignIn!)),
-                  _buildDetailRow('Total Questions', user.totalQuestions.toString()),
-                  _buildDetailRow('Daily Questions', user.dailyQuestions.toString()),
+                    _buildDetailRow(
+                        'Last Updated', _formatDate(user.lastSignIn!)),
+                  _buildDetailRow(
+                      'Total Questions', user.totalQuestions.toString()),
+                  _buildDetailRow(
+                      'Daily Questions', user.dailyQuestions.toString()),
                   if (user.lastQuestionAt != null)
-                    _buildDetailRow('Last Question', _formatDate(user.lastQuestionAt!)),
-                  if (user.accountType == AccountType.premium && user.premiumExpiresAt != null)
-                    _buildDetailRow('Premium Expires', _formatDate(user.premiumExpiresAt!)),
+                    _buildDetailRow(
+                        'Last Question', _formatDate(user.lastQuestionAt!)),
+                  if (user.accountType == AccountType.premium &&
+                      user.premiumExpiresAt != null)
+                    _buildDetailRow(
+                        'Premium Expires', _formatDate(user.premiumExpiresAt!)),
                 ],
               ),
             ),
@@ -553,47 +572,55 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     }
   }
 
-
   Future<void> _handleUserAction(AdminUser user, String action) async {
     if (action == 'divider') return; // Ignore divider clicks
-    
+
     try {
       bool success = false;
       String message = '';
-      
+
       switch (action) {
         case 'upgrade_premium':
           success = await _adminService.upgradeToPremium(
             user.id,
             expiresAt: DateTime.now().add(const Duration(days: 365)), // 1 year
           );
-          message = success ? 'User upgraded to Premium successfully' : 'Failed to upgrade user to Premium';
+          message = success
+              ? 'User upgraded to Premium successfully'
+              : 'Failed to upgrade user to Premium';
           break;
-          
+
         case 'downgrade_premium':
           success = await _adminService.downgradeFromPremium(user.id);
-          message = success ? 'User downgraded from Premium successfully' : 'Failed to downgrade user from Premium';
+          message = success
+              ? 'User downgraded from Premium successfully'
+              : 'Failed to downgrade user from Premium';
           break;
-          
+
         case 'activate':
           if (user.status == UserStatus.suspended) {
             success = await _adminService.unsuspendUser(user.id);
-            message = success ? 'User activated successfully' : 'Failed to activate user';
+            message = success
+                ? 'User activated successfully'
+                : 'Failed to activate user';
           }
           break;
-          
+
         case 'suspend':
           if (user.status == UserStatus.active) {
-            success = await _adminService.suspendUser(user.id, 'Suspended by admin');
-            message = success ? 'User suspended successfully' : 'Failed to suspend user';
+            success =
+                await _adminService.suspendUser(user.id, 'Suspended by admin');
+            message = success
+                ? 'User suspended successfully'
+                : 'Failed to suspend user';
           }
           break;
-          
+
         default:
           _showSnackBar('Unknown action: $action');
           return;
       }
-      
+
       _showSnackBar(message);
       if (success) {
         _loadInitialData(); // Refresh the user list
@@ -603,11 +630,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     }
   }
 
-
   Widget _buildAccountTypeBadge(AccountType type) {
     Color color;
     IconData icon;
-    
+
     switch (type) {
       case AccountType.guest:
         color = AppTheme.textSecondary;
@@ -626,7 +652,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         icon = Icons.admin_panel_settings;
         break;
     }
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -658,12 +684,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       decoration: BoxDecoration(
         color: _getStatusColor(status).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _getStatusColor(status).withValues(alpha: 0.3)),
+        border:
+            Border.all(color: _getStatusColor(status).withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(_getStatusIcon(status), size: 14, color: _getStatusColor(status)),
+          Icon(_getStatusIcon(status),
+              size: 14, color: _getStatusColor(status)),
           const SizedBox(width: 4),
           Text(
             status.name.toUpperCase(),
@@ -677,7 +705,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       ),
     );
   }
-
 
   Widget _buildAnalyticsTab() {
     return SingleChildScrollView(
@@ -723,7 +750,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             ),
           ),
           const SizedBox(height: 16),
-          
+
           // Growth Metrics
           Card(
             child: Padding(
@@ -760,7 +787,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     );
   }
 
-  Widget _buildAnalyticsItem(String title, String value, Color color, IconData icon) {
+  Widget _buildAnalyticsItem(
+      String title, String value, Color color, IconData icon) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -815,23 +843,22 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                     ),
                   ),
                   const SizedBox(height: 16),
-                  
                   ListTile(
                     leading: const Icon(Icons.refresh, color: AppColors.info),
                     title: const Text('Refresh Data'),
                     subtitle: const Text('Reload user data and statistics'),
                     onTap: _loadInitialData,
                   ),
-                  
                   ListTile(
-                    leading: const Icon(Icons.download, color: AppColors.success),
+                    leading:
+                        const Icon(Icons.download, color: AppColors.success),
                     title: const Text('Export Users'),
                     subtitle: const Text('Download user data as CSV'),
                     onTap: _exportUsers,
                   ),
-                  
                   ListTile(
-                    leading: const Icon(Icons.notification_important, color: AppColors.warning),
+                    leading: const Icon(Icons.notification_important,
+                        color: AppColors.warning),
                     title: const Text('Send Notification'),
                     subtitle: const Text('Send notification to all users'),
                     onTap: _sendNotification,
@@ -853,7 +880,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         accountTypeFilter: _selectedAccountFilter,
         statusFilter: _selectedStatusFilter,
       );
-      
+
       if (mounted) {
         setState(() {
           _users = users;
@@ -867,8 +894,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       }
     }
   }
-
-
 
   void _exportUsers() {
     _showSnackBar('Export functionality would be implemented here');

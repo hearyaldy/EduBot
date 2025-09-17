@@ -2,7 +2,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
 import '../models/admin_user.dart';
 import '../utils/environment_config.dart';
-import 'supabase_service.dart';
 
 class AdminService {
   static AdminService? _instance;
@@ -20,7 +19,7 @@ class AdminService {
   bool get isAdmin {
     final user = _client.auth.currentUser;
     final superadminValue = user?.userMetadata?['is_superadmin'];
-    
+
     // Handle both boolean and string values
     return superadminValue == true || superadminValue == "true";
   }
@@ -47,7 +46,7 @@ class AdminService {
       // on your Supabase backend to fetch user data as the auth.users table
       // is not directly accessible from the client side for security reasons.
       // This is a conceptual implementation.
-      
+
       if (_config.isDebugMode) {
         debugPrint('Fetching users with limit: $limit, offset: $offset');
       }
@@ -57,7 +56,7 @@ class AdminService {
       // 1. Create a 'profiles' table that mirrors user data
       // 2. Use database triggers to sync auth.users with profiles
       // 3. Query the profiles table instead
-      
+
       var query = _client.from('profiles').select('''
         id, email, name, account_type, status, is_email_verified,
         created_at, premium_expires_at, total_questions,
@@ -65,7 +64,8 @@ class AdminService {
       ''');
 
       if (searchQuery != null && searchQuery.isNotEmpty) {
-        query = query.or('email.ilike.%$searchQuery%,name.ilike.%$searchQuery%');
+        query =
+            query.or('email.ilike.%$searchQuery%,name.ilike.%$searchQuery%');
       }
 
       if (accountTypeFilter != null) {
@@ -104,15 +104,11 @@ class AdminService {
         throw Exception('Access denied. Admin privileges required.');
       }
 
-      final response = await _client
-          .from('profiles')
-          .select('''
+      final response = await _client.from('profiles').select('''
             id, email, name, account_type, status, is_email_verified,
             created_at, premium_expires_at, total_questions,
             daily_questions, last_question_at, metadata, updated_at
-          ''')
-          .eq('id', userId)
-          .single();
+          ''').eq('id', userId).single();
 
       return AdminUser.fromSupabaseUser(response);
     } catch (e) {
@@ -124,7 +120,8 @@ class AdminService {
   }
 
   // Upgrade user to premium
-  Future<bool> upgradeToPremium(String userId, {
+  Future<bool> upgradeToPremium(
+    String userId, {
     DateTime? expiresAt,
     bool isLifetime = false,
   }) async {
@@ -134,7 +131,7 @@ class AdminService {
       }
 
       final premiumExpiresAt = isLifetime ? null : expiresAt;
-      
+
       // Update user profile
       await _client.from('profiles').update({
         'account_type': AccountType.premium.name,
@@ -144,9 +141,10 @@ class AdminService {
 
       // Note: Admin API access would require server-side implementation
       // For client-side, we'll focus on the profiles table
-      
+
       if (_config.isDebugMode) {
-        debugPrint('Would update auth metadata for user $userId via server-side admin API');
+        debugPrint(
+            'Would update auth metadata for user $userId via server-side admin API');
       }
 
       if (_config.isDebugMode) {
@@ -178,7 +176,8 @@ class AdminService {
 
       // Note: Admin API access would require server-side implementation
       if (_config.isDebugMode) {
-        debugPrint('Would update auth metadata for user $userId via server-side admin API');
+        debugPrint(
+            'Would update auth metadata for user $userId via server-side admin API');
       }
 
       if (_config.isDebugMode) {
@@ -257,20 +256,24 @@ class AdminService {
 
       // Note: In a real implementation, you would use proper count queries
       // For now, we'll simulate statistics
-      
+
       if (_config.isDebugMode) {
         debugPrint('Fetching user statistics...');
       }
 
       // Simulate getting all users and calculating stats
       final allUsers = await getAllUsers(limit: 1000);
-      
-      final guestCount = allUsers.where((u) => u.accountType == AccountType.guest).length;
-      final registeredCount = allUsers.where((u) => u.accountType == AccountType.registered).length;
-      final premiumCount = allUsers.where((u) => u.accountType == AccountType.premium).length;
-      
+
+      final guestCount =
+          allUsers.where((u) => u.accountType == AccountType.guest).length;
+      final registeredCount =
+          allUsers.where((u) => u.accountType == AccountType.registered).length;
+      final premiumCount =
+          allUsers.where((u) => u.accountType == AccountType.premium).length;
+
       final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
-      final newUsersCount = allUsers.where((u) => u.createdAt.isAfter(thirtyDaysAgo)).length;
+      final newUsersCount =
+          allUsers.where((u) => u.createdAt.isAfter(thirtyDaysAgo)).length;
 
       return {
         'total_users': allUsers.length,
@@ -294,7 +297,8 @@ class AdminService {
   }
 
   // Update user details
-  Future<bool> updateUserDetails(String userId, {
+  Future<bool> updateUserDetails(
+    String userId, {
     String? name,
     String? email,
     Map<String, dynamic>? metadata,
@@ -334,15 +338,11 @@ class AdminService {
         throw Exception('Access denied. Admin privileges required.');
       }
 
-      final response = await _client
-          .from('profiles')
-          .select('''
+      final response = await _client.from('profiles').select('''
             id, email, name, account_type, status, is_email_verified,
             created_at, premium_expires_at, total_questions,
             daily_questions, last_question_at, metadata, updated_at
-          ''')
-          .or('email.ilike.%$query%,name.ilike.%$query%')
-          .limit(limit);
+          ''').or('email.ilike.%$query%,name.ilike.%$query%').limit(limit);
 
       return (response as List)
           .map((userData) => AdminUser.fromSupabaseUser(userData))

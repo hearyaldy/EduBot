@@ -29,7 +29,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           bool isAuthenticated = false;
           String? userEmail;
           String? userName;
-          
+
           try {
             isAuthenticated = _supabaseService.isAuthenticated;
             userEmail = _supabaseService.currentUserEmail;
@@ -45,9 +45,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               // Profile Header
               GradientHeader(
                 title: 'Profile',
-                subtitle: isAuthenticated 
-                  ? 'Manage your account' 
-                  : 'Sign in to access your profile',
+                subtitle: isAuthenticated
+                    ? 'Manage your account'
+                    : 'Sign in to access your profile',
                 height: 130,
                 action: IconButton(
                   onPressed: () => Navigator.of(context).pop(),
@@ -96,7 +96,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
+              gradient: const LinearGradient(
                 colors: [
                   AppColors.primary,
                   AppColors.secondary,
@@ -173,14 +173,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             children: [
               Icon(
                 Icons.star,
                 color: AppColors.success,
                 size: 20,
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               Text(
                 'Registration Benefits',
                 style: TextStyle(
@@ -192,33 +192,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 12),
           ...benefits.map((benefit) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.check_circle_outline,
-                  color: AppColors.success,
-                  size: 16,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    benefit,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: AppColors.gray600,
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.check_circle_outline,
+                      color: AppColors.success,
+                      size: 16,
                     ),
-                  ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        benefit,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.gray600,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          )),
+              )),
         ],
       ),
     );
   }
 
-  Widget _buildUserProfile(AppProvider provider, String? userName, String? userEmail) {
+  Widget _buildUserProfile(
+      AppProvider provider, String? userName, String? userEmail) {
     return GlassCard(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -373,7 +374,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+      String label, String value, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -401,7 +403,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 4),
           Text(
             label,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 11,
               color: AppColors.gray600,
               fontWeight: FontWeight.w500,
@@ -462,7 +464,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           Row(
             children: [
-              Icon(Icons.warning, color: AppColors.error, size: 20),
+              const Icon(Icons.warning, color: AppColors.error, size: 20),
               const SizedBox(width: 8),
               Text(
                 'Danger Zone',
@@ -525,7 +527,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     children: [
                       Text(
                         title,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           color: AppColors.gray900,
                         ),
@@ -533,7 +535,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 2),
                       Text(
                         subtitle,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 13,
                           color: AppColors.gray600,
                         ),
@@ -541,7 +543,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ],
                   ),
                 ),
-                Icon(
+                const Icon(
                   Icons.chevron_right,
                   color: AppColors.gray600,
                 ),
@@ -602,7 +604,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   String _getInitials(String name) {
     if (name.isEmpty) return 'U';
-    
+
     if (name.contains('@')) {
       return name.substring(0, 1).toUpperCase();
     } else {
@@ -645,11 +647,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
-        title: Row(
+        title: const Row(
           children: [
             Icon(Icons.edit, color: AppColors.primary),
-            const SizedBox(width: 8),
-            const Text('Edit Profile'),
+            SizedBox(width: 8),
+            Text('Edit Profile'),
           ],
         ),
         content: SizedBox(
@@ -664,7 +666,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 decoration: InputDecoration(
                   labelText: 'Email',
                   hintText: 'Your email address',
-                  prefixIcon: Icon(Icons.email, color: AppColors.gray600),
+                  prefixIcon: const Icon(Icons.email, color: AppColors.gray600),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -673,14 +675,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               // Name (editable)
               TextFormField(
                 controller: nameController,
                 decoration: InputDecoration(
                   labelText: 'Display Name',
                   hintText: 'Enter your display name',
-                  prefixIcon: Icon(Icons.person, color: AppColors.primary),
+                  prefixIcon:
+                      const Icon(Icons.person, color: AppColors.primary),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -690,9 +693,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 textCapitalization: TextCapitalization.words,
                 maxLength: 50,
               ),
-              
+
               const SizedBox(height: 8),
-              Text(
+              const Text(
                 'Note: Email address cannot be changed for security reasons.',
                 style: TextStyle(
                   fontSize: 12,
@@ -709,7 +712,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () => _saveProfileChanges(context, nameController.text.trim()),
+            onPressed: () =>
+                _saveProfileChanges(context, nameController.text.trim()),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
@@ -724,11 +728,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _saveProfileChanges(BuildContext context, String newName) async {
     final navigator = Navigator.of(context);
     final scaffoldMessenger = ScaffoldMessenger.of(context);
-    
+
     try {
       if (newName.isNotEmpty) {
         await _supabaseService.updateProfile(name: newName);
-        
+
         if (mounted) {
           navigator.pop();
           scaffoldMessenger.showSnackBar(
@@ -772,7 +776,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
 
       await _supabaseService.resetPassword(email: email);
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -802,17 +806,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
-        title: Row(
+        title: const Row(
           children: [
             Icon(Icons.download, color: AppColors.info),
-            const SizedBox(width: 8),
-            const Text('Export Data'),
+            SizedBox(width: 8),
+            Text('Export Data'),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
+            const Text(
               'Choose what data you want to export:',
               style: TextStyle(
                 fontSize: 16,
@@ -820,25 +824,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            
             _buildExportOption(
               'Saved Questions & Answers',
               'Export all your saved homework questions and AI responses',
               Icons.quiz,
               () => _exportSavedQuestions(context),
             ),
-            
             const SizedBox(height: 12),
-            
             _buildExportOption(
               'Account Information',
               'Export your profile and account settings',
               Icons.person_outline,
               () => _exportAccountInfo(context),
             ),
-            
             const SizedBox(height: 12),
-            
             _buildExportOption(
               'Usage Statistics',
               'Export your app usage data and question history',
@@ -908,7 +907,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 2),
                       Text(
                         description,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 12,
                           color: AppColors.gray600,
                         ),
@@ -916,7 +915,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ],
                   ),
                 ),
-                Icon(
+                const Icon(
                   Icons.arrow_forward_ios,
                   size: 14,
                   color: AppColors.gray500,
@@ -932,11 +931,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _exportSavedQuestions(BuildContext context) async {
     final navigator = Navigator.of(context);
     final scaffoldMessenger = ScaffoldMessenger.of(context);
-    
+
     try {
       final provider = Provider.of<AppProvider>(context, listen: false);
       final savedQuestions = provider.savedQuestions;
-      
+
       if (savedQuestions.isEmpty) {
         navigator.pop();
         scaffoldMessenger.showSnackBar(
@@ -953,18 +952,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'export_type': 'saved_questions',
         'export_date': DateTime.now().toIso8601String(),
         'total_questions': savedQuestions.length,
-        'questions': savedQuestions.map((q) => {
-          'id': q.id,
-          'question': q.question,
-          'image_path': q.imagePath,
-          'type': q.type.toString(),
-          'created_at': q.createdAt.toIso8601String(),
-          'subject': q.subject,
-        }).toList(),
+        'questions': savedQuestions
+            .map((q) => {
+                  'id': q.id,
+                  'question': q.question,
+                  'image_path': q.imagePath,
+                  'type': q.type.toString(),
+                  'created_at': q.createdAt.toIso8601String(),
+                  'subject': q.subject,
+                })
+            .toList(),
       };
 
       _showExportPreview(context, 'Saved Questions', exportData);
-      
     } catch (e) {
       if (context.mounted) {
         navigator.pop();
@@ -982,11 +982,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _exportAccountInfo(BuildContext context) async {
     final navigator = Navigator.of(context);
     final scaffoldMessenger = ScaffoldMessenger.of(context);
-    
+
     try {
       String? userEmail;
       String? userName;
-      
+
       try {
         userEmail = _supabaseService.currentUserEmail;
         userName = _supabaseService.userName;
@@ -996,16 +996,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
 
       final provider = Provider.of<AppProvider>(context, listen: false);
-      
+
       final exportData = {
         'export_type': 'account_info',
         'export_date': DateTime.now().toIso8601String(),
         'account': {
           'email': userEmail,
           'name': userName,
-          'account_type': provider.isSuperadmin ? 'superadmin' : 
-                         provider.isPremium ? 'premium' : 
-                         provider.isRegistered ? 'registered' : 'guest',
+          'account_type': provider.isSuperadmin
+              ? 'superadmin'
+              : provider.isPremium
+                  ? 'premium'
+                  : provider.isRegistered
+                      ? 'registered'
+                      : 'guest',
           'is_registered': provider.isRegistered,
           'is_premium': provider.isPremium,
           'is_superadmin': provider.isSuperadmin,
@@ -1017,7 +1021,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       };
 
       _showExportPreview(context, 'Account Information', exportData);
-      
     } catch (e) {
       if (context.mounted) {
         navigator.pop();
@@ -1035,27 +1038,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _exportUsageStats(BuildContext context) async {
     final navigator = Navigator.of(context);
     final scaffoldMessenger = ScaffoldMessenger.of(context);
-    
+
     try {
       final provider = Provider.of<AppProvider>(context, listen: false);
-      
+
       final exportData = {
         'export_type': 'usage_statistics',
         'export_date': DateTime.now().toIso8601String(),
         'statistics': {
           'daily_questions_used': provider.dailyQuestionsUsed,
           'total_saved_questions': provider.savedQuestions.length,
-          'account_created': 'Available in full export', // Could be enhanced with actual data
+          'account_created':
+              'Available in full export', // Could be enhanced with actual data
           'last_active': DateTime.now().toIso8601String(),
           'question_types_breakdown': {
-            'text_questions': provider.savedQuestions.where((q) => q.type.toString().contains('text')).length,
-            'image_questions': provider.savedQuestions.where((q) => q.type.toString().contains('image')).length,
+            'text_questions': provider.savedQuestions
+                .where((q) => q.type.toString().contains('text'))
+                .length,
+            'image_questions': provider.savedQuestions
+                .where((q) => q.type.toString().contains('image'))
+                .length,
           }
         }
       };
 
       _showExportPreview(context, 'Usage Statistics', exportData);
-      
     } catch (e) {
       if (context.mounted) {
         navigator.pop();
@@ -1073,12 +1080,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _exportAllData(BuildContext context) async {
     final navigator = Navigator.of(context);
     final scaffoldMessenger = ScaffoldMessenger.of(context);
-    
+
     try {
       final provider = Provider.of<AppProvider>(context, listen: false);
       String? userEmail;
       String? userName;
-      
+
       try {
         userEmail = _supabaseService.currentUserEmail;
         userName = _supabaseService.userName;
@@ -1093,9 +1100,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'account': {
           'email': userEmail,
           'name': userName,
-          'account_type': provider.isSuperadmin ? 'superadmin' : 
-                         provider.isPremium ? 'premium' : 
-                         provider.isRegistered ? 'registered' : 'guest',
+          'account_type': provider.isSuperadmin
+              ? 'superadmin'
+              : provider.isPremium
+                  ? 'premium'
+                  : provider.isRegistered
+                      ? 'registered'
+                      : 'guest',
           'is_registered': provider.isRegistered,
           'is_premium': provider.isPremium,
           'is_superadmin': provider.isSuperadmin,
@@ -1104,14 +1115,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
           'selected_language': provider.selectedLanguage,
           'daily_questions_used': provider.dailyQuestionsUsed,
         },
-        'saved_questions': provider.savedQuestions.map((q) => {
-          'id': q.id,
-          'question': q.question,
-          'image_path': q.imagePath,
-          'type': q.type.toString(),
-          'created_at': q.createdAt.toIso8601String(),
-          'subject': q.subject,
-        }).toList(),
+        'saved_questions': provider.savedQuestions
+            .map((q) => {
+                  'id': q.id,
+                  'question': q.question,
+                  'image_path': q.imagePath,
+                  'type': q.type.toString(),
+                  'created_at': q.createdAt.toIso8601String(),
+                  'subject': q.subject,
+                })
+            .toList(),
         'statistics': {
           'total_questions_asked': provider.dailyQuestionsUsed,
           'total_saved_questions': provider.savedQuestions.length,
@@ -1120,7 +1133,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       };
 
       _showExportPreview(context, 'Complete Data Export', exportData);
-      
     } catch (e) {
       if (context.mounted) {
         navigator.pop();
@@ -1135,9 +1147,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  void _showExportPreview(BuildContext context, String title, Map<String, dynamic> data) {
+  void _showExportPreview(
+      BuildContext context, String title, Map<String, dynamic> data) {
     final jsonString = const JsonEncoder.withIndent('  ').convert(data);
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -1148,7 +1161,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
+              const Text(
                 'Your data is ready for export. You can copy this JSON data:',
                 style: TextStyle(color: AppColors.gray700),
               ),
@@ -1164,7 +1177,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: SingleChildScrollView(
                     child: SelectableText(
                       jsonString,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontFamily: 'monospace',
                         fontSize: 11,
                         color: AppColors.gray800,
@@ -1252,10 +1265,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       try {
         final appProvider = Provider.of<AppProvider>(context, listen: false);
         final scaffoldMessenger = ScaffoldMessenger.of(context);
-        
+
         await _supabaseService.signOut();
         await appProvider.setRegisteredStatus(false);
-        
+
         if (mounted) {
           scaffoldMessenger.showSnackBar(
             const SnackBar(

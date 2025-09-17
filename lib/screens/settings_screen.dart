@@ -26,7 +26,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isTestingConnection = false;
   bool _showDetailedInstructions = false;
 
-
   final List<String> _languages = [
     'English',
     'Malay',
@@ -107,13 +106,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
         Consumer<AppProvider>(
           builder: (context, provider, child) {
             final l10n = AppLocalizations.of(context)!;
-            String accountType = provider.isRegistered ? 'Registered User' : 'Guest User';
+            String accountType =
+                provider.isRegistered ? 'Registered User' : 'Guest User';
             int maxQuestions = provider.isRegistered ? 60 : 30;
             String accountSubtitle =
                 '${provider.dailyQuestionsUsed}/$maxQuestions questions used today';
-            IconData accountIcon = provider.isRegistered ? Icons.person : Icons.person_outline;
-            Color accountColor = provider.isRegistered ? AppTheme.success : AppTheme.textSecondary;
-
+            IconData accountIcon =
+                provider.isRegistered ? Icons.person : Icons.person_outline;
+            Color accountColor = provider.isRegistered
+                ? AppTheme.success
+                : AppTheme.textSecondary;
 
             if (provider.isSuperadmin) {
               accountType = l10n.superadminAccount;
@@ -127,12 +129,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               accountColor = AppTheme.warning;
             } else if (provider.isRegistered) {
               accountType = 'Registered User';
-              accountSubtitle = '${provider.dailyQuestionsUsed}/60 questions used today';
+              accountSubtitle =
+                  '${provider.dailyQuestionsUsed}/60 questions used today';
               accountIcon = Icons.person;
               accountColor = AppTheme.success;
             } else {
               accountType = 'Guest User';
-              accountSubtitle = '${provider.dailyQuestionsUsed}/30 questions used today';
+              accountSubtitle =
+                  '${provider.dailyQuestionsUsed}/30 questions used today';
               accountIcon = Icons.person_outline;
               accountColor = AppTheme.textSecondary;
             }
@@ -241,10 +245,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Expanded(
                       child: Text(
                         'Get Your Google Gemini API Key',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: AppTheme.info,
-                            ),
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: AppTheme.info,
+                                ),
                       ),
                     ),
                   ],
@@ -259,11 +264,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 8),
                 _buildQuickStep('1', 'Visit ai.google.dev/aistudio', Icons.web),
-                _buildQuickStep('2', 'Click "Get API key in Google AI Studio"', Icons.login),
-                _buildQuickStep('3', 'Create new project or use existing', Icons.create_new_folder),
-                _buildQuickStep('4', 'Generate and copy your API key', Icons.content_copy),
+                _buildQuickStep('2', 'Click "Get API key in Google AI Studio"',
+                    Icons.login),
+                _buildQuickStep('3', 'Create new project or use existing',
+                    Icons.create_new_folder),
+                _buildQuickStep(
+                    '4', 'Generate and copy your API key', Icons.content_copy),
                 const SizedBox(height: 16),
-                
+
                 // Expandable detailed instructions
                 InkWell(
                   onTap: () {
@@ -272,15 +280,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     });
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.7),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppTheme.info.withValues(alpha: 0.2)),
+                      border: Border.all(
+                          color: AppTheme.info.withValues(alpha: 0.2)),
                     ),
                     child: Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.info_outline,
                           color: AppTheme.primaryBlue,
                           size: 18,
@@ -288,10 +298,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            _showDetailedInstructions 
+                            _showDetailedInstructions
                                 ? 'Hide detailed instructions'
                                 : 'Show detailed step-by-step instructions',
-                            style: TextStyle(
+                            style: const TextStyle(
                               color: AppTheme.primaryBlue,
                               fontWeight: FontWeight.w500,
                               fontSize: 14,
@@ -299,7 +309,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ),
                         Icon(
-                          _showDetailedInstructions 
+                          _showDetailedInstructions
                               ? Icons.keyboard_arrow_up
                               : Icons.keyboard_arrow_down,
                           color: AppTheme.primaryBlue,
@@ -308,7 +318,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                 ),
-                
+
                 // Detailed instructions (expandable)
                 if (_showDetailedInstructions) ...[
                   const SizedBox(height: 16),
@@ -317,12 +327,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppTheme.info.withValues(alpha: 0.2)),
+                      border: Border.all(
+                          color: AppTheme.info.withValues(alpha: 0.2)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        const Text(
                           'Detailed Instructions:',
                           style: TextStyle(
                             fontWeight: FontWeight.w600,
@@ -331,65 +342,67 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        
+
                         _buildDetailedStep(
                           '1',
                           'Visit Google AI Studio',
                           'Go to ai.google.dev/aistudio in your web browser',
                           Icons.web,
                         ),
-                        
+
                         _buildDetailedStep(
                           '2',
                           'Sign in with Google Account',
                           'Use your existing Google account or create a new one if needed',
                           Icons.account_circle,
                         ),
-                        
+
                         _buildDetailedStep(
                           '3',
                           'Access API Keys',
                           'Click "Get API key in Google AI Studio" button',
                           Icons.vpn_key,
                         ),
-                        
+
                         _buildDetailedStep(
                           '4',
                           'Create or Select Project',
                           'Choose "Create API key in new project" or select an existing Google Cloud project',
                           Icons.create_new_folder,
                         ),
-                        
+
                         _buildDetailedStep(
                           '5',
                           'Generate API Key',
                           'Click "Create API key" - your key will be generated instantly',
                           Icons.auto_awesome,
                         ),
-                        
+
                         _buildDetailedStep(
                           '6',
                           'Copy Your Key',
                           'Copy the generated API key (starts with "AIzaSy...") and paste it above',
                           Icons.content_copy,
                         ),
-                        
+
                         const SizedBox(height: 16),
-                        
+
                         // Important notes section
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: Colors.orange.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                            border: Border.all(
+                                color: Colors.orange.withValues(alpha: 0.3)),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
                                 children: [
-                                  const Icon(Icons.security, color: Colors.orange, size: 18),
+                                  const Icon(Icons.security,
+                                      color: Colors.orange, size: 18),
                                   const SizedBox(width: 8),
                                   Text(
                                     'Important Security Notes:',
@@ -401,31 +414,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 ],
                               ),
                               const SizedBox(height: 8),
-                              _buildSecurityNote('Your API key is stored securely on this device only'),
-                              _buildSecurityNote('Never share your API key with others'),
-                              _buildSecurityNote('You can set usage limits in Google AI Studio'),
-                              _buildSecurityNote('API usage may incur charges based on Google\'s pricing'),
+                              _buildSecurityNote(
+                                  'Your API key is stored securely on this device only'),
+                              _buildSecurityNote(
+                                  'Never share your API key with others'),
+                              _buildSecurityNote(
+                                  'You can set usage limits in Google AI Studio'),
+                              _buildSecurityNote(
+                                  'API usage may incur charges based on Google\'s pricing'),
                             ],
                           ),
                         ),
-                        
+
                         const SizedBox(height: 16),
-                        
+
                         // Help section
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: AppTheme.success.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: AppTheme.success.withValues(alpha: 0.3)),
+                            border: Border.all(
+                                color: AppTheme.success.withValues(alpha: 0.3)),
                           ),
-                          child: Column(
+                          child: const Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
                                 children: [
-                                  const Icon(Icons.help_outline, color: AppTheme.success, size: 18),
-                                  const SizedBox(width: 8),
+                                  Icon(Icons.help_outline,
+                                      color: AppTheme.success, size: 18),
+                                  SizedBox(width: 8),
                                   Text(
                                     'Need Help?',
                                     style: TextStyle(
@@ -435,8 +454,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 8),
-                              const Text(
+                              SizedBox(height: 8),
+                              Text(
                                 '• The API key is completely free to get\n'
                                 '• You get a generous free usage quota\n'
                                 '• It only takes 2-3 minutes to set up\n'
@@ -466,7 +485,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Container(
             width: 24,
             height: 24,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: AppTheme.info,
               shape: BoxShape.circle,
             ),
@@ -495,7 +514,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildDetailedStep(String number, String title, String description, IconData icon) {
+  Widget _buildDetailedStep(
+      String number, String title, String description, IconData icon) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
@@ -504,7 +524,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Container(
             width: 32,
             height: 32,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: AppTheme.primaryBlue,
               shape: BoxShape.circle,
             ),
@@ -531,7 +551,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Expanded(
                       child: Text(
                         title,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                           color: AppTheme.primaryBlue,
@@ -821,10 +841,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     : AppTheme.textSecondary,
               ),
               title: Text(l10n.superadminMode),
-              subtitle: Text(provider.isSuperadmin 
+              subtitle: Text(provider.isSuperadmin
                   ? 'Active (managed via Supabase)'
                   : 'Inactive (managed via Supabase)'),
-              trailing: provider.isSuperadmin 
+              trailing: provider.isSuperadmin
                   ? const Icon(Icons.check_circle, color: AppTheme.success)
                   : const Icon(Icons.cancel, color: AppTheme.textSecondary),
             ),
@@ -835,7 +855,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 decoration: BoxDecoration(
                   color: AppTheme.warning.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppTheme.warning.withValues(alpha: 0.3)),
+                  border: Border.all(
+                      color: AppTheme.warning.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
@@ -852,7 +873,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
               ListTile(
-                leading: const Icon(Icons.admin_panel_settings, color: AppTheme.warning),
+                leading: const Icon(Icons.admin_panel_settings,
+                    color: AppTheme.warning),
                 title: const Text('Admin Dashboard'),
                 subtitle: const Text('Manage users and view analytics'),
                 trailing: const Icon(Icons.chevron_right),
@@ -867,7 +889,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget? _buildAccountActionButton(AppProvider provider) {
     final supabaseService = SupabaseService.instance;
-    
+
     if (provider.isSuperadmin || provider.isPremium) {
       return null;
     } else if (provider.isRegistered) {
@@ -918,7 +940,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       final supabaseService = SupabaseService.instance;
       await supabaseService.signOut();
-      
+
       if (mounted) {
         final provider = Provider.of<AppProvider>(context, listen: false);
         await provider.setRegisteredStatus(false);
@@ -938,7 +960,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
-
 
   void _showUpgradeDialog() {
     showDialog(
@@ -1247,11 +1268,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               SizedBox(height: 8),
               Text('5. Click "Create Credentials" > "API key"'),
               SizedBox(height: 8),
-              Text('6. Copy your new API key and paste it in the previous dialog'),
+              Text(
+                  '6. Copy your new API key and paste it in the previous dialog'),
               SizedBox(height: 16),
               Text(
                 'Important:',
-                style: TextStyle(fontWeight: FontWeight.w600, color: Colors.orange),
+                style: TextStyle(
+                    fontWeight: FontWeight.w600, color: Colors.orange),
               ),
               Text(
                 '• Keep your API key secure and never share it\n'

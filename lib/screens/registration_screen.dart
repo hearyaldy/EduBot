@@ -19,7 +19,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  
+
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
@@ -39,7 +39,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    
     return Scaffold(
       body: Container(
         height: MediaQuery.of(context).size.height,
@@ -65,7 +64,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     Row(
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.arrow_back, color: Colors.white),
+                          icon:
+                              const Icon(Icons.arrow_back, color: Colors.white),
                           onPressed: () => Navigator.of(context).pop(),
                         ),
                         const Spacer(),
@@ -82,9 +82,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      _isSignIn 
-                        ? 'Welcome back! Sign in to continue'
-                        : 'Join EduBot to unlock more features',
+                      _isSignIn
+                          ? 'Welcome back! Sign in to continue'
+                          : 'Join EduBot to unlock more features',
                       style: TextStyle(
                         fontSize: 16,
                         color: Colors.white.withValues(alpha: 0.9),
@@ -94,7 +94,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   ],
                 ),
               ),
-              
+
               // Form
               Expanded(
                 child: Container(
@@ -114,34 +114,34 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           const SizedBox(height: 20),
-                          
+
                           // Toggle between Sign In and Sign Up
                           _buildToggleButtons(),
                           const SizedBox(height: 30),
-                          
+
                           // Name field (only for sign up)
                           if (!_isSignIn) ...[
                             _buildNameField(),
                             const SizedBox(height: 20),
                           ],
-                          
+
                           // Email field
                           _buildEmailField(),
                           const SizedBox(height: 20),
-                          
+
                           // Password field
                           _buildPasswordField(),
                           const SizedBox(height: 20),
-                          
+
                           // Confirm Password field (only for sign up)
                           if (!_isSignIn) ...[
                             _buildConfirmPasswordField(),
                             const SizedBox(height: 20),
-                            
+
                             // Password requirements
                             _buildPasswordRequirements(),
                             const SizedBox(height: 20),
-                            
+
                             // Terms and conditions
                             _buildTermsCheckbox(),
                             const SizedBox(height: 30),
@@ -151,11 +151,11 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                             _buildForgotPasswordLink(),
                             const SizedBox(height: 30),
                           ],
-                          
+
                           // Submit button
                           _buildSubmitButton(),
                           const SizedBox(height: 20),
-                          
+
                           // Additional info
                           _buildAdditionalInfo(),
                         ],
@@ -284,7 +284,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         hintText: 'Enter your password',
         prefixIcon: const Icon(Icons.lock_outline),
         suffixIcon: IconButton(
-          icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
+          icon:
+              Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
           onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
         ),
         border: OutlineInputBorder(
@@ -314,8 +315,11 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         hintText: 'Re-enter your password',
         prefixIcon: const Icon(Icons.lock_outline),
         suffixIcon: IconButton(
-          icon: Icon(_obscureConfirmPassword ? Icons.visibility : Icons.visibility_off),
-          onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+          icon: Icon(_obscureConfirmPassword
+              ? Icons.visibility
+              : Icons.visibility_off),
+          onPressed: () => setState(
+              () => _obscureConfirmPassword = !_obscureConfirmPassword),
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -346,7 +350,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             'Password Requirements:',
             style: TextStyle(
               fontWeight: FontWeight.w600,
@@ -356,7 +360,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           const SizedBox(height: 8),
           Text(
             SupabaseService.getPasswordRequirements(),
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 13,
               color: AppTheme.textSecondary,
             ),
@@ -378,7 +382,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           child: GestureDetector(
             onTap: () => setState(() => _acceptTerms = !_acceptTerms),
             child: RichText(
-              text: TextSpan(
+              text: const TextSpan(
                 text: 'I agree to the ',
                 style: TextStyle(color: AppTheme.textSecondary),
                 children: [
@@ -411,7 +415,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       alignment: Alignment.centerRight,
       child: TextButton(
         onPressed: _showForgotPasswordDialog,
-        child: Text(
+        child: const Text(
           'Forgot Password?',
           style: TextStyle(
             color: AppTheme.primaryBlue,
@@ -461,14 +465,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppTheme.success.withValues(alpha: 0.3)),
       ),
-      child: Column(
+      child: const Column(
         children: [
           Icon(
             Icons.star_outline,
             color: AppTheme.success,
             size: 32,
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             'Registration Benefits',
             style: TextStyle(
@@ -476,7 +480,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               color: AppTheme.success,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             '• Increase daily questions from 30 to 60\n'
             '• Save your question history\n'
@@ -497,7 +501,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     if (!_isSignIn && !_acceptTerms) {
-      _showErrorSnackBar('Please accept the Terms of Service and Privacy Policy');
+      _showErrorSnackBar(
+          'Please accept the Terms of Service and Privacy Policy');
       return;
     }
 
@@ -529,7 +534,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         if (response.user != null) {
           await _updateAppProvider(response.user!);
           if (mounted) {
-            _showSuccessSnackBar('Account created successfully! Please check your email for verification.');
+            _showSuccessSnackBar(
+                'Account created successfully! Please check your email for verification.');
             Navigator.of(context).pop();
           }
         }
@@ -552,7 +558,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
   void _showForgotPasswordDialog() {
     final emailController = TextEditingController();
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -560,7 +566,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Enter your email address to receive password reset instructions.'),
+            const Text(
+                'Enter your email address to receive password reset instructions.'),
             const SizedBox(height: 16),
             TextField(
               controller: emailController,

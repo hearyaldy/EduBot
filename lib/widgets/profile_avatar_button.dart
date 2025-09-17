@@ -23,7 +23,7 @@ class ProfileAvatarButton extends StatelessWidget {
         bool isAuthenticated = false;
         String? userEmail;
         String? userName;
-        
+
         try {
           final supabaseService = SupabaseService.instance;
           isAuthenticated = supabaseService.isAuthenticated;
@@ -58,13 +58,15 @@ class ProfileAvatarButton extends StatelessWidget {
             }
           },
           itemBuilder: (context) => _buildMenuItems(isAuthenticated, provider),
-          child: _buildAvatarButton(isAuthenticated, provider, userName, userEmail),
+          child: _buildAvatarButton(
+              isAuthenticated, provider, userName, userEmail),
         );
       },
     );
   }
 
-  Widget _buildAvatarButton(bool isAuthenticated, AppProvider provider, String? userName, String? userEmail) {
+  Widget _buildAvatarButton(bool isAuthenticated, AppProvider provider,
+      String? userName, String? userEmail) {
     if (!isAuthenticated) {
       // Guest user - show login prompt
       return Container(
@@ -116,24 +118,25 @@ class ProfileAvatarButton extends StatelessWidget {
     }
   }
 
-  List<PopupMenuEntry<String>> _buildMenuItems(bool isAuthenticated, AppProvider provider) {
+  List<PopupMenuEntry<String>> _buildMenuItems(
+      bool isAuthenticated, AppProvider provider) {
     if (!isAuthenticated) {
       return [
-        PopupMenuItem<String>(
+        const PopupMenuItem<String>(
           value: 'register',
           child: ListTile(
             leading: Icon(Icons.login, color: AppColors.primary),
-            title: const Text('Sign In / Register'),
-            subtitle: const Text('Get 60 questions per day!'),
+            title: Text('Sign In / Register'),
+            subtitle: Text('Get 60 questions per day!'),
             contentPadding: EdgeInsets.zero,
           ),
         ),
         const PopupMenuDivider(),
-        PopupMenuItem<String>(
+        const PopupMenuItem<String>(
           value: 'settings',
           child: ListTile(
             leading: Icon(Icons.settings, color: AppTheme.textSecondary),
-            title: const Text('Settings'),
+            title: Text('Settings'),
             contentPadding: EdgeInsets.zero,
           ),
         ),
@@ -143,27 +146,28 @@ class ProfileAvatarButton extends StatelessWidget {
         PopupMenuItem<String>(
           value: 'profile',
           child: ListTile(
-            leading: Icon(_getAccountTypeIcon(provider), color: _getAccountTypeColor(provider)),
+            leading: Icon(_getAccountTypeIcon(provider),
+                color: _getAccountTypeColor(provider)),
             title: Text(_getAccountTypeTitle(provider)),
             subtitle: Text(_getAccountSubtitle(provider)),
             contentPadding: EdgeInsets.zero,
           ),
         ),
         const PopupMenuDivider(),
-        PopupMenuItem<String>(
+        const PopupMenuItem<String>(
           value: 'settings',
           child: ListTile(
             leading: Icon(Icons.settings, color: AppTheme.textSecondary),
-            title: const Text('Settings'),
+            title: Text('Settings'),
             contentPadding: EdgeInsets.zero,
           ),
         ),
         const PopupMenuDivider(),
-        PopupMenuItem<String>(
+        const PopupMenuItem<String>(
           value: 'signout',
           child: ListTile(
             leading: Icon(Icons.logout, color: AppColors.error),
-            title: const Text('Sign Out'),
+            title: Text('Sign Out'),
             contentPadding: EdgeInsets.zero,
           ),
         ),
@@ -223,7 +227,7 @@ class ProfileAvatarButton extends StatelessWidget {
 
   String _getInitials(String name) {
     if (name.isEmpty) return 'U';
-    
+
     if (name.contains('@')) {
       // Email address - use first character
       return name.substring(0, 1).toUpperCase();
@@ -261,13 +265,13 @@ class ProfileAvatarButton extends StatelessWidget {
     }
   }
 
-
-  Future<void> _handleSignOut(BuildContext context, AppProvider provider) async {
+  Future<void> _handleSignOut(
+      BuildContext context, AppProvider provider) async {
     try {
       final supabaseService = SupabaseService.instance;
       await supabaseService.signOut();
       await provider.setRegisteredStatus(false);
-      
+
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
