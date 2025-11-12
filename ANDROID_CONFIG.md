@@ -8,12 +8,12 @@ The project is configured with the following Android settings in `android/app/bu
 
 ```kotlin
 android {
-    namespace = "com.example.edubot"
+    namespace = "com.haweeinc.edubot"
     compileSdk = 36                    // Required for camera_android plugin
     ndkVersion = "27.0.12077973"       // Required for multiple plugins
     
     defaultConfig {
-        applicationId = "com.example.edubot"
+        applicationId = "com.haweeinc.edubot"
         minSdk = flutter.minSdkVersion  // Minimum supported Android version
         targetSdk = 36                  // Target Android API level
         versionCode = flutter.versionCode

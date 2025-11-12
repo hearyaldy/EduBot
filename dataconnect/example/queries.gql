@@ -1,0 +1,31 @@
+mutation CreateNewParent($displayName: String!, $email: String, $photoUrl: String) @auth(level: USER) {
+  parent_insert(data: {displayName: $displayName, email: $email, photoUrl: $photoUrl, createdAt_expr: "request.time"})
+}
+
+query GetMyChildren @auth(level: USER) {
+  parents(where: {email: {eq_expr: "auth.token.email"}}) {
+    children_on_parent {
+      name
+      gradeLevel
+      school
+    }
+  }
+}
+
+mutation CreateNewClass($childId: UUID!, $name: String!, $subject: String!, $teacherName: String, $teacherContactInfo: String) @auth(level: USER) {
+  class_insert(data: {childId: $childId, name: $name, subject: $subject, teacherName: $teacherName, teacherContactInfo: $teacherContactInfo, createdAt_expr: "request.time"})
+}
+
+query ListAllAssignmentsForClass($classId: UUID!) @auth(level: USER) {
+  assignments(where: {classId: {eq: $classId}}) {
+    title
+    description
+    dueDate
+    status
+    resources_on_assignment {
+      type
+      content
+      description
+    }
+  }
+}

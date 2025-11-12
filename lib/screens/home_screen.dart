@@ -4,7 +4,12 @@ import '../providers/app_provider.dart';
 import '../models/homework_question.dart';
 import '../widgets/quick_action_card.dart';
 import '../widgets/daily_tip_card.dart';
-import '../widgets/progress_summary.dart';
+import '../widgets/streak_counter_widget.dart';
+import '../widgets/profile_switcher_widget.dart';
+import '../widgets/premium_status_badge.dart';
+import '../widgets/quick_stats_card.dart';
+import '../widgets/upgrade_banner.dart';
+import '../widgets/latest_badge_preview.dart';
 import 'scan_homework_screen.dart';
 import 'ask_question_screen.dart';
 import 'history_screen.dart';
@@ -23,19 +28,39 @@ class HomeScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header
+              // Header with personalized greeting
               _buildHeader(context),
+              const SizedBox(height: 24),
+
+              // Premium Status Badge (prominent)
+              const PremiumStatusBadge(),
+              const SizedBox(height: 16),
+
+              // Upgrade Banner (shows when approaching/at limit)
+              const UpgradeBanner(),
+              const SizedBox(height: 16),
+
+              // Profile Switcher (multi-child profiles)
+              const ProfileSwitcherWidget(isCompact: true),
+              const SizedBox(height: 16),
+
+              // Quick Stats Card (Questions, Streak, Badges)
+              const QuickStatsCard(),
+              const SizedBox(height: 16),
+
+              // Streak Counter (detailed view)
+              const StreakCounterWidget(isCompact: true),
+              const SizedBox(height: 16),
+
+              // Latest Badge Preview (achievement showcase)
+              const LatestBadgePreview(),
               const SizedBox(height: 24),
 
               // Daily Tip Card
               const DailyTipCard(),
               const SizedBox(height: 24),
 
-              // Progress Summary
-              const ProgressSummary(),
-              const SizedBox(height: 24),
-
-              // Quick Actions
+              // Quick Actions (Scan & Ask)
               _buildQuickActions(context),
               const SizedBox(height: 24),
 
@@ -50,39 +75,89 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Hello, Parent! 👋',
-                style: Theme.of(context).textTheme.displayMedium,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Ready to help with homework?',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.7),
+    return Consumer<AppProvider>(
+      builder: (context, provider, child) {
+        final activeProfile = provider.activeProfile;
+        final greeting = activeProfile != null
+            ? 'Hello, ${activeProfile.name}! 👋'
+            : 'Hello, Parent! 👋';
+        final subtitle = activeProfile != null
+            ? 'Let\'s learn together today!'
+            : 'Ready to help with homework?';
+
+        return Row(
+          children: [
+            // Profile Avatar (if available)
+            if (activeProfile != null) ...[
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Theme.of(context).colorScheme.primary,
+                      Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
+                    ],
+                  ),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white,
+                    width: 3,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Text(
+                    activeProfile.emoji,
+                    style: const TextStyle(fontSize: 28),
+                  ),
                 ),
               ),
+              const SizedBox(width: 16),
             ],
-          ),
-        ),
-        IconButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const SettingsScreen()),
-            );
-          },
-          icon: const Icon(Icons.settings),
-          iconSize: 28,
-        ),
-      ],
+
+            // Greeting Text
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    greeting,
+                    style: Theme.of(context).textTheme.displayMedium,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Settings Icon
+            IconButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                );
+              },
+              icon: const Icon(Icons.settings),
+              iconSize: 28,
+            ),
+          ],
+        );
+      },
     );
   }
 

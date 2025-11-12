@@ -6,9 +6,10 @@ import '../widgets/gradient_header.dart';
 import '../core/theme/app_colors.dart';
 import '../l10n/app_localizations.dart';
 import '../services/ai_service.dart';
-import '../services/supabase_service.dart';
+import '../services/firebase_service.dart';
 import '../screens/registration_screen.dart';
 import '../screens/admin_dashboard_screen.dart';
+import '../screens/badges_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -163,6 +164,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
           trailing: const Icon(Icons.chevron_right),
           onTap: () {
             Navigator.pushNamed(context, '/history');
+          },
+        ),
+        ListTile(
+          leading: const Icon(Icons.emoji_events),
+          title: const Text('Achievements & Badges'),
+          subtitle: Consumer<AppProvider>(
+            builder: (context, provider, child) {
+              return Text('${provider.unlockedBadgeCount} badges unlocked');
+            },
+          ),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const BadgesScreen(),
+              ),
+            );
           },
         ),
       ],
@@ -888,12 +907,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget? _buildAccountActionButton(AppProvider provider) {
-    final supabaseService = SupabaseService.instance;
+    final firebaseService = FirebaseService.instance;
 
     if (provider.isSuperadmin || provider.isPremium) {
       return null;
     } else if (provider.isRegistered) {
-      if (supabaseService.isAuthenticated) {
+      if (firebaseService.isAuthenticated) {
         return PopupMenuButton<String>(
           onSelected: (value) async {
             if (value == 'upgrade') {
@@ -938,9 +957,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _handleSignOut() async {
     try {
-      final supabaseService = SupabaseService.instance;
-      await supabaseService.signOut();
-
+      await FirebaseService.signOut();
       if (mounted) {
         final provider = Provider.of<AppProvider>(context, listen: false);
         await provider.setRegisteredStatus(false);

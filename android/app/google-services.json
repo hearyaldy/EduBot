@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "769088210742",
+    "project_id": "edubot-3a646",
+    "storage_bucket": "edubot-3a646.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:769088210742:android:56dbb019eeb65a89329597",
+        "android_client_info": {
+          "package_name": "com.edubot.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA3yKIPHV4ATQN-Z8laQzWXFwe1w31mq4w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -15,23 +15,25 @@ class EnvironmentConfig {
       await dotenv.load(fileName: ".env");
       debugPrint('Environment configuration loaded successfully');
       debugPrint('Loaded environment variables count: ${dotenv.env.length}');
-      debugPrint('Supabase URL from env: ${dotenv.env['SUPABASE_URL']?.substring(0, 20)}...');
-      
+      debugPrint(
+          'Supabase URL from env: ${dotenv.env['SUPABASE_URL']?.substring(0, 20)}...');
+
       // Additional validation for critical variables
       final supabaseUrl = dotenv.env['SUPABASE_URL'];
       final supabaseKey = dotenv.env['SUPABASE_ANON_KEY'];
-      
+
       if (supabaseUrl == null || supabaseUrl.isEmpty) {
         debugPrint('WARNING: SUPABASE_URL is not set in .env file');
       }
       if (supabaseKey == null || supabaseKey.isEmpty) {
         debugPrint('WARNING: SUPABASE_ANON_KEY is not set in .env file');
       }
-      
     } catch (e) {
       // If .env file doesn't exist, initialize with empty map
-      debugPrint('Warning: .env file not found. Using default configuration: $e');
-      debugPrint('This might be normal for release builds, but configuration will be limited');
+      debugPrint(
+          'Warning: .env file not found. Using default configuration: $e');
+      debugPrint(
+          'This might be normal for release builds, but configuration will be limited');
       // Manually initialize the dotenv to prevent NotInitializedError
       dotenv.testLoad(fileInput: '');
     }
@@ -84,10 +86,21 @@ class EnvironmentConfig {
   int get maxQuestionLength =>
       int.tryParse(dotenv.env['MAX_QUESTION_LENGTH'] ?? '500') ?? 500;
 
-  // Supabase Configuration
+  // Supabase Configuration (deprecated - migrating to Firebase)
   String get supabaseUrl => dotenv.env['SUPABASE_URL'] ?? '';
   String get supabaseAnonKey => dotenv.env['SUPABASE_ANON_KEY'] ?? '';
-  String get supabaseServiceRoleKey => dotenv.env['SUPABASE_SERVICE_ROLE_KEY'] ?? '';
+  String get supabaseServiceRoleKey =>
+      dotenv.env['SUPABASE_SERVICE_ROLE_KEY'] ?? '';
+
+  // Firebase Configuration
+  String get firebaseProjectId => dotenv.env['FIREBASE_PROJECT_ID'] ?? '';
+  String get firebaseApiKey => dotenv.env['FIREBASE_API_KEY'] ?? '';
+  String get firebaseAppId => dotenv.env['FIREBASE_APP_ID'] ?? '';
+  String get firebaseMessagingSenderId =>
+      dotenv.env['FIREBASE_MESSAGING_SENDER_ID'] ?? '';
+  String get firebaseStorageBucket =>
+      dotenv.env['FIREBASE_STORAGE_BUCKET'] ?? '';
+  String get firebaseAuthDomain => dotenv.env['FIREBASE_AUTH_DOMAIN'] ?? '';
 
   // Support Information
   String get supportEmail =>
@@ -118,28 +131,37 @@ class EnvironmentConfig {
       dotenv.env['ADMOB_INTERSTITIAL_AD_UNIT_ID_ANDROID'] ?? '';
   String get admobInterstitialAdUnitIdIOS =>
       dotenv.env['ADMOB_INTERSTITIAL_AD_UNIT_ID_IOS'] ?? '';
-  
+
   bool get isAdMobConfigured =>
-      admobAppIdAndroid.isNotEmpty && 
-      admobAppIdIOS.isNotEmpty && 
+      admobAppIdAndroid.isNotEmpty &&
+      admobAppIdIOS.isNotEmpty &&
       admobBannerAdUnitIdAndroid.isNotEmpty &&
       admobBannerAdUnitIdIOS.isNotEmpty;
 
   // Validation - Gemini API key is now user-specific
-  bool get isGeminiConfigured => false; // Always false since API key is user-specific
+  bool get isGeminiConfigured =>
+      false; // Always false since API key is user-specific
 
-  // Supabase validation
+  // Supabase validation (deprecated)
   bool get isSupabaseConfigured =>
-      supabaseUrl.isNotEmpty && 
-      supabaseAnonKey.isNotEmpty && 
+      supabaseUrl.isNotEmpty &&
+      supabaseAnonKey.isNotEmpty &&
       supabaseUrl != 'your_supabase_url_here' &&
       supabaseAnonKey != 'your_supabase_anon_key_here';
 
-  // Supabase admin validation (for admin operations)
+  // Supabase admin validation (deprecated)
   bool get isSupabaseAdminConfigured =>
       isSupabaseConfigured &&
       supabaseServiceRoleKey.isNotEmpty &&
       supabaseServiceRoleKey != 'your_supabase_service_role_key_here';
+
+  // Firebase validation
+  bool get isFirebaseConfigured =>
+      firebaseProjectId.isNotEmpty &&
+      firebaseApiKey.isNotEmpty &&
+      firebaseAppId.isNotEmpty &&
+      firebaseProjectId != 'your-project-id' &&
+      firebaseApiKey != 'your-api-key';
 
   // Legacy validation
   bool get isOpenAIConfigured =>

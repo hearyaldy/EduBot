@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
-import '../services/supabase_service.dart';
+import '../services/firebase_service.dart';
 import '../screens/registration_screen.dart';
 import '../screens/profile_screen.dart';
 import '../utils/app_theme.dart';
@@ -25,12 +25,12 @@ class ProfileAvatarButton extends StatelessWidget {
         String? userName;
 
         try {
-          final supabaseService = SupabaseService.instance;
-          isAuthenticated = supabaseService.isAuthenticated;
-          userEmail = supabaseService.currentUserEmail;
-          userName = supabaseService.userName;
+          final firebaseService = FirebaseService.instance;
+          isAuthenticated = firebaseService.isAuthenticated;
+          userEmail = firebaseService.currentUserEmail;
+          userName = firebaseService.userName;
         } catch (e) {
-          // Supabase not initialized yet, treat as guest user
+          // Firebase not initialized yet, treat as guest user
           isAuthenticated = false;
           userEmail = null;
           userName = null;
@@ -268,8 +268,7 @@ class ProfileAvatarButton extends StatelessWidget {
   Future<void> _handleSignOut(
       BuildContext context, AppProvider provider) async {
     try {
-      final supabaseService = SupabaseService.instance;
-      await supabaseService.signOut();
+      await FirebaseService.signOut();
       await provider.setRegisteredStatus(false);
 
       if (context.mounted) {

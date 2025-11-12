@@ -19,6 +19,11 @@ dependencies:
   flutter_animate: ^4.2.0
   shimmer: ^3.0.0
   lottie: ^2.6.0
+  confetti: ^0.7.0
+
+  # Notifications
+  flutter_local_notifications: ^17.2.3
+  timezone: ^0.9.4
   
   # State Management
   provider: ^6.0.5
@@ -48,8 +53,12 @@ dependencies:
   hive_flutter: ^1.1.0
   shared_preferences: ^2.2.2
   
-  # Supabase
-  supabase_flutter: ^2.5.6
+  # Firebase (replacing Supabase)
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.1
+  cloud_firestore: ^5.4.3
+  firebase_storage: ^12.3.2
+  firebase_analytics: ^11.3.3
   
   # Utils
   intl: ^0.20.2
@@ -57,6 +66,9 @@ dependencies:
   uuid: ^4.3.3
   flutter_dotenv: ^5.1.0
   url_launcher: ^6.1.12
+
+  # In-App Purchases
+  in_app_purchase: ^3.2.0
   
   # Ads
   google_mobile_ads: ^5.1.0

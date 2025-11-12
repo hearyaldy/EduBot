@@ -1,0 +1,41 @@
+type Parent @table {
+  displayName: String!
+  createdAt: Timestamp!
+  email: String
+  photoUrl: String
+}
+
+type Child @table {
+  parent: Parent!
+  name: String!
+  gradeLevel: String!
+  createdAt: Timestamp!
+  school: String
+}
+
+type Class @table {
+  child: Child!
+  name: String!
+  subject: String!
+  createdAt: Timestamp!
+  teacherName: String
+  teacherContactInfo: String
+}
+
+type Assignment @table {
+  class: Class!
+  title: String!
+  dueDate: Timestamp!
+  status: String!
+  createdAt: Timestamp!
+  description: String
+  reminderDate: Timestamp
+}
+
+type Resource @table {
+  assignment: Assignment!
+  type: String!
+  content: String!
+  createdAt: Timestamp!
+  description: String
+}

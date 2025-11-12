@@ -8,9 +8,11 @@ import '../widgets/modern_button.dart';
 import '../widgets/daily_tip_card.dart';
 import '../widgets/ad_banner_widget.dart';
 import '../widgets/profile_avatar_button.dart';
+import '../widgets/streak_counter_widget.dart';
 import '../providers/app_provider.dart';
 import '../models/homework_question.dart';
-import '../services/supabase_service.dart';
+import '../services/firebase_service.dart';
+import '../screens/badges_screen.dart';
 
 class ModernHomeScreen extends StatefulWidget {
   final Function(int)? onNavigate;
@@ -26,7 +28,7 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
-  final _supabaseService = SupabaseService.instance;
+  final _firebaseService = FirebaseService.instance;
 
   @override
   void initState() {
@@ -60,7 +62,8 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
               title: 'EduBot',
               subtitle: 'AI Homework Helper',
               action: ProfileAvatarButton(
-                onProfileTap: () => widget.onNavigate?.call(4), // Navigate to settings
+                onProfileTap: () =>
+                    widget.onNavigate?.call(4), // Navigate to settings
               ),
               child: GlassCard(
                 backgroundColor: Colors.white.withValues(alpha: 0.2),
@@ -73,8 +76,9 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
                           final userInfo = _getUserInfo();
                           final greeting = _getTimeBasedGreeting();
                           final displayName = _getDisplayName(userInfo);
-                          final isAuthenticated = userInfo['isAuthenticated'] as bool;
-                          
+                          final isAuthenticated =
+                              userInfo['isAuthenticated'] as bool;
+
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -87,9 +91,9 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
                               ),
                               const SizedBox(height: 5),
                               Text(
-                                isAuthenticated 
-                                  ? 'Ready to tackle homework together?'
-                                  : 'Ready to get homework help?',
+                                isAuthenticated
+                                    ? 'Ready to tackle homework together?'
+                                    : 'Ready to get homework help?',
                                 style: AppTextStyles.bodyMedium.copyWith(
                                   color: Colors.white.withValues(alpha: 0.8),
                                 ),
@@ -172,6 +176,11 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
 
                       const SizedBox(height: 25),
 
+                      // Streak Counter (compact view)
+                      const StreakCounterWidget(isCompact: true),
+
+                      const SizedBox(height: 25),
+
                       // Interactive Daily Tips Card
                       const DailyTipCard(),
 
@@ -186,54 +195,6 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
                   ),
                 ),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionCard({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return GlassCard(
-      padding: const EdgeInsets.all(15),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(15),
-        onTap: onTap,
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    color.withValues(alpha: 0.1),
-                    color.withValues(alpha: 0.05),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: color, size: 24),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              style: AppTextStyles.bodyLarge.copyWith(
-                fontWeight: FontWeight.w600,
-                color: AppColors.gray900,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: AppTextStyles.bodySmall,
-              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -324,7 +285,6 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
     );
   }
 
-
   Widget _buildRecentActivity() {
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
@@ -333,7 +293,20 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Recent Help', style: AppTextStyles.headline3),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Recent Help', style: AppTextStyles.headline3),
+                TextButton.icon(
+                  onPressed: () => _navigateToBadges(context),
+                  icon: const Icon(Icons.emoji_events, size: 18),
+                  label: const Text('Badges'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 15),
             if (recentQuestions.isEmpty)
               GlassCard(
@@ -480,6 +453,15 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
     }
   }
 
+  void _navigateToBadges(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const BadgesScreen(),
+      ),
+    );
+  }
+
   // Helper method to get time-based greeting
   String _getTimeBasedGreeting() {
     final hour = DateTime.now().hour;
@@ -497,17 +479,17 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
     bool isAuthenticated = false;
     String? userName;
     String? userEmail;
-    
+
     try {
-      isAuthenticated = _supabaseService.isAuthenticated;
-      userName = _supabaseService.userName;
-      userEmail = _supabaseService.currentUserEmail;
+      isAuthenticated = _firebaseService.isAuthenticated;
+      userName = _firebaseService.userName;
+      userEmail = _firebaseService.currentUserEmail;
     } catch (e) {
       isAuthenticated = false;
       userName = null;
       userEmail = null;
     }
-    
+
     return {
       'isAuthenticated': isAuthenticated,
       'userName': userName,
@@ -520,10 +502,10 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
     if (!userInfo['isAuthenticated']) {
       return 'there';
     }
-    
+
     final userName = userInfo['userName'] as String?;
     final userEmail = userInfo['userEmail'] as String?;
-    
+
     if (userName != null && userName.isNotEmpty) {
       // If name is available, use first name only
       final nameParts = userName.split(' ');

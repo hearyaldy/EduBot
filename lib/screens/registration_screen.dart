@@ -4,7 +4,6 @@ import '../providers/app_provider.dart';
 import '../services/supabase_service.dart';
 import '../utils/app_theme.dart';
 import '../core/theme/app_colors.dart';
-import '../widgets/gradient_header.dart';
 
 class RegistrationScreen extends StatefulWidget {
   const RegistrationScreen({super.key});

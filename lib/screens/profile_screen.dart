@@ -8,6 +8,7 @@ import '../widgets/glass_card.dart';
 import '../providers/app_provider.dart';
 import '../services/supabase_service.dart';
 import '../screens/registration_screen.dart';
+import '../screens/badges_screen.dart';
 import '../utils/app_theme.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -428,6 +429,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
             style: AppTextStyles.headline3,
           ),
           const SizedBox(height: 16),
+          _buildActionButton(
+            'View Achievements',
+            'See your badges and streak progress',
+            Icons.emoji_events_outlined,
+            AppColors.success,
+            () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const BadgesScreen()),
+            ),
+          ),
+          const SizedBox(height: 12),
           _buildActionButton(
             'Edit Profile',
             'Update your name and preferences',

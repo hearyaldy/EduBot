@@ -4,10 +4,16 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'widgets/main_navigator.dart';
 import 'screens/splash_screen.dart';
+import 'screens/scan_homework_screen.dart';
+import 'screens/ask_question_screen.dart';
+import 'screens/history_screen.dart';
+import 'screens/badges_screen.dart';
+import 'screens/settings_screen.dart';
+import 'screens/premium_screen.dart';
 import 'providers/app_provider.dart';
 import 'services/storage_service.dart';
 import 'services/ad_service.dart';
-import 'services/supabase_service.dart';
+import 'services/firebase_service.dart';
 import 'utils/app_theme.dart';
 import 'utils/environment_config.dart';
 import 'core/theme/app_colors.dart';
@@ -25,20 +31,15 @@ void main() async {
   // Initialize ad service
   await AdService().initialize();
 
-  // Initialize Supabase service
+  // Initialize Firebase service
   try {
-    final config = EnvironmentConfig.instance;
-    debugPrint('=== Supabase Configuration Debug ===');
-    debugPrint('Supabase URL: ${config.supabaseUrl.substring(0, config.supabaseUrl.length > 20 ? 20 : config.supabaseUrl.length)}...');
-    debugPrint('Supabase URL configured: ${config.supabaseUrl.isNotEmpty}');
-    debugPrint('Supabase Anon Key configured: ${config.supabaseAnonKey.isNotEmpty}');
-    debugPrint('Supabase configuration valid: ${config.isSupabaseConfigured}');
-    debugPrint('=====================================');
-    
-    await SupabaseService.initialize();
-    debugPrint('Supabase initialized successfully');
+    debugPrint('=== Firebase Configuration Debug ===');
+    debugPrint('Initializing Firebase...');
+
+    await FirebaseService.initialize();
+    debugPrint('Firebase initialized successfully');
   } catch (e) {
-    debugPrint('Supabase initialization failed: $e');
+    debugPrint('Firebase initialization failed: $e');
     debugPrint('App will continue with limited functionality');
   }
 
@@ -116,11 +117,25 @@ class EduBotApp extends StatelessWidget {
               elevatedButtonTheme: AppTheme.lightTheme.elevatedButtonTheme,
               inputDecorationTheme: AppTheme.lightTheme.inputDecorationTheme,
             ),
+            initialRoute: '/',
+            routes: _buildRoutes(),
             home: const AppNavigator(),
           );
         },
       ),
     );
+  }
+
+  Map<String, WidgetBuilder> _buildRoutes() {
+    return {
+      '/': (context) => const AppNavigator(),
+      '/scan': (context) => const ScanHomeworkScreen(),
+      '/ask': (context) => const AskQuestionScreen(),
+      '/history': (context) => const HistoryScreen(),
+      '/badges': (context) => const BadgesScreen(),
+      '/settings': (context) => const SettingsScreen(),
+      '/premium': (context) => const PremiumScreen(),
+    };
   }
 }
 
@@ -153,9 +168,7 @@ class _AppNavigatorState extends State<AppNavigator> {
   Widget build(BuildContext context) {
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 500),
-      child: _showSplash 
-        ? const SplashScreen()
-        : const MainNavigator(),
+      child: _showSplash ? const SplashScreen() : const MainNavigator(),
     );
   }
 }
