@@ -93,7 +93,7 @@ class StreakCounterWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           colors: [
             AppTheme.primaryBlue,
             AppTheme.info,

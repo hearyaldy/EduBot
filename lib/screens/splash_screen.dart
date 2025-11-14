@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter/foundation.dart';
 import '../core/theme/app_colors.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -19,131 +20,195 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
+    debugPrint('🚀 SplashScreen: initState called');
 
-    // Set system UI overlay style for splash
-    SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
-        systemNavigationBarColor: Colors.transparent,
-        systemNavigationBarIconBrightness: Brightness.light,
-      ),
-    );
+    try {
+      // Set system UI overlay style for splash
+      debugPrint('🎨 SplashScreen: Setting system UI overlay style');
+      SystemChrome.setSystemUIOverlayStyle(
+        const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+          systemNavigationBarColor: Colors.transparent,
+          systemNavigationBarIconBrightness: Brightness.light,
+        ),
+      );
 
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 3000),
-      vsync: this,
-    );
+      debugPrint('⚙️ SplashScreen: Initializing animation controllers');
+      _controller = AnimationController(
+        duration: const Duration(milliseconds: 3000),
+        vsync: this,
+      );
+      debugPrint('✅ SplashScreen: Main controller initialized');
 
-    _logoController = AnimationController(
-      duration: const Duration(milliseconds: 2000),
-      vsync: this,
-    );
+      _logoController = AnimationController(
+        duration: const Duration(milliseconds: 2000),
+        vsync: this,
+      );
+      debugPrint('✅ SplashScreen: Logo controller initialized');
 
-    _textController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
-      vsync: this,
-    );
+      _textController = AnimationController(
+        duration: const Duration(milliseconds: 1500),
+        vsync: this,
+      );
+      debugPrint('✅ SplashScreen: Text controller initialized');
 
-    _startAnimation();
+      debugPrint('▶️ SplashScreen: Starting animations');
+      _startAnimation();
+    } catch (e, stackTrace) {
+      debugPrint('❌ SplashScreen ERROR in initState: $e');
+      debugPrint('📍 Stack trace: $stackTrace');
+    }
   }
 
   void _startAnimation() async {
-    // Start logo animation
-    _logoController.forward();
+    try {
+      debugPrint('🎬 SplashScreen: _startAnimation started');
 
-    // Delay text animation
-    await Future.delayed(const Duration(milliseconds: 800));
-    if (mounted) {
-      _textController.forward();
+      // Start logo animation
+      debugPrint('📱 SplashScreen: Starting logo animation');
+      await _logoController.forward();
+      debugPrint('✅ SplashScreen: Logo animation forwarded');
+
+      // Delay text animation
+      debugPrint('⏱️ SplashScreen: Waiting 800ms for text animation');
+      await Future.delayed(const Duration(milliseconds: 800));
+      if (mounted) {
+        debugPrint('📝 SplashScreen: Starting text animation (mounted: true)');
+        await _textController.forward();
+        debugPrint('✅ SplashScreen: Text animation forwarded');
+      } else {
+        debugPrint('⚠️ SplashScreen: Skipping text animation (mounted: false)');
+      }
+
+      // Start background animation
+      debugPrint('⏱️ SplashScreen: Waiting 400ms for background animation');
+      await Future.delayed(const Duration(milliseconds: 400));
+      if (mounted) {
+        debugPrint('🎨 SplashScreen: Starting background animation (mounted: true)');
+        await _controller.forward();
+        debugPrint('✅ SplashScreen: Background animation forwarded');
+      } else {
+        debugPrint('⚠️ SplashScreen: Skipping background animation (mounted: false)');
+      }
+
+      debugPrint('🎉 SplashScreen: All animations complete');
+      // Animations complete, navigation is handled by parent
+    } catch (e, stackTrace) {
+      debugPrint('❌ SplashScreen ERROR in _startAnimation: $e');
+      debugPrint('📍 Stack trace: $stackTrace');
     }
-
-    // Start background animation
-    await Future.delayed(const Duration(milliseconds: 400));
-    if (mounted) {
-      _controller.forward();
-    }
-
-    // Animations complete, navigation is handled by parent
   }
 
   @override
   void dispose() {
-    _controller.dispose();
-    _logoController.dispose();
-    _textController.dispose();
+    debugPrint('🧹 SplashScreen: dispose called');
+    try {
+      _controller.dispose();
+      _logoController.dispose();
+      _textController.dispose();
+      debugPrint('✅ SplashScreen: All controllers disposed');
+    } catch (e, stackTrace) {
+      debugPrint('❌ SplashScreen ERROR in dispose: $e');
+      debugPrint('📍 Stack trace: $stackTrace');
+    }
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppColors.primary,
-              AppColors.primaryDark,
-              AppColors.secondary,
-            ],
-            stops: [0.0, 0.6, 1.0],
+    debugPrint('🏗️ SplashScreen: build method called');
+    try {
+      return Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppColors.primary,
+                AppColors.primaryDark,
+                AppColors.secondary,
+              ],
+              stops: [0.0, 0.6, 1.0],
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: Stack(
-            children: [
-              // Background particles
-              _buildBackgroundAnimation(),
+          child: SafeArea(
+            child: Stack(
+              children: [
+                // Background particles
+                _buildBackgroundAnimation(),
 
-              // Main content
-              Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // App logo with animations
-                    _buildAnimatedLogo(),
+                // Main content
+                Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // App logo with animations
+                      _buildAnimatedLogo(),
 
-                    const SizedBox(height: 32),
+                      const SizedBox(height: 32),
 
-                    // App name
-                    _buildAnimatedTitle(),
+                      // App name
+                      _buildAnimatedTitle(),
 
-                    const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
-                    // Tagline
-                    _buildAnimatedTagline(),
+                      // Tagline
+                      _buildAnimatedTagline(),
 
-                    const SizedBox(height: 80),
+                      const SizedBox(height: 80),
 
-                    // Loading indicator
-                    _buildLoadingIndicator(),
-                  ],
+                      // Loading indicator
+                      _buildLoadingIndicator(),
+                    ],
+                  ),
                 ),
-              ),
 
-              // Floating elements
-              _buildFloatingElements(),
+                // Floating elements
+                _buildFloatingElements(),
+              ],
+            ),
+          ),
+        ),
+      );
+    } catch (e, stackTrace) {
+      debugPrint('❌ SplashScreen ERROR in build: $e');
+      debugPrint('📍 Stack trace: $stackTrace');
+      // Return a simple error view
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const SizedBox(height: 16),
+              Text('Error loading splash screen: $e'),
             ],
           ),
         ),
-      ),
-    );
+      );
+    }
   }
 
   Widget _buildBackgroundAnimation() {
-    return Positioned.fill(
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) {
-          return CustomPaint(
-            painter: BubblePainter(_controller.value),
-            child: Container(),
-          );
-        },
-      ),
-    );
+    try {
+      return Positioned.fill(
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            return CustomPaint(
+              painter: BubblePainter(_controller.value),
+              child: Container(),
+            );
+          },
+        ),
+      );
+    } catch (e, stackTrace) {
+      debugPrint('❌ SplashScreen ERROR in _buildBackgroundAnimation: $e');
+      debugPrint('📍 Stack trace: $stackTrace');
+      return const SizedBox.shrink();
+    }
   }
 
   Widget _buildAnimatedLogo() {
@@ -182,6 +247,11 @@ class _SplashScreenState extends State<SplashScreen>
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         // Fallback if image fails to load
+                        debugPrint('⚠️ SplashScreen: App icon failed to load');
+                        debugPrint('❌ Image Error: $error');
+                        if (stackTrace != null) {
+                          debugPrint('📍 Image Stack trace: $stackTrace');
+                        }
                         return Container(
                           width: 124,
                           height: 124,
@@ -434,26 +504,35 @@ class _SplashScreenState extends State<SplashScreen>
 
   Widget _buildFloatingIcon(
       IconData icon, double left, double top, int duration) {
-    return Positioned(
-      left: MediaQuery.of(context).size.width * left,
-      top: MediaQuery.of(context).size.height * top,
-      child: Icon(
-        icon,
-        color: Colors.white.withValues(alpha: 0.1),
-        size: 24,
-      )
-          .animate(onPlay: (controller) => controller.repeat(reverse: true))
-          .move(
-              begin: const Offset(0, -20),
-              end: const Offset(0, 20),
-              duration: Duration(milliseconds: duration))
-          .then()
-          .fadeIn(duration: const Duration(milliseconds: 500))
-          .scale(
-              begin: const Offset(0.8, 0.8),
-              end: const Offset(1.2, 1.2),
-              duration: Duration(milliseconds: duration)),
-    );
+    try {
+      final screenWidth = MediaQuery.of(context).size.width;
+      final screenHeight = MediaQuery.of(context).size.height;
+
+      return Positioned(
+        left: screenWidth * left,
+        top: screenHeight * top,
+        child: Icon(
+          icon,
+          color: Colors.white.withValues(alpha: 0.1),
+          size: 24,
+        )
+            .animate(onPlay: (controller) => controller.repeat(reverse: true))
+            .move(
+                begin: const Offset(0, -20),
+                end: const Offset(0, 20),
+                duration: Duration(milliseconds: duration))
+            .then()
+            .fadeIn(duration: const Duration(milliseconds: 500))
+            .scale(
+                begin: const Offset(0.8, 0.8),
+                end: const Offset(1.2, 1.2),
+                duration: Duration(milliseconds: duration)),
+      );
+    } catch (e, stackTrace) {
+      debugPrint('❌ SplashScreen ERROR in _buildFloatingIcon: $e');
+      debugPrint('📍 Stack trace: $stackTrace');
+      return const SizedBox.shrink();
+    }
   }
 }
 
@@ -465,22 +544,27 @@ class BubblePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.05)
-      ..style = PaintingStyle.fill;
+    try {
+      final paint = Paint()
+        ..color = Colors.white.withValues(alpha: 0.05)
+        ..style = PaintingStyle.fill;
 
-    // Create floating bubbles
-    for (int i = 0; i < 8; i++) {
-      final offset = Offset(
-        (size.width * (i * 0.15 + 0.1)) +
-            (30 * animationValue * (i.isEven ? 1 : -1)),
-        (size.height * (i * 0.12 + 0.1)) +
-            (50 * animationValue * (i.isOdd ? 1 : -1)),
-      );
+      // Create floating bubbles
+      for (int i = 0; i < 8; i++) {
+        final offset = Offset(
+          (size.width * (i * 0.15 + 0.1)) +
+              (30 * animationValue * (i.isEven ? 1 : -1)),
+          (size.height * (i * 0.12 + 0.1)) +
+              (50 * animationValue * (i.isOdd ? 1 : -1)),
+        );
 
-      final radius = 20 + (i * 5) + (10 * animationValue);
+        final radius = 20 + (i * 5) + (10 * animationValue);
 
-      canvas.drawCircle(offset, radius, paint);
+        canvas.drawCircle(offset, radius, paint);
+      }
+    } catch (e, stackTrace) {
+      debugPrint('❌ BubblePainter ERROR in paint: $e');
+      debugPrint('📍 Stack trace: $stackTrace');
     }
   }
 

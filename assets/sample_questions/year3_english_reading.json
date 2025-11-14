@@ -1,0 +1,136 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "created_by": "English Department",
+    "created_at": "2024-01-15T14:30:00Z",
+    "description": "Year 3 English - Reading Comprehension",
+    "total_questions": 15,
+    "grade_level": 3,
+    "subject": "English",
+    "topic": "Reading Comprehension",
+    "curriculum_standard": "KSSR Year 3 English"
+  },
+  "questions": [
+    {
+      "id": "y3_eng_comp_001",
+      "question_text": "Read the passage: 'The little cat climbed up the tall tree. It was scared to come down because the tree was very high.' What made the cat scared?",
+      "question_type": 0,
+      "subject": "English",
+      "topic": "Reading Comprehension",
+      "subtopic": "Inference",
+      "grade_level": 3,
+      "difficulty": 1,
+      "answer_key": "The tree was very high",
+      "explanation": "The passage states that the cat was scared to come down 'because the tree was very high.' The height of the tree is what made the cat scared.",
+      "choices": ["The tree was very high", "There were dogs below", "It was getting dark", "The cat was hungry"],
+      "target_language": "English",
+      "metadata": {
+        "curriculum_standards": ["KSSR Year 3 English", "3.2.1 Reading comprehension"],
+        "tags": ["reading", "inference", "cause_and_effect"],
+        "estimated_time_minutes": 3,
+        "cognitive_level": 1,
+        "additional_data": {
+          "image_required": false,
+          "reading_level": "grade_3",
+          "passage_length": "short"
+        }
+      }
+    },
+    {
+      "id": "y3_eng_vocab_001",
+      "question_text": "What does the word 'enormous' mean?",
+      "question_type": 0,
+      "subject": "English",
+      "topic": "Vocabulary",
+      "subtopic": "Word meaning",
+      "grade_level": 3,
+      "difficulty": 1,
+      "answer_key": "Very big",
+      "explanation": "'Enormous' means extremely large or huge in size. For example, 'The elephant is enormous compared to the mouse.'",
+      "choices": ["Very small", "Very big", "Very fast", "Very slow"],
+      "target_language": "English",
+      "metadata": {
+        "curriculum_standards": ["KSSR Year 3 English", "3.1.1 Vocabulary building"],
+        "tags": ["vocabulary", "word_meaning", "adjectives"],
+        "estimated_time_minutes": 2,
+        "cognitive_level": 0,
+        "additional_data": {
+          "word_type": "adjective",
+          "difficulty_level": "intermediate"
+        }
+      }
+    },
+    {
+      "id": "y3_eng_grammar_001",
+      "question_text": "Choose the correct sentence:",
+      "question_type": 0,
+      "subject": "English",
+      "topic": "Grammar",
+      "subtopic": "Subject-verb agreement",
+      "grade_level": 3,
+      "difficulty": 1,
+      "answer_key": "The dogs are running in the park.",
+      "explanation": "When the subject is plural (dogs), we use the plural verb form (are running). 'The dogs are running in the park' is correct.",
+      "choices": ["The dogs is running in the park.", "The dogs are running in the park.", "The dog are running in the park.", "The dogs was running in the park."],
+      "target_language": "English",
+      "metadata": {
+        "curriculum_standards": ["KSSR Year 3 English", "3.3.1 Grammar rules"],
+        "tags": ["grammar", "subject_verb_agreement", "plural"],
+        "estimated_time_minutes": 2,
+        "cognitive_level": 1,
+        "additional_data": {
+          "grammar_rule": "subject_verb_agreement",
+          "tense": "present_continuous"
+        }
+      }
+    },
+    {
+      "id": "y3_eng_spelling_001",
+      "question_text": "Which word is spelled correctly?",
+      "question_type": 0,
+      "subject": "English",
+      "topic": "Spelling",
+      "subtopic": "Common words",
+      "grade_level": 3,
+      "difficulty": 0,
+      "answer_key": "beautiful",
+      "explanation": "The correct spelling is 'beautiful' with 'eau' in the middle, not 'ea' or other combinations.",
+      "choices": ["beatiful", "beutiful", "beautiful", "beautifull"],
+      "target_language": "English",
+      "metadata": {
+        "curriculum_standards": ["KSSR Year 3 English", "3.4.1 Spelling patterns"],
+        "tags": ["spelling", "common_words", "pattern_recognition"],
+        "estimated_time_minutes": 2,
+        "cognitive_level": 0,
+        "additional_data": {
+          "word_frequency": "common",
+          "spelling_pattern": "eau"
+        }
+      }
+    },
+    {
+      "id": "y3_eng_writing_001",
+      "question_text": "Which sentence uses describing words (adjectives) correctly?",
+      "question_type": 0,
+      "subject": "English",
+      "topic": "Writing",
+      "subtopic": "Using adjectives",
+      "grade_level": 3,
+      "difficulty": 1,
+      "answer_key": "The small, fluffy kitten played with a red ball.",
+      "explanation": "This sentence uses adjectives correctly: 'small' and 'fluffy' describe the kitten, and 'red' describes the ball.",
+      "choices": ["The kitten played with ball.", "The small, fluffy kitten played with a red ball.", "The kitten small played with red ball.", "Small kitten played ball red."],
+      "target_language": "English",
+      "metadata": {
+        "curriculum_standards": ["KSSR Year 3 English", "3.5.1 Descriptive writing"],
+        "tags": ["writing", "adjectives", "sentence_structure"],
+        "estimated_time_minutes": 3,
+        "cognitive_level": 2,
+        "additional_data": {
+          "writing_skill": "descriptive_language",
+          "sentence_complexity": "compound"
+        }
+      }
+    }
+  ]
+}

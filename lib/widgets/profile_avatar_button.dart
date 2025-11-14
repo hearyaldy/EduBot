@@ -4,6 +4,7 @@ import '../providers/app_provider.dart';
 import '../services/firebase_service.dart';
 import '../screens/registration_screen.dart';
 import '../screens/profile_screen.dart';
+import '../screens/manage_profiles_screen.dart';
 import '../utils/app_theme.dart';
 import '../core/theme/app_colors.dart';
 
@@ -49,17 +50,65 @@ class ProfileAvatarButton extends StatelessWidget {
               case 'profile':
                 _navigateToProfile(context);
                 break;
+              case 'manageProfiles':
+                _navigateToManageProfiles(context);
+                break;
               case 'signout':
                 await _handleSignOut(context, provider);
-                break;
-              case 'settings':
-                _navigateToSettings(context);
                 break;
             }
           },
           itemBuilder: (context) => _buildMenuItems(isAuthenticated, provider),
-          child: _buildAvatarButton(
-              isAuthenticated, provider, userName, userEmail),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Show active child profile indicator
+              if (isAuthenticated && provider.activeProfile != null)
+                Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _getAccountTypeColor(provider),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        provider.activeProfile!.emoji,
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        provider.activeProfile!.name,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              GestureDetector(
+                onTap: isAuthenticated
+                    ? () {
+                        _navigateToProfile(context);
+                      }
+                    : () {
+                        // Navigate to registration when avatar is tapped for unauthenticated users
+                        _navigateToRegistration(context);
+                      },
+                child: _buildAvatarButton(
+                    isAuthenticated, provider, userName, userEmail),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -131,15 +180,6 @@ class ProfileAvatarButton extends StatelessWidget {
             contentPadding: EdgeInsets.zero,
           ),
         ),
-        const PopupMenuDivider(),
-        const PopupMenuItem<String>(
-          value: 'settings',
-          child: ListTile(
-            leading: Icon(Icons.settings, color: AppTheme.textSecondary),
-            title: Text('Settings'),
-            contentPadding: EdgeInsets.zero,
-          ),
-        ),
       ];
     } else {
       return [
@@ -153,15 +193,30 @@ class ProfileAvatarButton extends StatelessWidget {
             contentPadding: EdgeInsets.zero,
           ),
         ),
-        const PopupMenuDivider(),
-        const PopupMenuItem<String>(
-          value: 'settings',
-          child: ListTile(
-            leading: Icon(Icons.settings, color: AppTheme.textSecondary),
-            title: Text('Settings'),
-            contentPadding: EdgeInsets.zero,
+        if (provider.childProfiles.isNotEmpty) ...[
+          const PopupMenuDivider(),
+          PopupMenuItem<String>(
+            value: 'manageProfiles',
+            child: ListTile(
+              leading:
+                  Icon(Icons.people, color: _getAccountTypeColor(provider)),
+              title: Text(
+                provider.activeProfile != null
+                    ? 'Current: ${provider.activeProfile!.name}'
+                    : 'Manage Profiles',
+                style: const TextStyle(fontWeight: FontWeight.w500),
+              ),
+              subtitle: const Text(
+                'Switch or manage child profiles',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+              contentPadding: EdgeInsets.zero,
+            ),
           ),
-        ),
+        ],
         const PopupMenuDivider(),
         const PopupMenuItem<String>(
           value: 'signout',
@@ -250,6 +305,13 @@ class ProfileAvatarButton extends StatelessWidget {
     );
   }
 
+  void _navigateToSettings(BuildContext context) {
+    // Assuming settings is at index 4 in the bottom navigation
+    if (onProfileTap != null) {
+      onProfileTap!();
+    }
+  }
+
   void _navigateToProfile(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -258,11 +320,12 @@ class ProfileAvatarButton extends StatelessWidget {
     );
   }
 
-  void _navigateToSettings(BuildContext context) {
-    // Assuming settings is at index 4 in the bottom navigation
-    if (onProfileTap != null) {
-      onProfileTap!();
-    }
+  void _navigateToManageProfiles(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const ManageProfilesScreen(),
+      ),
+    );
   }
 
   Future<void> _handleSignOut(

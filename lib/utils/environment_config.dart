@@ -47,6 +47,9 @@ class EnvironmentConfig {
   double get geminiTemperature =>
       double.tryParse(dotenv.env['GEMINI_TEMPERATURE'] ?? '0.7') ?? 0.7;
 
+  // OpenRouter Configuration
+  String get openRouterApiKey => dotenv.env['OPENROUTER_API_KEY'] ?? '';
+
   // Legacy OpenAI Configuration (kept for reference)
   String get openAIApiKey => dotenv.env['OPENAI_API_KEY'] ?? '';
   String get openAIModel => dotenv.env['OPENAI_MODEL'] ?? 'gpt-3.5-turbo';

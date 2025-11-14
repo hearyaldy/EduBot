@@ -182,15 +182,18 @@ class BadgesScreen extends StatelessWidget {
     Color color;
 
     if (unlocked == total) {
-      message = "Amazing! You've unlocked all badges! You're a true EduBot champion! 🏆";
+      message =
+          "Amazing! You've unlocked all badges! You're a true EduBot champion! 🏆";
       icon = Icons.emoji_events;
       color = AppTheme.success;
     } else if (unlocked >= total * 0.75) {
-      message = "Almost there! Just a few more badges to go! Keep up the great work! 💪";
+      message =
+          "Almost there! Just a few more badges to go! Keep up the great work! 💪";
       icon = Icons.trending_up;
       color = AppTheme.info;
     } else if (unlocked >= total * 0.5) {
-      message = "You're doing great! You've unlocked more than half of all badges! 🌟";
+      message =
+          "You're doing great! You've unlocked more than half of all badges! 🌟";
       icon = Icons.star;
       color = AppTheme.warning;
     } else if (unlocked > 0) {
@@ -198,7 +201,8 @@ class BadgesScreen extends StatelessWidget {
       icon = Icons.rocket_launch;
       color = AppTheme.primaryBlue;
     } else {
-      message = "Start your journey! Ask your first question to unlock your first badge! 🎯";
+      message =
+          "Start your journey! Ask your first question to unlock your first badge! 🎯";
       icon = Icons.flag;
       color = AppTheme.primaryBlue;
     }
@@ -224,7 +228,7 @@ class BadgesScreen extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 14,
                 color: AppTheme.textPrimary,
                 height: 1.4,

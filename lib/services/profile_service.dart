@@ -8,6 +8,7 @@ class ProfileService {
   static const String _activeProfileKey = 'active_profile_id';
   static const int _maxFreeProfiles = 1;
   static const int _maxPremiumProfiles = 3;
+  static const int _maxSuperadminProfiles = 999; // Unlimited for superadmins
 
   // Singleton pattern
   static final ProfileService _instance = ProfileService._internal();
@@ -80,13 +81,20 @@ class ProfileService {
 
   bool get hasProfiles => _profiles.isNotEmpty;
 
-  bool canAddProfile(bool isPremium) {
-    final maxProfiles = isPremium ? _maxPremiumProfiles : _maxFreeProfiles;
-    return _profiles.length < maxProfiles;
+  bool canAddProfile(bool isPremiumOrSuperadmin, {bool isSuperadmin = false}) {
+    final maxProfiles = isSuperadmin
+        ? _maxSuperadminProfiles
+        : (isPremiumOrSuperadmin ? _maxPremiumProfiles : _maxFreeProfiles);
+    final canAdd = _profiles.length < maxProfiles;
+    debugPrint(
+        'ProfileService.canAddProfile: isSuperadmin=$isSuperadmin, isPremium=$isPremiumOrSuperadmin, current=${_profiles.length}, max=$maxProfiles, canAdd=$canAdd');
+    return canAdd;
   }
 
-  int getMaxProfiles(bool isPremium) {
-    return isPremium ? _maxPremiumProfiles : _maxFreeProfiles;
+  int getMaxProfiles(bool isPremiumOrSuperadmin, {bool isSuperadmin = false}) {
+    return isSuperadmin
+        ? _maxSuperadminProfiles
+        : (isPremiumOrSuperadmin ? _maxPremiumProfiles : _maxFreeProfiles);
   }
 
   /// Add a new child profile
@@ -95,11 +103,19 @@ class ProfileService {
     required int grade,
     required String emoji,
     required bool isPremium,
+    bool isSuperadmin = false,
   }) async {
-    if (!canAddProfile(isPremium)) {
-      throw Exception(
-        'Maximum profiles reached. ${isPremium ? 'Premium users' : 'Free users'} can have up to ${getMaxProfiles(isPremium)} profile(s).',
-      );
+    debugPrint(
+        'ProfileService.addProfile: Attempting to add profile "$name" (isSuperadmin=$isSuperadmin, isPremium=$isPremium)');
+
+    if (!canAddProfile(isPremium, isSuperadmin: isSuperadmin)) {
+      final accountType = isSuperadmin
+          ? 'Superadmin'
+          : (isPremium ? 'Premium users' : 'Free users');
+      final errorMsg =
+          'Maximum profiles reached. $accountType can have up to ${getMaxProfiles(isPremium, isSuperadmin: isSuperadmin)} profile(s).';
+      debugPrint('ProfileService.addProfile: ERROR - $errorMsg');
+      throw Exception(errorMsg);
     }
 
     final profile = ChildProfile.create(

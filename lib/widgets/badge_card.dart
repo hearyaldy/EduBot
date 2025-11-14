@@ -24,7 +24,7 @@ class BadgeCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         gradient: isUnlocked
-            ? LinearGradient(
+            ? const LinearGradient(
                 colors: [
                   AppTheme.primaryBlue,
                   AppTheme.info,
@@ -103,9 +103,8 @@ class BadgeCard extends StatelessWidget {
                     badge.description,
                     style: TextStyle(
                       fontSize: 11,
-                      color: isUnlocked
-                          ? Colors.white70
-                          : AppTheme.textSecondary,
+                      color:
+                          isUnlocked ? Colors.white70 : AppTheme.textSecondary,
                     ),
                     textAlign: TextAlign.center,
                     maxLines: 2,

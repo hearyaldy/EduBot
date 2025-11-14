@@ -20,6 +20,7 @@ dependencies:
   shimmer: ^3.0.0
   lottie: ^2.6.0
   confetti: ^0.7.0
+  fl_chart: ^0.68.0
 
   # Notifications
   flutter_local_notifications: ^17.2.3
@@ -76,6 +77,9 @@ dependencies:
   # Icons & Fonts
   cupertino_icons: ^1.0.2
   google_fonts: ^6.1.0
+  
+  # UI Components
+  flutter_speed_dial: ^7.0.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -93,6 +97,7 @@ flutter:
     - assets/patterns/
     - assets/animations/
     - assets/icons/
+    - assets/sample_questions/
     - lib/assets/icons/
     - .env
 

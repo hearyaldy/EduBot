@@ -56,6 +56,7 @@ class AppProvider with ChangeNotifier {
   double _speechRate = 0.5;
   String _selectedLanguage = 'English';
   bool _showDailyTips = true;
+  bool _isDarkMode = false;
 
   // Questions history
   List<HomeworkQuestion> _savedQuestions = [];
@@ -165,6 +166,7 @@ class AppProvider with ChangeNotifier {
   double get speechRate => _speechRate;
   String get selectedLanguage => _selectedLanguage;
   bool get showDailyTips => _showDailyTips;
+  bool get isDarkMode => _isDarkMode;
 
   // Streak and Badge getters
   StreakData get streakData => _streakService.streakData;
@@ -181,35 +183,67 @@ class AppProvider with ChangeNotifier {
   ChildProfile? get activeProfile => _profileService.activeProfile;
   bool get hasProfiles => _profileService.hasProfiles;
   int get profileCount => _profileService.profileCount;
-  bool get canAddProfile =>
-      _profileService.canAddProfile(_purchaseService.isPremium);
-  int get maxProfiles =>
-      _profileService.getMaxProfiles(_purchaseService.isPremium);
+  bool get canAddProfile => _profileService
+      .canAddProfile(_purchaseService.isPremium, isSuperadmin: isSuperadmin);
+  int get maxProfiles => _profileService
+      .getMaxProfiles(_purchaseService.isPremium, isSuperadmin: isSuperadmin);
 
   // Get max questions per day based on user status
   int _getMaxQuestionsPerDay() {
+    // Unlimited for superadmins
+    if (isSuperadmin) {
+      return -1; // Unlimited for superadmins
+    }
     // Check purchase service for premium status
-    if (_purchaseService.isPremium || _isPremium)
+    if (_purchaseService.isPremium || _isPremium) {
       return -1; // Unlimited for premium
-    if (_isRegistered)
+    }
+    if (_isRegistered) {
       return 10; // 10 for registered users (increased from old model)
+    }
     return 5; // 5 for non-registered users (FREEMIUM MODEL)
   }
 
   // Initialize app provider with stored data
   Future<void> initialize() async {
-    if (_isInitialized) return;
+    debugPrint('=== AppProvider.initialize() called ===');
+    if (_isInitialized) {
+      debugPrint('⚠️ Already initialized, skipping');
+      return;
+    }
 
     try {
       // Initialize services
+      debugPrint('Initializing StreakService...');
       await _streakService.initialize();
+      debugPrint('✓ StreakService initialized');
+
+      debugPrint('Initializing BadgeService...');
       await _badgeService.initialize();
+      debugPrint('✓ BadgeService initialized');
+
+      debugPrint('Initializing NotificationService...');
       await _notificationService.initialize();
+      debugPrint('✓ NotificationService initialized');
+
+      debugPrint('Initializing ProfileService...');
       await _profileService.initialize();
+      debugPrint('✓ ProfileService initialized');
+
+      debugPrint('Initializing PurchaseService...');
       await _purchaseService.initialize();
+      debugPrint('✓ PurchaseService initialized');
+
+      // Initialize FirebaseAdminService to check admin status
+      debugPrint('Initializing FirebaseAdminService...');
+      await AdminService.instance.refreshAdminStatus();
+      debugPrint(
+          '✓ FirebaseAdminService initialized (isAdmin: ${AdminService.instance.isAdmin})');
 
       // Set up purchase status change listener
+      debugPrint('Setting up purchase status listener...');
       _purchaseService.onPremiumStatusChanged = (isPremium) {
+        debugPrint('Premium status changed: $isPremium');
         _isPremium = isPremium;
         // Enable/disable ads based on premium status
         _adService.setAdsEnabled(!isPremium && !isSuperadmin);
@@ -217,21 +251,29 @@ class AppProvider with ChangeNotifier {
       };
 
       // Check subscription status
+      debugPrint('Checking subscription status...');
       await _purchaseService.checkSubscriptionStatus();
+      debugPrint('✓ Subscription status checked');
 
       // Update premium status from purchase service
       _isPremium = _purchaseService.isPremium;
+      debugPrint('Premium status: $_isPremium');
 
       // Check and update streak on app start
+      debugPrint('Checking streak status...');
       final streakReset = await _streakService.checkAndResetIfNeeded();
       if (streakReset) {
-        debugPrint('Streak was reset due to inactivity');
+        debugPrint('⚠️ Streak was reset due to inactivity');
       }
+      debugPrint('✓ Streak checked');
 
       // Load saved questions from storage
+      debugPrint('Loading saved questions...');
       _savedQuestions = await _storage.getAllQuestions();
+      debugPrint('✓ Loaded ${_savedQuestions.length} questions');
 
       // Load user settings
+      debugPrint('Loading user settings...');
       _dailyQuestionsUsed =
           _storage.getSetting<int>('daily_questions_used', defaultValue: 0) ??
               0;
@@ -240,8 +282,11 @@ class AppProvider with ChangeNotifier {
       _isRegistered =
           _storage.getSetting<bool>('is_registered', defaultValue: false) ??
               false;
+      debugPrint(
+          '✓ User settings: questions=$_dailyQuestionsUsed, premium=$_isPremium, registered=$_isRegistered');
 
       // Load user preferences
+      debugPrint('Loading user preferences...');
       _notificationsEnabled = _storage.getSetting<bool>('notifications_enabled',
               defaultValue: true) ??
           true;
@@ -256,8 +301,13 @@ class AppProvider with ChangeNotifier {
       _showDailyTips =
           _storage.getSetting<bool>('show_daily_tips', defaultValue: true) ??
               true;
+      _isDarkMode =
+          _storage.getSetting<bool>('is_dark_mode', defaultValue: false) ??
+              false;
+      debugPrint('✓ Preferences loaded (darkMode: $_isDarkMode)');
 
       // Load token usage data
+      debugPrint('Loading token usage data...');
       _dailyTokensUsed =
           _storage.getSetting<int>('daily_tokens_used', defaultValue: 0) ?? 0;
       _totalTokensUsed =
@@ -265,17 +315,26 @@ class AppProvider with ChangeNotifier {
       _lastQuestionTokens =
           _storage.getSetting<int>('last_question_tokens', defaultValue: 0) ??
               0;
+      debugPrint(
+          '✓ Token data: daily=$_dailyTokensUsed, total=$_totalTokensUsed');
 
       // Load global usage data and check for daily reset
+      debugPrint('Loading global usage data...');
       await _loadGlobalUsageData();
+      debugPrint('✓ Global usage data loaded');
 
       // Configure ad service based on user status
+      debugPrint('Configuring ad service...');
       _adService.setAdsEnabled(!_isPremium && !isSuperadmin);
+      debugPrint(
+          '✓ Ad service configured (enabled: ${!_isPremium && !isSuperadmin})');
 
       _isInitialized = true;
+      debugPrint('✓✓✓ AppProvider initialization complete ✓✓✓');
       notifyListeners();
-    } catch (e) {
-      debugPrint('Failed to initialize app provider: $e');
+    } catch (e, stackTrace) {
+      debugPrint('❌ Failed to initialize app provider: $e');
+      debugPrint('Stack trace: $stackTrace');
     }
   }
 
@@ -284,10 +343,31 @@ class AppProvider with ChangeNotifier {
     _dailyQuestionsUsed++;
     await _storage.saveSetting('daily_questions_used', _dailyQuestionsUsed);
 
+    // Update child profile metrics
+    await _updateChildProfileMetrics(subject: subject);
+
     // Record usage for streak tracking
     await _recordUsageAndCheckAchievements(subject: subject);
 
     notifyListeners();
+  }
+
+  /// Update metrics for the active child profile
+  Future<void> _updateChildProfileMetrics({String? subject}) async {
+    try {
+      // Increment question count for active child profile
+      await _profileService.incrementQuestionCount();
+
+      // Add subject to child profile if provided
+      if (subject != null && subject.isNotEmpty) {
+        await _profileService.addSubject(subject);
+      }
+
+      debugPrint(
+          '✓ Child profile metrics updated: questionCount++, subject: $subject');
+    } catch (e) {
+      debugPrint('Failed to update child profile metrics: $e');
+    }
   }
 
   /// Record app usage and check for streak/badge achievements
@@ -295,6 +375,9 @@ class AppProvider with ChangeNotifier {
     try {
       // Update streak
       final streakResult = await _streakService.recordUsage();
+
+      // Sync streak data with active child profile
+      await _profileService.updateStreak(currentStreak, longestStreak);
 
       // Check if milestone was reached
       if (streakResult.milestoneReached != null) {
@@ -316,8 +399,11 @@ class AppProvider with ChangeNotifier {
         subject: subject,
       );
 
-      // Show notifications for newly unlocked badges
+      // Show notifications for newly unlocked badges and unlock them in child profile
       for (final badge in newBadges) {
+        // Unlock badge in child profile
+        await _profileService.unlockBadge(badge.id);
+
         await _notificationService.showBadgeUnlockedNotification(
           badgeTitle: badge.title,
           badgeEmoji: badge.emoji,
@@ -332,14 +418,16 @@ class AppProvider with ChangeNotifier {
 
   // Token usage tracking methods
   Future<void> addTokenUsage(int tokens) async {
-    // Check global limits first
-    if (!canMakeGlobalRequest) {
+    // Check global limits first (bypass for superadmins)
+    if (!isSuperadmin && !canMakeGlobalRequest) {
       throw Exception(
           'Global daily request limit exceeded. Please try again tomorrow.');
     }
 
-    // Track global usage
-    await trackGlobalRequest(tokens);
+    // Track global usage (only for non-superadmins to not affect global counters)
+    if (!isSuperadmin) {
+      await trackGlobalRequest(tokens);
+    }
 
     // Track user usage
     _dailyTokensUsed += tokens;
@@ -484,6 +572,129 @@ class AppProvider with ChangeNotifier {
     }
   }
 
+  // DEBUG: Method to create test explanations for existing questions
+  Future<void> createTestExplanations() async {
+    try {
+      for (var question in _savedQuestions) {
+        // Check if explanation already exists
+        final existing = await _storage.getExplanation(question.id);
+        if (existing == null) {
+          // Create a test explanation
+          final explanation = Explanation(
+            id: question.id,
+            questionId: question.id,
+            question: question.question,
+            answer:
+                'This is a sample AI answer for the question: "${question.question}". The correct approach involves analyzing the problem step by step.',
+            steps: [
+              ExplanationStep(
+                stepNumber: 1,
+                title: 'Understand the Problem',
+                description:
+                    'First, read the question carefully and identify what is being asked.',
+                tip:
+                    'Take your time to understand what the question is really asking.',
+              ),
+              ExplanationStep(
+                stepNumber: 2,
+                title: 'Identify Key Concepts',
+                description:
+                    'Look for important keywords and concepts that relate to the subject.',
+                isKeyStep: true,
+              ),
+              ExplanationStep(
+                stepNumber: 3,
+                title: 'Apply Method',
+                description:
+                    'Use the appropriate method, formula, or approach to solve the problem.',
+              ),
+              ExplanationStep(
+                stepNumber: 4,
+                title: 'Calculate Solution',
+                description:
+                    'Work through the calculations or reasoning step by step.',
+              ),
+              ExplanationStep(
+                stepNumber: 5,
+                title: 'Verify Answer',
+                description:
+                    'Check if the answer makes sense and is reasonable.',
+                tip: 'Always double-check your work to avoid simple mistakes.',
+              ),
+            ],
+            parentFriendlyTip:
+                'You can help your child understand this better by breaking down the problem into smaller parts and encouraging them to think through each step.',
+            realWorldExample:
+                'This type of problem appears in everyday situations like calculating expenses, measuring objects, or solving practical puzzles.',
+            createdAt: question.createdAt,
+            subject: question.subject ?? 'General',
+          );
+
+          // Save the test explanation
+          await _storage.saveExplanation(explanation);
+          debugPrint('Created test explanation for question: ${question.id}');
+        }
+      }
+      debugPrint(
+          'Test explanations created for ${_savedQuestions.length} questions');
+    } catch (e) {
+      debugPrint('Failed to create test explanations: $e');
+    }
+  }
+
+  // DEBUG: Method to sync child profile metrics with existing questions
+  Future<void> syncChildProfileMetrics() async {
+    try {
+      final activeProfile = _profileService.activeProfile;
+      if (activeProfile == null) {
+        debugPrint('No active profile found for syncing');
+        return;
+      }
+
+      debugPrint('Syncing metrics for child profile: ${activeProfile.name}');
+
+      // Count questions for this child profile
+      final childQuestions = _savedQuestions
+          .where((q) => q.childProfileId == activeProfile.id)
+          .toList();
+
+      // Get unique subjects used by this child
+      final subjectsSet = childQuestions
+          .where((q) => q.subject != null && q.subject!.isNotEmpty)
+          .map((q) => q.subject!)
+          .toSet();
+
+      debugPrint(
+          'Found ${childQuestions.length} questions for ${activeProfile.name}');
+      debugPrint('Subjects used: ${subjectsSet.join(', ')}');
+
+      // Update child profile with correct metrics
+      final updatedProfile = activeProfile.copyWith(
+        questionCount: childQuestions.length,
+        lastUsedAt: childQuestions.isNotEmpty
+            ? childQuestions
+                .map((q) => q.createdAt)
+                .reduce((a, b) => a.isAfter(b) ? a : b)
+            : activeProfile.lastUsedAt,
+        subjectsUsed: subjectsSet,
+        currentStreak: currentStreak, // Use current global streak
+        longestStreak: longestStreak, // Use current global longest streak
+      );
+
+      await _profileService.updateProfile(updatedProfile);
+
+      debugPrint('✓ Child profile metrics synced:');
+      debugPrint('  - Question count: ${updatedProfile.questionCount}');
+      debugPrint('  - Subjects: ${updatedProfile.subjectsUsed.join(', ')}');
+      debugPrint('  - Current streak: ${updatedProfile.currentStreak}');
+      debugPrint('  - Longest streak: ${updatedProfile.longestStreak}');
+
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Failed to sync child profile metrics: $e');
+    }
+  }
+
   void setLoading(bool loading) {
     _isLoading = loading;
     notifyListeners();
@@ -557,6 +768,12 @@ class AppProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setThemeMode(bool isDark) async {
+    _isDarkMode = isDark;
+    await _storage.saveSetting('is_dark_mode', isDark);
+    notifyListeners();
+  }
+
   Future<void> setRegisteredStatus(bool registered) async {
     _isRegistered = registered;
     await _storage.saveSetting('is_registered', registered);
@@ -582,12 +799,17 @@ class AppProvider with ChangeNotifier {
     required int grade,
     required String emoji,
   }) async {
+    debugPrint(
+        'AppProvider.addChildProfile: isSuperadmin=$isSuperadmin, isPremium=${_purchaseService.isPremium}');
     final profile = await _profileService.addProfile(
       name: name,
       grade: grade,
       emoji: emoji,
       isPremium: _purchaseService.isPremium,
+      isSuperadmin: isSuperadmin,
     );
+    debugPrint(
+        'AppProvider.addChildProfile: Successfully added profile "${profile.name}"');
     notifyListeners();
     return profile;
   }

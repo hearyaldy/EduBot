@@ -10,51 +10,125 @@ import 'screens/history_screen.dart';
 import 'screens/badges_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/premium_screen.dart';
+import 'screens/registration_screen.dart';
 import 'providers/app_provider.dart';
 import 'services/storage_service.dart';
 import 'services/ad_service.dart';
 import 'services/firebase_service.dart';
+import 'services/lesson_service.dart';
+import 'services/question_bank_initializer.dart';
+import 'services/science_question_importer.dart';
 import 'utils/app_theme.dart';
 import 'utils/environment_config.dart';
-import 'core/theme/app_colors.dart';
 import 'l10n/app_localizations.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  debugPrint('=== EDUBOT APP STARTING ===');
 
-  // Initialize environment configuration
-  await EnvironmentConfig.initialize();
-
-  // Initialize storage service
-  await StorageService().initialize();
-
-  // Initialize ad service
-  await AdService().initialize();
-
-  // Initialize Firebase service
   try {
-    debugPrint('=== Firebase Configuration Debug ===');
-    debugPrint('Initializing Firebase...');
+    WidgetsFlutterBinding.ensureInitialized();
+    debugPrint('✓ Flutter binding initialized');
 
-    await FirebaseService.initialize();
-    debugPrint('Firebase initialized successfully');
-  } catch (e) {
-    debugPrint('Firebase initialization failed: $e');
-    debugPrint('App will continue with limited functionality');
-  }
+    // Initialize environment configuration
+    debugPrint('Initializing environment config...');
+    await EnvironmentConfig.initialize();
+    debugPrint('✓ Environment config initialized');
 
-  // Validate configuration and show warnings if needed
-  final config = EnvironmentConfig.instance;
-  final issues = config.validateConfiguration();
+    // Initialize storage service
+    debugPrint('Initializing storage service...');
+    await StorageService().initialize();
+    debugPrint('✓ Storage service initialized');
 
-  if (issues.isNotEmpty && config.isDebugMode) {
-    debugPrint('Configuration Issues:');
-    for (final issue in issues) {
-      debugPrint('- $issue');
+    // Initialize ad service
+    debugPrint('Initializing ad service...');
+    await AdService().initialize();
+    debugPrint('✓ Ad service initialized');
+
+    // Initialize Firebase service
+    try {
+      debugPrint('=== Firebase Configuration Debug ===');
+      debugPrint('Initializing Firebase...');
+
+      await FirebaseService.initialize();
+      debugPrint('✓ Firebase initialized successfully');
+    } catch (e) {
+      debugPrint('❌ Firebase initialization failed: $e');
+      debugPrint('⚠️ App will continue with limited functionality');
     }
-  }
 
-  runApp(const EduBotApp());
+    // Initialize question bank if empty
+    try {
+      debugPrint('Checking question bank status...');
+      final initializer = QuestionBankInitializer();
+      final isInitialized = await initializer.isQuestionBankInitialized();
+
+      if (!isInitialized) {
+        debugPrint('⚠️ Question bank is empty, importing sample questions...');
+        final result = await initializer.importAllSampleQuestions();
+        debugPrint('✓ Question bank initialized: ${result['successfully_imported']} questions imported');
+      } else {
+        final stats = await initializer.getQuestionBankStats();
+        debugPrint('✓ Question bank already initialized: ${stats['total_questions']} questions available');
+      }
+      
+      // Import hardcoded lessons to the question bank (always do this to ensure they exist)
+      try {
+        debugPrint('📚 Importing hardcoded lessons to question bank...');
+        final exportResult = await initializer.importHardcodedLessons();
+        debugPrint('✓ Hardcoded lessons imported: ${exportResult['questions_exported']} questions');
+      } catch (e) {
+        debugPrint('⚠️ Failed to import hardcoded lessons: $e');
+      }
+    } catch (e) {
+      debugPrint('⚠️ Question bank initialization failed: $e');
+      debugPrint('   You can manually import questions from Settings > Question Bank');
+    }
+
+    // Import Year 6 Science questions after question bank is initialized
+    try {
+      debugPrint('📚 Importing Year 6 Science questions...');
+      final scienceImporter = ScienceQuestionImporter();
+      final importResult = await scienceImporter.importYear6ScienceQuestions();
+      if (importResult['successfully_imported'] > 0) {
+        debugPrint('✅ Successfully imported ${importResult['successfully_imported']} Year 6 Science questions');
+      } else {
+        debugPrint('⚠️ Science questions import completed with ${importResult['failed_imports']} failures');
+        if (importResult['errors'].isNotEmpty) {
+          debugPrint('   Errors: ${importResult['errors']}');
+        }
+      }
+    } catch (e) {
+      debugPrint('⚠️ Failed to import Year 6 Science questions: $e');
+    }
+
+    // Initialize LessonService
+    try {
+      debugPrint('Initializing LessonService...');
+      final lessonService = LessonService();
+      await lessonService.initialize(); // Initialize to load hardcoded lessons and prepare service
+      debugPrint('✓ LessonService initialized');
+    } catch (e) {
+      debugPrint('⚠️ Failed to initialize LessonService: $e');
+    }
+
+    // Validate configuration and show warnings if needed
+    final config = EnvironmentConfig.instance;
+    final issues = config.validateConfiguration();
+
+    if (issues.isNotEmpty && config.isDebugMode) {
+      debugPrint('⚠️ Configuration Issues:');
+      for (final issue in issues) {
+        debugPrint('  - $issue');
+      }
+    }
+
+    debugPrint('=== LAUNCHING APP ===');
+    runApp(const EduBotApp());
+  } catch (e, stackTrace) {
+    debugPrint('❌ FATAL ERROR IN MAIN: $e');
+    debugPrint('Stack trace: $stackTrace');
+    rethrow;
+  }
 }
 
 class EduBotApp extends StatelessWidget {
@@ -75,10 +149,20 @@ class EduBotApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(
           create: (_) {
-            final provider = AppProvider();
-            // Initialize provider with stored data (don't await in build)
-            provider.initialize();
-            return provider;
+            debugPrint('=== Creating AppProvider ===');
+            try {
+              final provider = AppProvider();
+              debugPrint('✓ AppProvider instance created');
+              // Initialize provider with stored data (don't await in build)
+              debugPrint('Calling provider.initialize()...');
+              provider.initialize();
+              debugPrint('✓ Provider initialization started');
+              return provider;
+            } catch (e, stackTrace) {
+              debugPrint('❌ ERROR creating AppProvider: $e');
+              debugPrint('Stack trace: $stackTrace');
+              rethrow;
+            }
           },
         ),
       ],
@@ -101,25 +185,19 @@ class EduBotApp extends StatelessWidget {
             ],
             locale: _getLocaleFromLanguage(provider.selectedLanguage),
 
-            theme: ThemeData(
-              primarySwatch: Colors.blue,
-              scaffoldBackgroundColor: AppColors.gray50,
-              textTheme: GoogleFonts.interTextTheme(),
-              useMaterial3: true,
-              colorScheme: ColorScheme.fromSeed(
-                seedColor: AppColors.primary,
-                brightness: Brightness.light,
+            theme: AppTheme.lightTheme.copyWith(
+              textTheme: GoogleFonts.interTextTheme(
+                AppTheme.lightTheme.textTheme,
               ),
-            ).copyWith(
-              // Override with our modern theme
-              primaryColor: AppColors.primary,
-              cardTheme: AppTheme.lightTheme.cardTheme,
-              elevatedButtonTheme: AppTheme.lightTheme.elevatedButtonTheme,
-              inputDecorationTheme: AppTheme.lightTheme.inputDecorationTheme,
             ),
+            darkTheme: AppTheme.darkTheme.copyWith(
+              textTheme: GoogleFonts.interTextTheme(
+                AppTheme.darkTheme.textTheme,
+              ),
+            ),
+            themeMode: provider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
             initialRoute: '/',
             routes: _buildRoutes(),
-            home: const AppNavigator(),
           );
         },
       ),
@@ -135,6 +213,7 @@ class EduBotApp extends StatelessWidget {
       '/badges': (context) => const BadgesScreen(),
       '/settings': (context) => const SettingsScreen(),
       '/premium': (context) => const PremiumScreen(),
+      '/register': (context) => const RegistrationScreen(),
     };
   }
 }

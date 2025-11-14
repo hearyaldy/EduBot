@@ -3,7 +3,6 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../models/homework_question.dart';
 import '../models/explanation.dart';
 import '../utils/environment_config.dart';
-import 'questions_service.dart';
 
 class StorageService {
   static const String _questionsBoxName = 'homework_questions';
@@ -11,7 +10,6 @@ class StorageService {
   static const String _settingsBoxName = 'app_settings';
 
   static final _config = EnvironmentConfig.instance;
-  final _questionsService = QuestionsService.instance;
 
   // Singleton pattern
   static final StorageService _instance = StorageService._internal();
@@ -77,10 +75,10 @@ class StorageService {
         print('Question saved locally: ${question.id}');
       }
 
-      // Also save to Supabase if user is authenticated
-      final supabaseSuccess = await _questionsService.saveQuestion(question);
+      // TODO: Also save to Firebase if user is authenticated
+      // await FirebaseService.storeQuestion(question.id, question.toJson());
       if (_config.isDebugMode) {
-        print('Question saved to Supabase: $supabaseSuccess');
+        print('Question saved locally');
       }
     } catch (e) {
       if (_config.isDebugMode) {
@@ -104,11 +102,12 @@ class StorageService {
       // Sort by creation date (newest first)
       localQuestions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
-      // Sync with Supabase if user is authenticated
-      final syncedQuestions = await _questionsService.syncQuestions(localQuestions);
-      
+      // For now, just use local questions since Firebase sync will be handled separately
+      final syncedQuestions = localQuestions;
+
       if (_config.isDebugMode) {
-        print('Questions loaded: ${syncedQuestions.length} (local: ${localQuestions.length})');
+        print(
+            'Questions loaded: ${syncedQuestions.length} (local: ${localQuestions.length})');
       }
 
       return syncedQuestions;
@@ -146,13 +145,12 @@ class StorageService {
       // Delete from local storage
       await _questionsBox.delete(id);
       await deleteExplanation(id);
-      
-      // Also delete from Supabase if user is authenticated
-      final supabaseSuccess = await _questionsService.deleteQuestion(id);
-      
+
+      // TODO: Implement Firebase delete when user is authenticated
+      // await FirebaseService.deleteQuestion(id);
+
       if (_config.isDebugMode) {
         print('Question deleted locally: $id');
-        print('Question deleted from Supabase: $supabaseSuccess');
       }
     } catch (e) {
       if (_config.isDebugMode) {
@@ -190,13 +188,13 @@ class StorageService {
       // Save to local storage first (always works)
       await _explanationsBox.put(explanation.questionId, explanation.toJson());
       if (_config.isDebugMode) {
-        print('Explanation saved locally for question: ${explanation.questionId}');
+        print(
+            'Explanation saved locally for question: ${explanation.questionId}');
       }
 
-      // Also save to Supabase if user is authenticated
-      final supabaseSuccess = await _questionsService.saveExplanation(explanation);
+      // TODO: Implement Firebase explanation save when user is authenticated
       if (_config.isDebugMode) {
-        print('Explanation saved to Supabase: $supabaseSuccess');
+        print('Explanation saved locally');
       }
     } catch (e) {
       if (_config.isDebugMode) {
@@ -211,16 +209,9 @@ class StorageService {
     if (!_isInitialized) await initialize();
 
     try {
-      // Try Supabase first if user is authenticated
-      final supabaseExplanation = await _questionsService.getExplanation(questionId);
-      if (supabaseExplanation != null) {
-        if (_config.isDebugMode) {
-          print('Explanation loaded from Supabase for $questionId');
-        }
-        return supabaseExplanation;
-      }
+      // TODO: Implement Firebase explanation retrieval when user is authenticated
 
-      // Fall back to local storage
+      // Use local storage for now
       final json = _explanationsBox.get(questionId);
       if (json != null) {
         final explanation = Explanation.fromJson(json);

@@ -18,10 +18,12 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
+  String? _selectedChildProfileId; // null means "All Children"
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.gray50,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(
         children: [
           const GradientHeader(
@@ -32,11 +34,95 @@ class _HistoryScreenState extends State<HistoryScreen> {
               AppColors.historyGradient2,
               AppColors.historyGradient3,
             ],
+            action: BackButton(color: Colors.white),
+          ),
+          // Child profile filter
+          Consumer<AppProvider>(
+            builder: (context, provider, child) {
+              if (provider.childProfiles.isEmpty) {
+                return const SizedBox.shrink();
+              }
+
+              return Container(
+                margin: const EdgeInsets.all(16),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color:
+                          Theme.of(context).shadowColor.withValues(alpha: 0.05),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.filter_list,
+                        color: AppColors.primary, size: 20),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Filter by:',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.gray700,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String?>(
+                          value: _selectedChildProfileId,
+                          isExpanded: true,
+                          icon: const Icon(Icons.arrow_drop_down,
+                              color: AppColors.primary),
+                          items: [
+                            const DropdownMenuItem<String?>(
+                              value: null,
+                              child: Text('All Children'),
+                            ),
+                            ...provider.childProfiles.map((profile) {
+                              return DropdownMenuItem<String?>(
+                                value: profile.id,
+                                child: Row(
+                                  children: [
+                                    Text(
+                                      profile.emoji,
+                                      style: const TextStyle(fontSize: 16),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(profile.name),
+                                  ],
+                                ),
+                              );
+                            }),
+                          ],
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedChildProfileId = value;
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
           Expanded(
             child: Consumer<AppProvider>(
               builder: (context, provider, child) {
-                final questions = provider.savedQuestions;
+                // Filter questions by selected child profile
+                var questions = provider.savedQuestions;
+                if (_selectedChildProfileId != null) {
+                  questions = questions
+                      .where((q) => q.childProfileId == _selectedChildProfileId)
+                      .toList();
+                }
 
                 if (questions.isEmpty) {
                   return _buildEmptyState();
@@ -113,6 +199,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _buildQuestionCard(
       BuildContext context, HomeworkQuestion question, AppProvider provider) {
+    // Get the child profile for this question
+    final childProfile = question.childProfileId != null
+        ? provider.childProfiles
+            .where((p) => p.id == question.childProfileId)
+            .firstOrNull
+        : null;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: ExpansionTile(
@@ -138,12 +231,44 @@ class _HistoryScreenState extends State<HistoryScreen> {
             const SizedBox(height: 4),
             Row(
               children: [
+                // Child profile indicator
+                if (childProfile != null) ...[
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF6a11cb), Color(0xFF2575fc)],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          childProfile.emoji,
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          childProfile.name,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
                 if (question.subject != null) ...[
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.1),
+                      color: AppColors.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -157,11 +282,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   ),
                   const SizedBox(width: 8),
                 ],
-                Text(
-                  DateFormat('MMM d, y • h:mm a').format(question.createdAt),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
+                Expanded(
+                  child: Text(
+                    DateFormat('MMM d, y • h:mm a').format(question.createdAt),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -190,7 +318,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.grey[50],
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Column(
@@ -222,7 +350,47 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
               const SizedBox(height: 16),
 
-              // Explanation content
+              // AI Answer (from question.answer field)
+              if (question.answer != null && question.answer!.isNotEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.green[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.green[200]!),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.lightbulb_outline,
+                              color: Colors.green[700], size: 18),
+                          const SizedBox(width: 8),
+                          Text(
+                            'AI Answer',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green[700],
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        question.answer!,
+                        style: const TextStyle(fontSize: 14, height: 1.4),
+                      ),
+                    ],
+                  ),
+                ),
+
+              if (question.answer != null && question.answer!.isNotEmpty)
+                const SizedBox(height: 16),
+
+              // Explanation content (from Firebase)
               if (snapshot.connectionState == ConnectionState.waiting)
                 const Center(
                   child: Padding(
@@ -246,7 +414,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Failed to load explanation',
+                          'Failed to load detailed explanation',
                           style: TextStyle(color: Colors.red[700]),
                         ),
                       ),
@@ -255,7 +423,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 )
               else if (snapshot.hasData && snapshot.data != null)
                 _buildExplanationContent(snapshot.data!)
-              else
+              else if (question.answer == null || question.answer!.isEmpty)
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
@@ -271,7 +439,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'No explanation available for this question',
+                          'No answer available for this question',
                           style: TextStyle(color: Colors.orange[700]),
                         ),
                       ),
@@ -284,31 +452,36 @@ class _HistoryScreenState extends State<HistoryScreen> {
               // Action buttons
               Column(
                 children: [
-                  // First row - View Details and Play Answer (when explanation exists)
-                  if (snapshot.hasData && snapshot.data != null)
+                  // First row - View Details and Play Answer (when we have an answer)
+                  if (question.answer != null && question.answer!.isNotEmpty)
                     Row(
                       children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: () => Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    ExplanationDetailScreen(question: question),
+                        if (snapshot.hasData && snapshot.data != null)
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) => ExplanationDetailScreen(
+                                      question: question),
+                                ),
+                              ),
+                              icon: const Icon(Icons.visibility, size: 18),
+                              label: const Text('View Details'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: Colors.white,
                               ),
                             ),
-                            icon: const Icon(Icons.visibility, size: 18),
-                            label: const Text('View Details'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                              foregroundColor: Colors.white,
-                            ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
+                        if (snapshot.hasData && snapshot.data != null)
+                          const SizedBox(width: 8),
                         Expanded(
                           child: ElevatedButton.icon(
-                            onPressed: () =>
-                                _playQuestionAudio(snapshot.data!.answer),
+                            onPressed: () => _playQuestionAudio(
+                              snapshot.hasData && snapshot.data != null
+                                  ? snapshot.data!.answer
+                                  : question.answer!,
+                            ),
                             icon: const Icon(Icons.volume_up, size: 18),
                             label: const Text('Play Answer'),
                             style: ElevatedButton.styleFrom(
@@ -319,7 +492,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         ),
                       ],
                     ),
-                  if (snapshot.hasData && snapshot.data != null)
+                  if (question.answer != null && question.answer!.isNotEmpty)
                     const SizedBox(height: 8),
                   // Second row - Play Question and Delete
                   Row(

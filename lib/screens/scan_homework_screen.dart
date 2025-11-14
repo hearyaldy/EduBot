@@ -6,9 +6,10 @@ import 'package:permission_handler/permission_handler.dart';
 import '../models/homework_question.dart';
 import '../models/explanation.dart';
 import '../providers/app_provider.dart';
-import '../services/ai_service.dart';
+import '../services/openrouter_ai_service.dart';
 import '../services/ocr_service.dart';
 import '../services/audio_service.dart';
+import '../services/ad_service.dart';
 import '../utils/app_theme.dart';
 import '../widgets/gradient_header.dart';
 import '../widgets/glass_card.dart';
@@ -26,7 +27,8 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
   CameraController? _cameraController;
   List<CameraDescription>? _cameras;
   final ImagePicker _imagePicker = ImagePicker();
-  final AIService _aiService = AIService();
+  final OpenRouterAIService _aiService = OpenRouterAIService();
+  final AdService _adService = AdService();
 
   bool _isCameraInitialized = false;
   bool _isProcessing = false;
@@ -94,6 +96,16 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
       return;
     }
 
+    final provider = Provider.of<AppProvider>(context, listen: false);
+
+    // Show interstitial ad for non-premium users (every 3rd scan)
+    if (!provider.isPremium && !provider.isSuperadmin) {
+      await _adService.showInterstitialAdConditionally(
+        actionCount: provider.dailyQuestionsUsed + 1,
+        showAfterActions: 3,
+      );
+    }
+
     setState(() {
       _isProcessing = true;
       _extractedText = null;
@@ -132,9 +144,11 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
         imagePath: imageFile.path,
       );
 
-      final explanation = await _aiService.explainProblem(
-        cleanText,
-        question.id,
+      // Get explanation from OpenRouter AI with Gemini 2.0 Flash
+      final explanation = await _aiService.getExplanation(
+        question: cleanText,
+        language: Provider.of<AppProvider>(context, listen: false).selectedLanguage,
+        gradeLevel: 'Elementary',
       );
 
       // Save to provider
@@ -181,6 +195,16 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
 
       if (imageFile == null) return;
 
+      final provider = Provider.of<AppProvider>(context, listen: false);
+
+      // Show interstitial ad for non-premium users (every 3rd scan)
+      if (!provider.isPremium && !provider.isSuperadmin) {
+        await _adService.showInterstitialAdConditionally(
+          actionCount: provider.dailyQuestionsUsed + 1,
+          showAfterActions: 3,
+        );
+      }
+
       setState(() {
         _isProcessing = true;
         _extractedText = null;
@@ -215,9 +239,11 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
         imagePath: imageFile.path,
       );
 
-      final explanation = await _aiService.explainProblem(
-        cleanText,
-        question.id,
+      // Get explanation from OpenRouter AI with Gemini 2.0 Flash
+      final explanation = await _aiService.getExplanation(
+        question: cleanText,
+        language: Provider.of<AppProvider>(context, listen: false).selectedLanguage,
+        gradeLevel: 'Elementary',
       );
 
       // Save to provider
@@ -504,7 +530,7 @@ class _ScanHomeworkScreenState extends State<ScanHomeworkScreen> {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.gray50,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(
         children: [
           GradientHeader(

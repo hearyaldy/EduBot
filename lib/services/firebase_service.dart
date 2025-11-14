@@ -6,6 +6,7 @@ import '../firebase_options.dart';
 
 class FirebaseService {
   static bool _isInitialized = false;
+  static bool _hasShownWarning = false;
   static FirebaseService? _instance;
   static FirebaseService get instance => _instance ??= FirebaseService._();
 
@@ -16,6 +17,9 @@ class FirebaseService {
 
   // Firestore instance
   FirebaseFirestore get _firestore => FirebaseFirestore.instance;
+
+  // Public getter for Firestore access
+  FirebaseFirestore get firestore => FirebaseFirestore.instance;
 
   // Initialize Firebase
   static Future<void> initialize() async {
@@ -71,7 +75,11 @@ class FirebaseService {
   // Authentication methods
   static Future<User?> signUp(String email, String password) async {
     if (!_isInitialized) {
-      debugPrint('Firebase not initialized. Skipping signUp.');
+      if (!_hasShownWarning) {
+        debugPrint(
+            '⚠️ Firebase not initialized. User registration will work with local storage only.');
+        _hasShownWarning = true;
+      }
       return null;
     }
     try {
@@ -86,13 +94,17 @@ class FirebaseService {
       return result.user;
     } catch (e) {
       debugPrint('SignUp error: $e');
-      throw e;
+      rethrow;
     }
   }
 
   static Future<User?> signIn(String email, String password) async {
     if (!_isInitialized) {
-      debugPrint('Firebase not initialized. Skipping signIn.');
+      if (!_hasShownWarning) {
+        debugPrint(
+            '⚠️ Firebase not initialized. User authentication will work with local storage only.');
+        _hasShownWarning = true;
+      }
       return null;
     }
     try {
@@ -101,20 +113,20 @@ class FirebaseService {
       return result.user;
     } catch (e) {
       debugPrint('SignIn error: $e');
-      throw e;
+      rethrow;
     }
   }
 
   static Future<void> signOut() async {
     if (!_isInitialized) {
-      debugPrint('Firebase not initialized. Skipping signOut.');
+      // No warning needed for signOut - just skip silently
       return;
     }
     try {
       await FirebaseAuth.instance.signOut();
     } catch (e) {
       debugPrint('SignOut error: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -304,6 +316,8 @@ class FirebaseService {
     required String questionType,
     String? subject,
     String? imageUrl,
+    String? childProfileId,
+    String? answer,
     Map<String, dynamic>? metadata,
   }) async {
     final userId = currentUserId;
@@ -321,6 +335,8 @@ class FirebaseService {
         'questionType': questionType,
         'subject': subject,
         'imageUrl': imageUrl,
+        'childProfileId': childProfileId,
+        'answer': answer,
         'metadata': metadata ?? {},
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
@@ -378,6 +394,47 @@ class FirebaseService {
         .snapshots();
   }
 
+  // Get questions stream for a specific child profile
+  Stream<QuerySnapshot<Map<String, dynamic>>> getChildQuestionsStream(
+    String childProfileId,
+  ) {
+    final userId = currentUserId;
+    if (userId == null) {
+      return const Stream.empty();
+    }
+
+    return _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('questions')
+        .where('childProfileId', isEqualTo: childProfileId)
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+  }
+
+  // Get all questions for a child profile (one-time fetch)
+  Future<List<Map<String, dynamic>>> getChildQuestions(
+    String childProfileId,
+  ) async {
+    final userId = currentUserId;
+    if (userId == null) return [];
+
+    try {
+      final snapshot = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('questions')
+          .where('childProfileId', isEqualTo: childProfileId)
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      return snapshot.docs.map((doc) => doc.data()).toList();
+    } catch (e) {
+      debugPrint('Failed to get child questions: $e');
+      return [];
+    }
+  }
+
   // Get explanation for question
   Future<Map<String, dynamic>?> getExplanationForQuestion(
     String questionId,
@@ -425,6 +482,323 @@ class FirebaseService {
       await batch.commit();
     } catch (e) {
       debugPrint('Failed to delete question: $e');
+    }
+  }
+
+  // ===== CHILD PROFILE MANAGEMENT =====
+
+  // Save child profile to Firestore
+  Future<void> saveChildProfile(Map<String, dynamic> profileData) async {
+    final userId = currentUserId;
+    if (userId == null) return;
+
+    try {
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('childProfiles')
+          .doc(profileData['id'])
+          .set({
+        ...profileData,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('Failed to save child profile: $e');
+    }
+  }
+
+  // Get child profiles from Firestore
+  Future<List<Map<String, dynamic>>> getChildProfiles() async {
+    final userId = currentUserId;
+    if (userId == null) return [];
+
+    try {
+      final snapshot = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('childProfiles')
+          .get();
+
+      return snapshot.docs.map((doc) => doc.data()).toList();
+    } catch (e) {
+      debugPrint('Failed to get child profiles: $e');
+      return [];
+    }
+  }
+
+  // Delete child profile from Firestore
+  Future<void> deleteChildProfile(String profileId) async {
+    final userId = currentUserId;
+    if (userId == null) return;
+
+    try {
+      // Delete the profile
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('childProfiles')
+          .doc(profileId)
+          .delete();
+
+      // Optionally, you might want to keep the questions but mark them as orphaned
+      // Or delete all questions associated with this profile
+      // For now, we'll keep the questions in history
+    } catch (e) {
+      debugPrint('Failed to delete child profile: $e');
+    }
+  }
+
+  // Update child profile metrics
+  Future<void> updateChildProfileMetrics({
+    required String profileId,
+    int? questionCount,
+    int? currentStreak,
+    int? longestStreak,
+    Set<String>? subjectsUsed,
+    List<String>? unlockedBadgeIds,
+  }) async {
+    final userId = currentUserId;
+    if (userId == null) return;
+
+    try {
+      final updates = <String, dynamic>{};
+      if (questionCount != null) updates['questionCount'] = questionCount;
+      if (currentStreak != null) updates['currentStreak'] = currentStreak;
+      if (longestStreak != null) updates['longestStreak'] = longestStreak;
+      if (subjectsUsed != null) updates['subjectsUsed'] = subjectsUsed.toList();
+      if (unlockedBadgeIds != null) {
+        updates['unlockedBadgeIds'] = unlockedBadgeIds;
+      }
+      updates['lastUsedAt'] = FieldValue.serverTimestamp();
+      updates['updatedAt'] = FieldValue.serverTimestamp();
+
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('childProfiles')
+          .doc(profileId)
+          .update(updates);
+    } catch (e) {
+      debugPrint('Failed to update child profile metrics: $e');
+    }
+  }
+
+  // Get child profile metrics
+  Future<Map<String, dynamic>?> getChildProfileMetrics(
+    String profileId,
+  ) async {
+    final userId = currentUserId;
+    if (userId == null) return null;
+
+    try {
+      final doc = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('childProfiles')
+          .doc(profileId)
+          .get();
+
+      return doc.exists ? doc.data() : null;
+    } catch (e) {
+      debugPrint('Failed to get child profile metrics: $e');
+      return null;
+    }
+  }
+
+  // ===== SHARED QUESTION BANK (GLOBAL FOR ALL USERS) =====
+
+  /// Save a question to the global question bank in Firestore
+  /// All users can access and contribute to this shared question bank
+  Future<void> saveQuestionToBank(Map<String, dynamic> questionData) async {
+    if (!_isInitialized) {
+      debugPrint('Firebase not initialized. Cannot save question to bank.');
+      return;
+    }
+
+    try {
+      await _firestore
+          .collection('questionBank')
+          .doc(questionData['id'])
+          .set({
+        ...questionData,
+        'createdAt': questionData['createdAt'] ?? FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+        'createdBy': currentUserId ?? 'anonymous',
+      }, SetOptions(merge: true));
+
+      debugPrint('Question saved to Firestore: ${questionData['id']}');
+    } catch (e) {
+      debugPrint('Failed to save question to Firestore: $e');
+      rethrow;
+    }
+  }
+
+  /// Get all questions from the shared question bank
+  Future<List<Map<String, dynamic>>> getQuestionsFromBank({
+    int? limit,
+  }) async {
+    if (!_isInitialized) {
+      debugPrint('Firebase not initialized. Cannot get questions from bank.');
+      return [];
+    }
+
+    try {
+      Query query = _firestore.collection('questionBank');
+
+      if (limit != null) {
+        query = query.limit(limit);
+      }
+
+      final snapshot = await query.get();
+      return snapshot.docs
+          .map((doc) => doc.data() as Map<String, dynamic>)
+          .toList();
+    } catch (e) {
+      debugPrint('Failed to get questions from Firestore: $e');
+      return [];
+    }
+  }
+
+  /// Get filtered questions from the shared question bank
+  Future<List<Map<String, dynamic>>> getQuestionsFromBankFiltered({
+    String? subject,
+    int? gradeLevel,
+    int? difficulty,
+    int? limit,
+  }) async {
+    if (!_isInitialized) {
+      debugPrint(
+          'Firebase not initialized. Cannot get filtered questions from bank.');
+      return [];
+    }
+
+    try {
+      Query query = _firestore.collection('questionBank');
+
+      if (subject != null && subject.isNotEmpty) {
+        query = query.where('subject', isEqualTo: subject);
+      }
+
+      if (gradeLevel != null) {
+        query = query.where('grade_level', isEqualTo: gradeLevel);
+      }
+
+      if (difficulty != null) {
+        query = query.where('difficulty', isEqualTo: difficulty);
+      }
+
+      if (limit != null) {
+        query = query.limit(limit);
+      }
+
+      final snapshot = await query.get();
+      return snapshot.docs
+          .map((doc) => doc.data() as Map<String, dynamic>)
+          .toList();
+    } catch (e) {
+      debugPrint('Failed to get filtered questions from Firestore: $e');
+      return [];
+    }
+  }
+
+  /// Delete a question from the shared question bank
+  Future<void> deleteQuestionFromBank(String questionId) async {
+    if (!_isInitialized) {
+      debugPrint('Firebase not initialized. Cannot delete question from bank.');
+      return;
+    }
+
+    try {
+      await _firestore.collection('questionBank').doc(questionId).delete();
+      debugPrint('Question deleted from Firestore: $questionId');
+    } catch (e) {
+      debugPrint('Failed to delete question from Firestore: $e');
+      rethrow;
+    }
+  }
+
+  /// Get a real-time stream of questions from the shared question bank
+  Stream<QuerySnapshot<Map<String, dynamic>>> getQuestionBankStream({
+    String? subject,
+    int? gradeLevel,
+  }) {
+    if (!_isInitialized) {
+      return const Stream.empty();
+    }
+
+    Query<Map<String, dynamic>> query =
+        _firestore.collection('questionBank');
+
+    if (subject != null && subject.isNotEmpty) {
+      query = query.where('subject', isEqualTo: subject);
+    }
+
+    if (gradeLevel != null) {
+      query = query.where('grade_level', isEqualTo: gradeLevel);
+    }
+
+    return query.snapshots();
+  }
+
+  /// Get question count from the shared question bank
+  Future<int> getQuestionBankCount() async {
+    if (!_isInitialized) {
+      return 0;
+    }
+
+    try {
+      final snapshot =
+          await _firestore.collection('questionBank').count().get();
+      return snapshot.count ?? 0;
+    } catch (e) {
+      debugPrint('Failed to get question bank count: $e');
+      return 0;
+    }
+  }
+
+  /// Sync questions from local database to Firestore
+  Future<void> syncQuestionsToFirestore(
+      List<Map<String, dynamic>> questions) async {
+    if (!_isInitialized) {
+      debugPrint(
+          'Firebase not initialized. Cannot sync questions to Firestore.');
+      return;
+    }
+
+    try {
+      final batch = _firestore.batch();
+      int count = 0;
+
+      for (final questionData in questions) {
+        final docRef = _firestore
+            .collection('questionBank')
+            .doc(questionData['id']);
+
+        batch.set(docRef, {
+          ...questionData,
+          'createdAt': questionData['createdAt'] ?? FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+          'createdBy': currentUserId ?? 'anonymous',
+        }, SetOptions(merge: true));
+
+        count++;
+
+        // Firestore batch has a limit of 500 operations
+        if (count >= 500) {
+          await batch.commit();
+          count = 0;
+        }
+      }
+
+      // Commit remaining operations
+      if (count > 0) {
+        await batch.commit();
+      }
+
+      debugPrint('Synced ${questions.length} questions to Firestore');
+    } catch (e) {
+      debugPrint('Failed to sync questions to Firestore: $e');
+      rethrow;
     }
   }
 

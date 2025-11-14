@@ -1,0 +1,267 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "created_by": "Content Creator",
+    "created_at": "2024-01-15T10:00:00Z",
+    "description": "Year 2 Mathematics - Basic Operations",
+    "total_questions": 20,
+    "grade_level": 2,
+    "subject": "Mathematics",
+    "topic": "Basic Operations",
+    "curriculum_standard": "KSSR Year 2 Mathematics"
+  },
+  "questions": [
+    {
+      "id": "y2_math_add_001",
+      "question_text": "Sarah has 15 marbles. Her friend gives her 8 more marbles. How many marbles does Sarah have now?",
+      "question_type": 3,
+      "subject": "Mathematics",
+      "topic": "Addition",
+      "subtopic": "Addition with regrouping",
+      "grade_level": 2,
+      "difficulty": 0,
+      "answer_key": "23",
+      "explanation": "To find the total number of marbles, we add: 15 + 8 = 23. Sarah now has 23 marbles.",
+      "choices": [],
+      "target_language": "English",
+      "metadata": {
+        "curriculum_standards": ["KSSR Year 2 Mathematics", "2.1.1 Addition within 100"],
+        "tags": ["word_problem", "addition", "regrouping"],
+        "estimated_time_minutes": 3,
+        "cognitive_level": 2,
+        "additional_data": {
+          "image_required": false,
+          "calculator_allowed": false,
+          "real_world_context": true
+        }
+      }
+    },
+    {
+      "id": "y2_math_sub_001",
+      "question_text": "There are 45 students in the school hall. 18 students leave for recess. How many students remain in the hall?",
+      "question_type": 3,
+      "subject": "Mathematics",
+      "topic": "Subtraction",
+      "subtopic": "Subtraction with regrouping",
+      "grade_level": 2,
+      "difficulty": 1,
+      "answer_key": "27",
+      "explanation": "To find how many students remain, we subtract: 45 - 18 = 27. There are 27 students still in the hall.",
+      "choices": [],
+      "target_language": "English",
+      "metadata": {
+        "curriculum_standards": ["KSSR Year 2 Mathematics", "2.1.2 Subtraction within 100"],
+        "tags": ["word_problem", "subtraction", "regrouping"],
+        "estimated_time_minutes": 3,
+        "cognitive_level": 2,
+        "additional_data": {
+          "image_required": false,
+          "calculator_allowed": false,
+          "real_world_context": true
+        }
+      }
+    },
+    {
+      "id": "y2_math_mult_001",
+      "question_text": "Which number sentence shows 3 groups of 4?",
+      "question_type": 0,
+      "subject": "Mathematics",
+      "topic": "Multiplication",
+      "subtopic": "Understanding multiplication",
+      "grade_level": 2,
+      "difficulty": 0,
+      "answer_key": "3 × 4 = 12",
+      "explanation": "3 groups of 4 means we have 4 items in each of 3 groups: 4 + 4 + 4 = 12, which is the same as 3 × 4 = 12.",
+      "choices": ["2 × 6 = 12", "3 × 4 = 12", "4 × 3 = 12", "1 × 12 = 12"],
+      "target_language": "English",
+      "metadata": {
+        "curriculum_standards": ["KSSR Year 2 Mathematics", "2.2.1 Introduction to multiplication"],
+        "tags": ["multiplication", "groups", "conceptual"],
+        "estimated_time_minutes": 2,
+        "cognitive_level": 1,
+        "additional_data": {
+          "image_required": true,
+          "calculator_allowed": false,
+          "visual_representation": "groups_of_objects"
+        }
+      }
+    },
+    {
+      "id": "y2_math_div_001",
+      "question_text": "12 cookies are shared equally among 4 children. How many cookies does each child get?",
+      "question_type": 3,
+      "subject": "Mathematics",
+      "topic": "Division",
+      "subtopic": "Equal sharing",
+      "grade_level": 2,
+      "difficulty": 1,
+      "answer_key": "3",
+      "explanation": "To share 12 cookies equally among 4 children: 12 ÷ 4 = 3. Each child gets 3 cookies.",
+      "choices": [],
+      "target_language": "English",
+      "metadata": {
+        "curriculum_standards": ["KSSR Year 2 Mathematics", "2.2.2 Introduction to division"],
+        "tags": ["division", "sharing", "word_problem"],
+        "estimated_time_minutes": 3,
+        "cognitive_level": 2,
+        "additional_data": {
+          "image_required": true,
+          "calculator_allowed": false,
+          "visual_representation": "equal_groups"
+        }
+      }
+    },
+    {
+      "id": "y2_math_place_001",
+      "question_text": "What is the place value of 7 in the number 67?",
+      "question_type": 0,
+      "subject": "Mathematics",
+      "topic": "Place Value",
+      "subtopic": "Tens and ones",
+      "grade_level": 2,
+      "difficulty": 0,
+      "answer_key": "Ones",
+      "explanation": "In the number 67, the digit 7 is in the ones place. The digit 6 is in the tens place.",
+      "choices": ["Tens", "Ones", "Hundreds", "Thousands"],
+      "target_language": "English",
+      "metadata": {
+        "curriculum_standards": ["KSSR Year 2 Mathematics", "2.3.1 Place value to 100"],
+        "tags": ["place_value", "number_sense", "digits"],
+        "estimated_time_minutes": 2,
+        "cognitive_level": 1,
+        "additional_data": {
+          "image_required": false,
+          "calculator_allowed": false,
+          "number_range": "up_to_100"
+        }
+      }
+    },
+    {
+      "id": "y2_math_money_001",
+      "question_text": "Amy buys a pencil for RM 1.50 and an eraser for RM 0.75. How much does she spend in total?",
+      "question_type": 3,
+      "subject": "Mathematics",
+      "topic": "Money",
+      "subtopic": "Addition of money",
+      "grade_level": 2,
+      "difficulty": 1,
+      "answer_key": "RM 2.25",
+      "explanation": "To find the total amount spent: RM 1.50 + RM 0.75 = RM 2.25. Amy spends RM 2.25 in total.",
+      "choices": [],
+      "target_language": "English",
+      "metadata": {
+        "curriculum_standards": ["KSSR Year 2 Mathematics", "2.4.1 Money operations"],
+        "tags": ["money", "addition", "decimals", "real_world"],
+        "estimated_time_minutes": 3,
+        "cognitive_level": 2,
+        "additional_data": {
+          "image_required": true,
+          "calculator_allowed": false,
+          "currency": "MYR",
+          "visual_representation": "coins_and_notes"
+        }
+      }
+    },
+    {
+      "id": "y2_math_time_001",
+      "question_text": "What time is shown on this clock?",
+      "question_type": 0,
+      "subject": "Mathematics",
+      "topic": "Time",
+      "subtopic": "Reading analog clocks",
+      "grade_level": 2,
+      "difficulty": 1,
+      "answer_key": "3:30",
+      "explanation": "The hour hand is halfway between 3 and 4, and the minute hand points to 6. This shows 3:30 (half past three).",
+      "choices": ["3:00", "3:30", "4:00", "6:15"],
+      "target_language": "English",
+      "metadata": {
+        "curriculum_standards": ["KSSR Year 2 Mathematics", "2.5.1 Time reading"],
+        "tags": ["time", "analog_clock", "half_hour"],
+        "estimated_time_minutes": 2,
+        "cognitive_level": 1,
+        "additional_data": {
+          "image_required": true,
+          "calculator_allowed": false,
+          "clock_type": "analog",
+          "time_precision": "half_hour"
+        }
+      }
+    },
+    {
+      "id": "y2_math_measurement_001",
+      "question_text": "Which is longer: a pencil or a ruler?",
+      "question_type": 0,
+      "subject": "Mathematics",
+      "topic": "Measurement",
+      "subtopic": "Comparing lengths",
+      "grade_level": 2,
+      "difficulty": 0,
+      "answer_key": "Ruler",
+      "explanation": "A ruler is usually about 30 cm long, while a pencil is usually about 18 cm long. Therefore, a ruler is longer than a pencil.",
+      "choices": ["Pencil", "Ruler", "They are the same", "Cannot tell"],
+      "target_language": "English",
+      "metadata": {
+        "curriculum_standards": ["KSSR Year 2 Mathematics", "2.6.1 Length comparison"],
+        "tags": ["measurement", "length", "comparison"],
+        "estimated_time_minutes": 2,
+        "cognitive_level": 1,
+        "additional_data": {
+          "image_required": true,
+          "calculator_allowed": false,
+          "measurement_unit": "cm"
+        }
+      }
+    },
+    {
+      "id": "y2_math_shapes_001",
+      "question_text": "How many sides does a triangle have?",
+      "question_type": 3,
+      "subject": "Mathematics",
+      "topic": "Shapes",
+      "subtopic": "Properties of 2D shapes",
+      "grade_level": 2,
+      "difficulty": 0,
+      "answer_key": "3",
+      "explanation": "A triangle is a shape with 3 sides and 3 corners (vertices). The name 'triangle' comes from 'tri' meaning three.",
+      "choices": [],
+      "target_language": "English",
+      "metadata": {
+        "curriculum_standards": ["KSSR Year 2 Mathematics", "2.7.1 2D shapes"],
+        "tags": ["geometry", "triangle", "sides"],
+        "estimated_time_minutes": 1,
+        "cognitive_level": 0,
+        "additional_data": {
+          "image_required": true,
+          "calculator_allowed": false,
+          "shape_type": "2D"
+        }
+      }
+    },
+    {
+      "id": "y2_math_patterns_001",
+      "question_text": "What comes next in this pattern: 2, 4, 6, 8, ___?",
+      "question_type": 3,
+      "subject": "Mathematics",
+      "topic": "Patterns",
+      "subtopic": "Number patterns",
+      "grade_level": 2,
+      "difficulty": 1,
+      "answer_key": "10",
+      "explanation": "This is a pattern of even numbers, increasing by 2 each time: 2, 4, 6, 8, 10. The next number is 10.",
+      "choices": [],
+      "target_language": "English",
+      "metadata": {
+        "curriculum_standards": ["KSSR Year 2 Mathematics", "2.8.1 Number patterns"],
+        "tags": ["patterns", "even_numbers", "sequence"],
+        "estimated_time_minutes": 2,
+        "cognitive_level": 2,
+        "additional_data": {
+          "image_required": false,
+          "calculator_allowed": false,
+          "pattern_type": "arithmetic"
+        }
+      }
+    }
+  ]
+}

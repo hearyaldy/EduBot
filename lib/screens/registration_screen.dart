@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
-import '../services/supabase_service.dart';
+import '../services/firebase_service.dart';
+import '../services/admin_service.dart';
 import '../utils/app_theme.dart';
 import '../core/theme/app_colors.dart';
 
@@ -25,7 +26,21 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   bool _acceptTerms = false;
   bool _isSignIn = false; // Toggle between sign up and sign in
 
-  final _supabaseService = SupabaseService.instance;
+  // Simple validation functions
+  bool _isValidEmail(String email) {
+    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
+  }
+
+  bool _isValidPassword(String password) {
+    return password.length >= 6;
+  }
+
+  List<String> _getPasswordRequirements() {
+    return [
+      'At least 6 characters long',
+      'Contains letters and numbers (recommended)',
+    ];
+  }
 
   @override
   void dispose() {
@@ -266,7 +281,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         if (value == null || value.trim().isEmpty) {
           return 'Please enter your email';
         }
-        if (!SupabaseService.isValidEmail(value.trim())) {
+        if (!_isValidEmail(value.trim())) {
           return 'Please enter a valid email address';
         }
         return null;
@@ -297,7 +312,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         if (value == null || value.isEmpty) {
           return 'Please enter your password';
         }
-        if (!_isSignIn && !SupabaseService.isValidPassword(value)) {
+        if (!_isSignIn && !_isValidPassword(value)) {
           return 'Password does not meet requirements';
         }
         return null;
@@ -358,7 +373,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            SupabaseService.getPasswordRequirements(),
+            _getPasswordRequirements().join('\n'),
             style: const TextStyle(
               fontSize: 13,
               color: AppTheme.textSecondary,
@@ -510,13 +525,13 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     try {
       if (_isSignIn) {
         // Sign in
-        final response = await _supabaseService.signInWithEmail(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
+        final user = await FirebaseService.signIn(
+          _emailController.text.trim(),
+          _passwordController.text,
         );
 
-        if (response.user != null) {
-          await _updateAppProvider(response.user!);
+        if (user != null) {
+          await _updateAppProvider(user);
           if (mounted) {
             _showSuccessSnackBar('Welcome back!');
             Navigator.of(context).pop();
@@ -524,14 +539,13 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         }
       } else {
         // Sign up
-        final response = await _supabaseService.signUpWithEmail(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-          name: _nameController.text.trim(),
+        final user = await FirebaseService.signUp(
+          _emailController.text.trim(),
+          _passwordController.text,
         );
 
-        if (response.user != null) {
-          await _updateAppProvider(response.user!);
+        if (user != null) {
+          await _updateAppProvider(user);
           if (mounted) {
             _showSuccessSnackBar(
                 'Account created successfully! Please check your email for verification.');
@@ -553,6 +567,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   Future<void> _updateAppProvider(dynamic user) async {
     final appProvider = Provider.of<AppProvider>(context, listen: false);
     await appProvider.setRegisteredStatus(true);
+
+    // Refresh admin status after login
+    await AdminService.instance.refreshAdminStatus();
+    debugPrint('Admin status refreshed after login: ${AdminService.instance.isAdmin}');
   }
 
   void _showForgotPasswordDialog() {
@@ -586,12 +604,13 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           ElevatedButton(
             onPressed: () async {
               final email = emailController.text.trim();
-              if (SupabaseService.isValidEmail(email)) {
+              if (_isValidEmail(email)) {
                 try {
-                  await _supabaseService.resetPassword(email: email);
+                  // TODO: Implement Firebase password reset
+                  // await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
                   if (context.mounted) {
                     Navigator.of(context).pop();
-                    _showSuccessSnackBar('Password reset email sent!');
+                    _showSuccessSnackBar('Password reset feature coming soon!');
                   }
                 } catch (e) {
                   if (context.mounted) {

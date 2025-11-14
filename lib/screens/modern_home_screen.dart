@@ -13,6 +13,11 @@ import '../providers/app_provider.dart';
 import '../models/homework_question.dart';
 import '../services/firebase_service.dart';
 import '../screens/badges_screen.dart';
+import '../screens/registration_screen.dart';
+import '../screens/explanation_detail_screen.dart';
+import '../screens/history_screen.dart';
+import '../screens/manage_profiles_screen.dart';
+import '../screens/exercises_screen.dart';
 
 class ModernHomeScreen extends StatefulWidget {
   final Function(int)? onNavigate;
@@ -53,7 +58,7 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.gray50,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -61,9 +66,41 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
             GradientHeader(
               title: 'EduBot',
               subtitle: 'AI Homework Helper',
-              action: ProfileAvatarButton(
-                onProfileTap: () =>
-                    widget.onNavigate?.call(4), // Navigate to settings
+              action: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Login/Logout Icon
+                  Builder(
+                    builder: (context) {
+                      final isAuthenticated =
+                          FirebaseService.instance.isAuthenticated;
+                      return IconButton(
+                        onPressed: () {
+                          if (isAuthenticated) {
+                            _showLogoutDialog(context);
+                          } else {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const RegistrationScreen(),
+                              ),
+                            );
+                          }
+                        },
+                        icon: Icon(
+                          isAuthenticated ? Icons.logout : Icons.login,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                        tooltip: isAuthenticated ? 'Logout' : 'Login',
+                        splashRadius: 24,
+                      );
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  // Profile Avatar Button
+                  const ProfileAvatarButton(),
+                ],
               ),
               child: GlassCard(
                 backgroundColor: Colors.white.withValues(alpha: 0.2),
@@ -161,6 +198,26 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
                           const SizedBox(width: 15),
                           Expanded(
                             child: _buildEnhancedActionCard(
+                              title: 'Practice',
+                              subtitle: 'Exercises',
+                              icon: Icons.quiz_outlined,
+                              gradientColors: const [
+                                Color(0xFF11998e),
+                                Color(0xFF38ef7d),
+                              ],
+                              onTap: () => _navigateToExercises(context),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 15),
+
+                      // Third Row Actions
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildEnhancedActionCard(
                               title: 'Saved Problems',
                               subtitle: 'Review anytime',
                               icon: Icons.bookmark_outline,
@@ -178,6 +235,11 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
 
                       // Streak Counter (compact view)
                       const StreakCounterWidget(isCompact: true),
+
+                      const SizedBox(height: 20),
+
+                      // Manage Profiles Card
+                      _buildManageProfilesCard(),
 
                       const SizedBox(height: 25),
 
@@ -199,6 +261,102 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildManageProfilesCard() {
+    return Consumer<AppProvider>(
+      builder: (context, provider, child) {
+        final profileCount = provider.childProfiles.length;
+        final maxProfiles = provider.maxProfiles;
+
+        return Container(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFF6a11cb),
+                Color(0xFF2575fc),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF6a11cb).withValues(alpha: 0.3),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(18),
+              onTap: () {
+                // Navigate to ManageProfilesScreen using direct navigation
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const ManageProfilesScreen(),
+                  ),
+                );
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.people,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Manage Child Profiles',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '$profileCount of $maxProfiles profile${maxProfiles > 1 ? 's' : ''} created',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.8),
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      color: Colors.white.withValues(alpha: 0.8),
+                      size: 18,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -345,6 +503,7 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
                     icon: question.type == QuestionType.image
                         ? Icons.camera_alt
                         : Icons.chat_bubble_outline,
+                    onTap: () => _navigateToQuestionDetail(context, question),
                   ),
                 ),
               ),
@@ -360,55 +519,66 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
     required String status,
     required Color statusColor,
     required IconData icon,
+    VoidCallback? onTap,
   }) {
     return GlassCard(
       padding: const EdgeInsets.all(15),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppColors.success,
-                  AppColors.success.withValues(alpha: 0.8),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.success,
+                    AppColors.success.withValues(alpha: 0.8),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(icon, color: Colors.white, size: 16),
+            ),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: AppTextStyles.bodyLarge.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(subtitle, style: AppTextStyles.bodySmall),
                 ],
               ),
-              borderRadius: BorderRadius.circular(20),
             ),
-            child: Icon(icon, color: Colors.white, size: 16),
-          ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: AppTextStyles.bodyLarge.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: statusColor,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                status,
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
                 ),
-                const SizedBox(height: 2),
-                Text(subtitle, style: AppTextStyles.bodySmall),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: statusColor,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              status,
-              style: AppTextStyles.bodySmall.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w500,
               ),
             ),
-          ),
-        ],
+            if (onTap != null)
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 14,
+                color: AppColors.gray400,
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -445,12 +615,23 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
     }
   }
 
+  void _navigateToExercises(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const ExercisesScreen(),
+      ),
+    );
+  }
+
   void _navigateToSaved(BuildContext context) {
-    if (widget.onNavigate != null) {
-      widget.onNavigate!(3); // Index 3 for History tab
-    } else {
-      Navigator.pushNamed(context, '/history');
-    }
+    // Navigate directly to History screen instead of using tab navigation
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const HistoryScreen(),
+      ),
+    );
   }
 
   void _navigateToBadges(BuildContext context) {
@@ -458,6 +639,16 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
       context,
       MaterialPageRoute(
         builder: (context) => const BadgesScreen(),
+      ),
+    );
+  }
+
+  void _navigateToQuestionDetail(
+      BuildContext context, HomeworkQuestion question) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ExplanationDetailScreen(question: question),
       ),
     );
   }
@@ -517,6 +708,48 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
     } else {
       return 'there';
     }
+  }
+
+  // Show logout confirmation dialog
+  Future<void> _showLogoutDialog(BuildContext context) async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // User must tap button to dismiss
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirm Logout'),
+          content: const Text('Are you sure you want to logout?'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close dialog
+              },
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop(); // Close dialog
+                await FirebaseService.signOut();
+                // Simply refresh the current screen to update UI - just rebuild
+                if (widget.onNavigate != null) {
+                  widget.onNavigate!(0); // Navigate to first tab (home)
+                } else {
+                  // Use a global key or just let the UI update via the provider
+                  // The UI should update automatically through the builder functions
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Successfully logged out'),
+                      duration: Duration(seconds: 1),
+                    ),
+                  );
+                }
+              },
+              child: const Text('Logout'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override

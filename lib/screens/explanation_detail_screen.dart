@@ -60,7 +60,7 @@ class _ExplanationDetailScreenState extends State<ExplanationDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.gray50,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(
         children: [
           GradientHeader(

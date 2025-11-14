@@ -7,6 +7,7 @@ class GradientHeader extends StatelessWidget {
   final String subtitle;
   final Widget? child;
   final Widget? action;
+  final Widget? leading;
   final List<Color> gradientColors;
   final double height;
 
@@ -16,6 +17,7 @@ class GradientHeader extends StatelessWidget {
     required this.subtitle,
     this.child,
     this.action,
+    this.leading,
     this.gradientColors = const [
       AppColors.gradientStart,
       AppColors.gradientMiddle,
@@ -64,6 +66,11 @@ class GradientHeader extends StatelessWidget {
                 children: [
                   Row(
                     children: [
+                      // Leading widget (back button, etc.)
+                      if (leading != null) ...[
+                        leading!,
+                        const SizedBox(width: 8),
+                      ],
                       // EduBot Custom Logo
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8),

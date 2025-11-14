@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/homework_question.dart';
 import '../models/explanation.dart';
 import '../providers/app_provider.dart';
-import '../services/ai_service.dart';
+import '../services/openrouter_ai_service.dart';
 import '../services/ad_service.dart';
 import '../services/audio_service.dart';
 import '../services/voice_input_service.dart';
@@ -23,7 +23,7 @@ class AskQuestionScreen extends StatefulWidget {
 class _AskQuestionScreenState extends State<AskQuestionScreen> {
   final TextEditingController _questionController = TextEditingController();
   final FocusNode _questionFocusNode = FocusNode();
-  final AIService _aiService = AIService();
+  final OpenRouterAIService _aiService = OpenRouterAIService();
   final AdService _adService = AdService();
   final VoiceInputService _voiceService = VoiceInputService();
 
@@ -112,7 +112,15 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
     }
 
     final provider = Provider.of<AppProvider>(context, listen: false);
-    
+
+    // Check if user is approaching or at limit (skip for premium/superadmin)
+    if (!provider.isPremium && !provider.isSuperadmin) {
+      final shouldContinue = await _checkQuestionLimitAndShowWarning(provider);
+      if (!shouldContinue) {
+        return; // User chose not to continue or hit limit
+      }
+    }
+
     // Show interstitial ad for non-premium users (every 3rd question)
     if (!provider.isPremium && !provider.isSuperadmin) {
       await _adService.showInterstitialAdConditionally(
@@ -131,27 +139,43 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
     if (!mounted) return;
 
     try {
+      final provider = Provider.of<AppProvider>(context, listen: false);
       final question = HomeworkQuestion(
         question: _questionController.text.trim(),
         type: QuestionType.text,
         subject: _selectedSubject,
+        childProfileId: provider.activeProfile?.id,
       );
 
-      final explanation = await _aiService.explainProblem(
-        question.question,
-        question.id,
-        language:
-            Provider.of<AppProvider>(context, listen: false).selectedLanguage,
+      // Get explanation from OpenRouter AI with Gemini 2.0 Flash
+      final explanation = await _aiService.getExplanation(
+        question: question.question,
+        language: provider.selectedLanguage,
+        gradeLevel: 'Elementary', // Default grade level
+      );
+
+      // Ensure explanation has correct question ID (fixes rate limit fallback issue)
+      final correctedExplanation = Explanation(
+        id: explanation.id,
+        questionId: question.id, // Use the actual question ID
+        question: explanation.question,
+        answer: explanation.answer,
+        steps: explanation.steps,
+        parentFriendlyTip: explanation.parentFriendlyTip,
+        realWorldExample: explanation.realWorldExample,
+        createdAt: explanation.createdAt,
+        subject: explanation.subject,
+        difficulty: explanation.difficulty,
       );
 
       // Add to provider with persistent storage
       if (mounted) {
-        final provider = Provider.of<AppProvider>(context, listen: false);
-        await provider.saveQuestionWithExplanation(question, explanation);
-        await provider.incrementDailyQuestions();
+        await provider.saveQuestionWithExplanation(
+            question, correctedExplanation);
+        await provider.incrementDailyQuestions(subject: question.subject);
 
         // Set current explanation in provider for viewing
-        provider.setCurrentExplanation(explanation);
+        provider.setCurrentExplanation(correctedExplanation);
 
         // Estimate token usage (rough approximation: 4 characters per token)
         final questionTokens = (question.question.length / 4).ceil();
@@ -177,8 +201,446 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
       setState(() {
         _isLoading = false;
       });
-      _showSnackBar('Failed to get answer: ${e.toString()}', isError: true);
+
+      String errorMessage = e.toString();
+
+      // Check if it's a rate limit error and provide specific guidance
+      if (errorMessage.toLowerCase().contains('rate limit') ||
+          errorMessage.toLowerCase().contains('rate') ||
+          errorMessage.toLowerCase().contains('429')) {
+        _showRateLimitSnackBar();
+      } else {
+        _showSnackBar('Failed to get answer: $errorMessage', isError: true);
+      }
     }
+  }
+
+  void _showRateLimitSnackBar() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text(
+          'AI service is temporarily at capacity. Please try again in a few minutes.',
+        ),
+        backgroundColor: AppTheme.warning,
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: 'Learn More',
+          onPressed: () {
+            _showRateLimitInfoDialog();
+          },
+        ),
+      ),
+    );
+  }
+
+  /// Check if user is approaching or at their daily question limit
+  /// Returns true if user should continue, false if they hit the limit or chose not to continue
+  Future<bool> _checkQuestionLimitAndShowWarning(AppProvider provider) async {
+    final currentQuestions = provider.dailyQuestionsUsed;
+    final maxQuestions = provider.isRegistered ? 10 : 5;
+    final remaining = maxQuestions - currentQuestions;
+
+    // If at limit, show limit reached bottom sheet
+    if (remaining <= 0) {
+      await _showQuestionLimitReachedBottomSheet(provider, maxQuestions);
+      return false;
+    }
+
+    // If approaching limit (1 question left), show warning
+    if (remaining == 1) {
+      return await _showApproachingLimitBottomSheet(provider, maxQuestions);
+    }
+
+    // If getting close (2-3 questions left), show gentle reminder
+    if (remaining <= 3) {
+      return await _showGentleReminderBottomSheet(
+          provider, remaining, maxQuestions);
+    }
+
+    return true; // Continue normally
+  }
+
+  /// Show bottom sheet when user reaches their daily limit
+  Future<void> _showQuestionLimitReachedBottomSheet(
+      AppProvider provider, int maxQuestions) async {
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      isDismissible: false,
+      enableDrag: false,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => PopScope(
+        canPop: false,
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle bar
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.gray300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Icon
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(40),
+                ),
+                child: const Icon(
+                  Icons.help_outline,
+                  color: AppColors.warning,
+                  size: 40,
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Title
+              Text(
+                'Daily Question Limit Reached',
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.gray900,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+
+              // Message
+              Text(
+                provider.isRegistered
+                    ? 'You\'ve used all 10 questions for today as a registered user. Upgrade to Premium for unlimited questions!'
+                    : 'You\'ve used all 5 questions for today. Register for free to get 10 questions daily, or upgrade to Premium for unlimited access!',
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: AppColors.gray600,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+
+              // Benefits
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.success.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.success.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    if (!provider.isRegistered) ...[
+                      _buildBenefitRow(Icons.person_add, 'Register for Free',
+                          'Get 10 questions daily'),
+                      const SizedBox(height: 12),
+                    ],
+                    _buildBenefitRow(
+                        Icons.diamond, 'Premium Access', 'Unlimited questions'),
+                    const SizedBox(height: 12),
+                    _buildBenefitRow(Icons.sync, 'Cloud Sync',
+                        'Access from multiple devices'),
+                    const SizedBox(height: 12),
+                    _buildBenefitRow(Icons.support, 'Priority Support',
+                        'Get help when you need it'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Actions
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text('Maybe Later'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        // Navigate to premium/registration screen based on user status
+                        if (provider.isRegistered) {
+                          // Navigate to premium screen
+                          Navigator.pushNamed(context, '/premium');
+                        } else {
+                          // Navigate to registration screen
+                          Navigator.pushNamed(context, '/register');
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(provider.isRegistered
+                          ? 'Upgrade to Premium'
+                          : 'Register for Free'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Show bottom sheet when user has 1 question left
+  Future<bool> _showApproachingLimitBottomSheet(
+      AppProvider provider, int maxQuestions) async {
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle bar
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.gray300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Icon
+            Container(
+              width: 70,
+              height: 70,
+              decoration: BoxDecoration(
+                color: AppColors.warning.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(35),
+              ),
+              child: const Icon(
+                Icons.warning_amber,
+                color: AppColors.warning,
+                size: 35,
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Title
+            const Text(
+              'Last Question Today!',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: AppColors.gray900,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+
+            // Message
+            Text(
+              provider.isRegistered
+                  ? 'This will be your last question for today (10/$maxQuestions used). Make it count!'
+                  : 'This will be your last question for today (5/$maxQuestions used). Consider registering for more questions!',
+              style: const TextStyle(
+                fontSize: 16,
+                color: AppColors.gray600,
+                height: 1.4,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+
+            // Actions
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: const Text('Cancel'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: const Text('Continue'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+
+    return result ?? false;
+  }
+
+  /// Show gentle reminder when user has 2-3 questions left
+  Future<bool> _showGentleReminderBottomSheet(
+      AppProvider provider, int remaining, int maxQuestions) async {
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle bar
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.gray300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Icon
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: AppColors.info.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(30),
+              ),
+              child: const Icon(
+                Icons.info_outline,
+                color: AppColors.info,
+                size: 30,
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Title
+            const Text(
+              'Question Limit Reminder',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: AppColors.gray900,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+
+            // Message
+            Text(
+              'You have $remaining questions remaining today (${maxQuestions - remaining}/$maxQuestions used).',
+              style: const TextStyle(
+                fontSize: 15,
+                color: AppColors.gray600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+
+            // Actions
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    child: const Text('Continue'),
+                  ),
+                ),
+                if (!provider.isRegistered)
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pop(false);
+                        Navigator.pushNamed(context, '/register');
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('Get More'),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+
+    return result ?? true;
+  }
+
+  Widget _buildBenefitRow(IconData icon, String title, String description) {
+    return Row(
+      children: [
+        Icon(icon, color: AppColors.success, size: 20),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.gray900,
+                ),
+              ),
+              Text(
+                description,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.gray600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   void _showSnackBar(String message, {bool isError = false}) {
@@ -188,6 +650,49 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
         content: Text(message),
         backgroundColor: isError ? AppTheme.error : AppTheme.success,
         behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _showRateLimitInfoDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('AI Service Limit Reached'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'The free AI service has reached its usage limit. This is temporary and usually resolves within a few minutes.',
+              style: TextStyle(fontSize: 14),
+            ),
+            SizedBox(height: 12),
+            Text(
+              'You can:',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 4),
+            Text(
+              '• Try again in a few minutes',
+              style: TextStyle(fontSize: 14),
+            ),
+            Text(
+              '• Add your own API key at openrouter.ai for unlimited access',
+              style: TextStyle(fontSize: 14),
+            ),
+            Text(
+              '• Continue using other features of EduBot',
+              style: TextStyle(fontSize: 14),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
       ),
     );
   }
@@ -226,7 +731,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.gray50,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Consumer<AppProvider>(
         builder: (context, provider, child) {
           return Column(
@@ -501,7 +1006,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Gemini API Usage (Free Tier)',
+                        'OpenRouter AI Usage (Free)',
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
                               fontWeight: FontWeight.w600,
                               color: AppColors.primary,
@@ -509,16 +1014,20 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: _getUsageLevelColor(provider.usageLevel).withValues(alpha: 0.1),
+                        color: _getUsageLevelColor(provider.usageLevel)
+                            .withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: _getUsageLevelColor(provider.usageLevel).withValues(alpha: 0.3),
+                          color: _getUsageLevelColor(provider.usageLevel)
+                              .withValues(alpha: 0.3),
                         ),
                       ),
                       child: Text(
-                        provider.apiUsageStatus.split(' - ')[0], // First part only
+                        provider.apiUsageStatus
+                            .split(' - ')[0], // First part only
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -756,7 +1265,8 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                 ],
 
                 // API Usage Warnings
-                if (provider.isApproachingRequestLimit || provider.isApproachingTokenLimit) ...[
+                if (provider.isApproachingRequestLimit ||
+                    provider.isApproachingTokenLimit) ...[
                   const SizedBox(height: 12),
                   Container(
                     padding: const EdgeInsets.all(8),
@@ -774,7 +1284,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Approaching Gemini API daily limit! ${provider.remainingDailyRequests} requests remaining.',
+                            'Approaching OpenRouter API daily limit! ${provider.remainingDailyRequests} requests remaining.',
                             style:
                                 Theme.of(context).textTheme.bodySmall?.copyWith(
                                       color: AppColors.error,
@@ -784,7 +1294,8 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                       ],
                     ),
                   ),
-                ] else if (provider.isNearDailyRequestLimit || provider.isNearDailyTokenLimit) ...[
+                ] else if (provider.isNearDailyRequestLimit ||
+                    provider.isNearDailyTokenLimit) ...[
                   const SizedBox(height: 12),
                   Container(
                     padding: const EdgeInsets.all(8),

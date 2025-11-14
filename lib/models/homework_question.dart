@@ -7,6 +7,8 @@ class HomeworkQuestion {
   final QuestionType type;
   final DateTime createdAt;
   final String? subject;
+  final String? childProfileId; // ID of the child profile who asked this question
+  final String? answer; // Store the AI answer with the question
 
   HomeworkQuestion({
     String? id,
@@ -15,6 +17,8 @@ class HomeworkQuestion {
     required this.type,
     DateTime? createdAt,
     this.subject,
+    this.childProfileId,
+    this.answer,
   }) : id = id ?? const Uuid().v4(),
        createdAt = createdAt ?? DateTime.now();
 
@@ -27,6 +31,8 @@ class HomeworkQuestion {
       'type': type.name,
       'createdAt': createdAt.toIso8601String(),
       'subject': subject,
+      'childProfileId': childProfileId,
+      'answer': answer,
     };
   }
 
@@ -42,6 +48,8 @@ class HomeworkQuestion {
       ),
       createdAt: DateTime.parse(json['createdAt']),
       subject: json['subject'],
+      childProfileId: json['childProfileId'],
+      answer: json['answer'],
     );
   }
 

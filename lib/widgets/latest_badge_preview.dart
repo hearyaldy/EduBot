@@ -62,7 +62,7 @@ class LatestBadgePreview extends StatelessWidget {
                   width: 64,
                   height: 64,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
+                    gradient: const LinearGradient(
                       colors: [
                         AppTheme.primaryBlue,
                         AppTheme.info,

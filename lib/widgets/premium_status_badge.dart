@@ -125,7 +125,7 @@ class PremiumStatusBadge extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
+                  const Text(
                     'Unlock unlimited questions & more!',
                     style: TextStyle(
                       fontSize: 12,

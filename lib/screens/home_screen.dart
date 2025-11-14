@@ -10,10 +10,13 @@ import '../widgets/premium_status_badge.dart';
 import '../widgets/quick_stats_card.dart';
 import '../widgets/upgrade_banner.dart';
 import '../widgets/latest_badge_preview.dart';
+import '../services/firebase_service.dart';
 import 'scan_homework_screen.dart';
 import 'ask_question_screen.dart';
 import 'history_screen.dart';
 import 'settings_screen.dart';
+import 'manage_profiles_screen.dart';
+import 'registration_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -42,6 +45,10 @@ class HomeScreen extends StatelessWidget {
 
               // Profile Switcher (multi-child profiles)
               const ProfileSwitcherWidget(isCompact: true),
+              const SizedBox(height: 16),
+
+              // Manage Profiles Card
+              _buildManageProfilesCard(context),
               const SizedBox(height: 16),
 
               // Quick Stats Card (Questions, Streak, Badges)
@@ -78,6 +85,8 @@ class HomeScreen extends StatelessWidget {
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
         final activeProfile = provider.activeProfile;
+        final isAuthenticated = FirebaseService.instance.isAuthenticated;
+
         final greeting = activeProfile != null
             ? 'Hello, ${activeProfile.name}! 👋'
             : 'Hello, Parent! 👋';
@@ -87,35 +96,45 @@ class HomeScreen extends StatelessWidget {
 
         return Row(
           children: [
-            // Profile Avatar (if available)
+            // Profile Avatar (clickable to manage profiles)
             if (activeProfile != null) ...[
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Theme.of(context).colorScheme.primary,
-                      Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ManageProfilesScreen(),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Theme.of(context).colorScheme.primary,
+                        Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
+                      ],
+                    ),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white,
+                      width: 3,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
                     ],
                   ),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.white,
-                    width: 3,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
+                  child: Center(
+                    child: Text(
+                      activeProfile.emoji,
+                      style: const TextStyle(fontSize: 28),
                     ),
-                  ],
-                ),
-                child: Center(
-                  child: Text(
-                    activeProfile.emoji,
-                    style: const TextStyle(fontSize: 28),
                   ),
                 ),
               ),
@@ -144,7 +163,30 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
 
-            // Settings Icon
+            // Login/Logout Icon
+            if (isAuthenticated)
+              IconButton(
+                onPressed: () => _showLogoutDialog(context),
+                icon: const Icon(Icons.logout),
+                iconSize: 28,
+                tooltip: 'Logout',
+              )
+            else
+              IconButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const RegistrationScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.login),
+                iconSize: 28,
+                tooltip: 'Login',
+              ),
+
+            // Settings Icon (kept for other settings)
             IconButton(
               onPressed: () {
                 Navigator.push(
@@ -154,8 +196,114 @@ class HomeScreen extends StatelessWidget {
               },
               icon: const Icon(Icons.settings),
               iconSize: 28,
+              tooltip: 'Settings',
             ),
           ],
+        );
+      },
+    );
+  }
+
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Logout'),
+          content: const Text('Are you sure you want to logout?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await FirebaseService.signOut();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Logged out successfully'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              },
+              child: const Text('Logout'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildManageProfilesCard(BuildContext context) {
+    return Consumer<AppProvider>(
+      builder: (context, provider, child) {
+        final profileCount = provider.childProfiles.length;
+        final maxProfiles = provider.maxProfiles;
+
+        return Card(
+          child: InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ManageProfilesScreen(),
+                ),
+              );
+            },
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.people,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Manage Child Profiles',
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '$profileCount of $maxProfiles profile${maxProfiles > 1 ? 's' : ''} created',
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.7),
+                                  ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.arrow_forward_ios, size: 16),
+                ],
+              ),
+            ),
+          ),
         );
       },
     );
@@ -361,6 +509,19 @@ class HomeScreen extends StatelessWidget {
                     context,
                     MaterialPageRoute(
                       builder: (context) => const AskQuestionScreen(),
+                    ),
+                  );
+                },
+              ),
+              _buildNavItem(
+                context,
+                icon: Icons.people,
+                label: 'Profiles',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ManageProfilesScreen(),
                     ),
                   );
                 },

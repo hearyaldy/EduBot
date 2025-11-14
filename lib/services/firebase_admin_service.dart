@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/firebase_service.dart';
 import '../utils/environment_config.dart';
 
@@ -31,7 +32,7 @@ class FirebaseAdminService {
     }
   }
 
-  // Check if current user is admin
+  // Check if current user is admin based on Firestore user document
   Future<void> _checkAdminStatus() async {
     try {
       if (!_firebase.isAuthenticated) {
@@ -39,7 +40,20 @@ class FirebaseAdminService {
         return;
       }
 
-      _isAdmin = await _firebase.isSuperadmin();
+      // Get user profile from Firestore
+      final userProfile = await _firebase.getUserProfile();
+
+      if (userProfile != null) {
+        // Check if accountType is 'superadmin' or if there's an isSuperadmin boolean
+        final accountType = userProfile['accountType']?.toString().toLowerCase();
+        final isSuperadminBool = userProfile['isSuperadmin'] as bool?;
+
+        _isAdmin = accountType == 'superadmin' || isSuperadminBool == true;
+        debugPrint('Checked admin status from Firestore: $_isAdmin (accountType: $accountType, isSuperadmin: $isSuperadminBool) for user ${_firebase.currentUserId}');
+      } else {
+        _isAdmin = false;
+        debugPrint('No user profile found in Firestore for user ${_firebase.currentUserId}');
+      }
     } catch (e) {
       debugPrint('Failed to check admin status: $e');
       _isAdmin = false;
@@ -93,8 +107,12 @@ class FirebaseAdminService {
 
       final userId = _firebase.currentUserId;
       if (userId != null) {
-        // Store admin session in user metadata (not recommended for production)
-        // In production, use Firebase Functions to set custom claims
+        // Update account type in user profile
+        await FirebaseFirestore.instance.collection('users').doc(userId).update({
+          'accountType': isAdmin ? 'superadmin' : 'registered',
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+        
         debugPrint('Admin status updated locally: $isAdmin');
       }
     } catch (e) {
@@ -105,6 +123,11 @@ class FirebaseAdminService {
   // Verify admin access for sensitive operations
   bool verifyAdminAccess() {
     return _isAdmin && _firebase.isAuthenticated;
+  }
+
+  // Refresh admin status from Firebase
+  Future<void> refreshAdminStatus() async {
+    await _checkAdminStatus();
   }
 
   // Get all users (admin only) - would need Firebase Admin SDK
@@ -133,11 +156,53 @@ class FirebaseAdminService {
 
     try {
       // This would require Firebase Admin SDK in a cloud function
-      debugPrint(
-          'updateUserStatus called - requires Firebase Admin SDK implementation');
-      return false;
+      // For local testing, we can update Firestore directly
+      // Note: This is insecure for production use - server-side validation required
+      await FirebaseFirestore.instance.collection('users').doc(userId).update({
+        'accountType': status,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      
+      debugPrint('User status updated: $userId -> $status');
+      return true;
     } catch (e) {
       debugPrint('Failed to update user status: $e');
+      return false;
+    }
+  }
+
+  // Add superadmin by email (admin only) - requires Firebase Admin SDK in production
+  Future<bool> addSuperadminByEmail(String email) async {
+    if (!verifyAdminAccess()) {
+      throw Exception('Admin access required');
+    }
+
+    try {
+      // Find user by email
+      final QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isEmpty) {
+        debugPrint('No user found with email: $email');
+        return false;
+      }
+
+      final userDoc = querySnapshot.docs.first;
+      final userId = userDoc.id;
+
+      // Update account type to superadmin
+      await FirebaseFirestore.instance.collection('users').doc(userId).update({
+        'accountType': 'superadmin',
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      debugPrint('Superadmin status added for user: $userId (email: $email)');
+      return true;
+    } catch (e) {
+      debugPrint('Failed to add superadmin by email: $e');
       return false;
     }
   }
