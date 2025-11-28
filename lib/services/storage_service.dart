@@ -30,10 +30,18 @@ class StorageService {
       // Initialize Hive
       await Hive.initFlutter();
 
-      // Open boxes
-      _questionsBox = await Hive.openBox<Map>(_questionsBoxName);
-      _explanationsBox = await Hive.openBox<Map>(_explanationsBoxName);
-      _settingsBox = await Hive.openBox(_settingsBoxName);
+      // Open boxes (or get existing if already open)
+      _questionsBox = Hive.isBoxOpen(_questionsBoxName)
+          ? Hive.box<Map>(_questionsBoxName)
+          : await Hive.openBox<Map>(_questionsBoxName);
+
+      _explanationsBox = Hive.isBoxOpen(_explanationsBoxName)
+          ? Hive.box<Map>(_explanationsBoxName)
+          : await Hive.openBox<Map>(_explanationsBoxName);
+
+      _settingsBox = Hive.isBoxOpen(_settingsBoxName)
+          ? Hive.box(_settingsBoxName)
+          : await Hive.openBox(_settingsBoxName);
 
       _isInitialized = true;
 
@@ -249,7 +257,10 @@ class StorageService {
 
   // Save a setting
   Future<void> saveSetting(String key, dynamic value) async {
-    if (!_isInitialized) await initialize();
+    if (!_areBoxesOpen) {
+      _isInitialized = false;
+      await initialize();
+    }
 
     try {
       await _settingsBox.put(key, value);
@@ -263,12 +274,29 @@ class StorageService {
     }
   }
 
+  // Check if boxes are still open
+  bool get _areBoxesOpen {
+    try {
+      return _isInitialized &&
+          _settingsBox.isOpen &&
+          _questionsBox.isOpen &&
+          _explanationsBox.isOpen;
+    } catch (e) {
+      return false;
+    }
+  }
+
   // Get a setting
   T? getSetting<T>(String key, {T? defaultValue}) {
-    if (!_isInitialized) return defaultValue;
+    if (!_areBoxesOpen) {
+      // Try to reinitialize if boxes are closed
+      _isInitialized = false;
+      return defaultValue;
+    }
 
     try {
-      return _settingsBox.get(key, defaultValue: defaultValue) as T?;
+      final value = _settingsBox.get(key);
+      return (value ?? defaultValue) as T?;
     } catch (e) {
       if (_config.isDebugMode) {
         print('Failed to get setting $key: $e');
@@ -279,7 +307,10 @@ class StorageService {
 
   // Delete a setting
   Future<void> deleteSetting(String key) async {
-    if (!_isInitialized) await initialize();
+    if (!_areBoxesOpen) {
+      _isInitialized = false;
+      await initialize();
+    }
 
     try {
       await _settingsBox.delete(key);

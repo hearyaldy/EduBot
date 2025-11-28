@@ -18,6 +18,7 @@ import 'services/firebase_service.dart';
 import 'services/lesson_service.dart';
 import 'services/question_bank_initializer.dart';
 import 'services/science_question_importer.dart';
+import 'services/ai_service.dart';
 import 'utils/app_theme.dart';
 import 'utils/environment_config.dart';
 import 'l10n/app_localizations.dart';
@@ -38,6 +39,17 @@ void main() async {
     debugPrint('Initializing storage service...');
     await StorageService().initialize();
     debugPrint('✓ Storage service initialized');
+
+    // Migrate AI model settings (ensure valid free model is selected)
+    try {
+      debugPrint('Checking AI model settings...');
+      final aiService = AIService();
+      // This will trigger the model validation and reset to default if needed
+      await aiService.getConfigStatus();
+      debugPrint('✓ AI model settings validated');
+    } catch (e) {
+      debugPrint('⚠️ AI model migration failed: $e');
+    }
 
     // Initialize ad service
     debugPrint('Initializing ad service...');
@@ -65,47 +77,71 @@ void main() async {
       if (!isInitialized) {
         debugPrint('⚠️ Question bank is empty, importing sample questions...');
         final result = await initializer.importAllSampleQuestions();
-        debugPrint('✓ Question bank initialized: ${result['successfully_imported']} questions imported');
+        debugPrint(
+            '✓ Question bank initialized: ${result['successfully_imported']} questions imported');
+
+        // Also import hardcoded lessons on first initialization
+        try {
+          debugPrint('📚 Importing hardcoded lessons to question bank...');
+          final exportResult = await initializer.importHardcodedLessons();
+          debugPrint(
+              '✓ Hardcoded lessons imported: ${exportResult['questions_exported']} questions');
+        } catch (e) {
+          debugPrint('⚠️ Failed to import hardcoded lessons: $e');
+        }
       } else {
         final stats = await initializer.getQuestionBankStats();
-        debugPrint('✓ Question bank already initialized: ${stats['total_questions']} questions available');
-      }
-      
-      // Import hardcoded lessons to the question bank (always do this to ensure they exist)
-      try {
-        debugPrint('📚 Importing hardcoded lessons to question bank...');
-        final exportResult = await initializer.importHardcodedLessons();
-        debugPrint('✓ Hardcoded lessons imported: ${exportResult['questions_exported']} questions');
-      } catch (e) {
-        debugPrint('⚠️ Failed to import hardcoded lessons: $e');
+        debugPrint(
+            '✓ Question bank already initialized: ${stats['total_questions']} questions available');
       }
     } catch (e) {
       debugPrint('⚠️ Question bank initialization failed: $e');
-      debugPrint('   You can manually import questions from Settings > Question Bank');
+      debugPrint(
+          '   You can manually import questions from Settings > Question Bank');
     }
 
-    // Import Year 6 Science questions after question bank is initialized
-    try {
-      debugPrint('📚 Importing Year 6 Science questions...');
-      final scienceImporter = ScienceQuestionImporter();
-      final importResult = await scienceImporter.importYear6ScienceQuestions();
-      if (importResult['successfully_imported'] > 0) {
-        debugPrint('✅ Successfully imported ${importResult['successfully_imported']} Year 6 Science questions');
-      } else {
-        debugPrint('⚠️ Science questions import completed with ${importResult['failed_imports']} failures');
-        if (importResult['errors'].isNotEmpty) {
-          debugPrint('   Errors: ${importResult['errors']}');
+    // Check if Science questions have already been imported (use storage flag)
+    final storage = StorageService();
+    final scienceQuestionsImported =
+        storage.getSetting<bool>('science_questions_imported') ?? false;
+
+    if (!scienceQuestionsImported) {
+      // Import Year 6 Science questions (only once)
+      try {
+        debugPrint('📚 Importing Year 6 Science questions...');
+        final scienceImporter = ScienceQuestionImporter();
+        final importResult =
+            await scienceImporter.importYear6ScienceQuestions();
+        if (importResult['successfully_imported'] > 0) {
+          debugPrint(
+              '✅ Successfully imported ${importResult['successfully_imported']} Year 6 Science questions');
+          // Mark as imported so we don't do this again
+          await storage.saveSetting('science_questions_imported', true);
+        } else if ((importResult['duplicates_skipped'] ?? 0) > 0) {
+          // All were duplicates, mark as imported
+          debugPrint(
+              '✓ Science questions already exist (${importResult['duplicates_skipped']} duplicates skipped)');
+          await storage.saveSetting('science_questions_imported', true);
+        } else {
+          debugPrint(
+              '⚠️ Science questions import completed with ${importResult['failed_imports']} failures');
+          if (importResult['errors'].isNotEmpty) {
+            debugPrint('   Errors: ${importResult['errors']}');
+          }
         }
+      } catch (e) {
+        debugPrint('⚠️ Failed to import Year 6 Science questions: $e');
       }
-    } catch (e) {
-      debugPrint('⚠️ Failed to import Year 6 Science questions: $e');
+    } else {
+      debugPrint('✓ Science questions already imported (skipping)');
     }
 
     // Initialize LessonService
     try {
       debugPrint('Initializing LessonService...');
       final lessonService = LessonService();
-      await lessonService.initialize(); // Initialize to load hardcoded lessons and prepare service
+      await lessonService
+          .initialize(); // Initialize to load hardcoded lessons and prepare service
       debugPrint('✓ LessonService initialized');
     } catch (e) {
       debugPrint('⚠️ Failed to initialize LessonService: $e');

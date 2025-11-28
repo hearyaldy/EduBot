@@ -12,6 +12,7 @@ import '../services/badge_service.dart' show BadgeService, BadgeProgress;
 import '../services/notification_service.dart';
 import '../services/profile_service.dart';
 import '../services/purchase_service.dart';
+import '../services/firebase_service.dart';
 
 class AppProvider with ChangeNotifier {
   final StorageService _storage = StorageService();
@@ -92,8 +93,14 @@ class AppProvider with ChangeNotifier {
   int get dailyTokensUsed => _dailyTokensUsed;
   int get totalTokensUsed => _totalTokensUsed;
   int get lastQuestionTokens => _lastQuestionTokens;
-  int get remainingQuestions =>
-      _isPremium ? -1 : (_getMaxQuestionsPerDay() - _dailyQuestionsUsed);
+  int get remainingQuestions {
+    // Superadmins and premium users have unlimited questions (-1)
+    if (isSuperadmin || _isPremium) {
+      return -1; // -1 indicates unlimited
+    }
+    return _getMaxQuestionsPerDay() - _dailyQuestionsUsed;
+  }
+
   int get maxQuestionsPerDay => _getMaxQuestionsPerDay();
   String get questionUsageDisplay => isSuperadmin || _isPremium
       ? '$_dailyQuestionsUsed / ∞'
@@ -229,6 +236,11 @@ class AppProvider with ChangeNotifier {
       debugPrint('Initializing ProfileService...');
       await _profileService.initialize();
       debugPrint('✓ ProfileService initialized');
+
+      // Sync child profiles from Firestore (for logged-in users)
+      debugPrint('Syncing child profiles from Firestore...');
+      await _syncChildProfilesFromFirestore();
+      debugPrint('✓ Child profiles synced');
 
       debugPrint('Initializing PurchaseService...');
       await _purchaseService.initialize();
@@ -810,23 +822,70 @@ class AppProvider with ChangeNotifier {
     );
     debugPrint(
         'AppProvider.addChildProfile: Successfully added profile "${profile.name}"');
+
+    // Sync to Firestore
+    await FirebaseService.instance.saveChildProfile(profile.toJson());
+
     notifyListeners();
     return profile;
   }
 
   Future<void> updateChildProfile(ChildProfile profile) async {
     await _profileService.updateProfile(profile);
+
+    // Sync to Firestore
+    await FirebaseService.instance.saveChildProfile(profile.toJson());
+
     notifyListeners();
   }
 
   Future<void> deleteChildProfile(String profileId) async {
     await _profileService.deleteProfile(profileId);
+
+    // Delete from Firestore
+    await FirebaseService.instance.deleteChildProfile(profileId);
+
     notifyListeners();
   }
 
   Future<void> setActiveProfile(String profileId) async {
     await _profileService.setActiveProfile(profileId);
     notifyListeners();
+  }
+
+  /// Sync child profiles from Firestore to local storage
+  /// This is called on app initialization to ensure profiles are synced across devices
+  Future<void> _syncChildProfilesFromFirestore() async {
+    try {
+      final firestoreProfiles =
+          await FirebaseService.instance.getChildProfiles();
+      if (firestoreProfiles.isEmpty) {
+        // No Firestore profiles - sync local profiles to Firestore
+        for (final profile in _profileService.profiles) {
+          await FirebaseService.instance.saveChildProfile(profile.toJson());
+        }
+        debugPrint(
+            'Synced ${_profileService.profiles.length} local profiles to Firestore');
+      } else {
+        // Merge Firestore profiles with local ones
+        for (final profileData in firestoreProfiles) {
+          final existingIndex = _profileService.profiles.indexWhere(
+            (p) => p.id == profileData['id'],
+          );
+          if (existingIndex == -1) {
+            // Profile exists in Firestore but not locally - add it
+            final profile = ChildProfile.fromJson(profileData);
+            _profileService.addProfileFromSync(profile);
+          }
+        }
+        // Save merged profiles locally
+        await _profileService.saveProfilesToLocal();
+        debugPrint(
+            'Synced ${firestoreProfiles.length} profiles from Firestore');
+      }
+    } catch (e) {
+      debugPrint('Error syncing child profiles from Firestore: $e');
+    }
   }
 
   // Purchase methods

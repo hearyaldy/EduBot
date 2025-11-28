@@ -93,9 +93,6 @@ flutter:
   generate: true
   
   assets:
-    - assets/images/
-    - assets/patterns/
-    - assets/animations/
     - assets/icons/
     - assets/sample_questions/
     - lib/assets/icons/

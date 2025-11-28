@@ -17,6 +17,26 @@ class LessonService {
   bool _isInitialized = false;
   bool _useOnlyQuestionBank = false; // Flag to use only question bank
 
+  /// Helper to deeply convert Map<dynamic, dynamic> to Map<String, dynamic>
+  static Map<String, dynamic> _deepConvertMap(Map map) {
+    return map.map((key, value) {
+      final stringKey = key.toString();
+      if (value is Map) {
+        return MapEntry(stringKey, _deepConvertMap(value));
+      } else if (value is List) {
+        return MapEntry(
+            stringKey,
+            value.map((item) {
+              if (item is Map) {
+                return _deepConvertMap(item);
+              }
+              return item;
+            }).toList());
+      }
+      return MapEntry(stringKey, value);
+    });
+  }
+
   /// Initialize the service with sample lessons
   Future<void> initialize() async {
     if (_isInitialized) return;
@@ -116,8 +136,8 @@ class LessonService {
           final firestoreQuestions = firestoreData
               .map((data) {
                 try {
-                  // Convert Map<dynamic, dynamic> to Map<String, dynamic>
-                  final Map<String, dynamic> stringData = Map<String, dynamic>.from(data);
+                  // Deep convert Map<dynamic, dynamic> to Map<String, dynamic>
+                  final Map<String, dynamic> stringData = _deepConvertMap(data);
                   return Question.fromJson(stringData);
                 } catch (e) {
                   debugPrint('Error parsing question from Firestore: $e');
@@ -162,15 +182,19 @@ class LessonService {
         final gradeLevel = questions.first.gradeLevel;
 
         // Group by difficulty
-        final easyQuestions = questions.where((q) =>
-          q.difficulty == DifficultyTag.veryEasy || q.difficulty == DifficultyTag.easy
-        ).toList();
-        final mediumQuestions = questions.where((q) =>
-          q.difficulty == DifficultyTag.medium
-        ).toList();
-        final hardQuestions = questions.where((q) =>
-          q.difficulty == DifficultyTag.hard || q.difficulty == DifficultyTag.veryHard
-        ).toList();
+        final easyQuestions = questions
+            .where((q) =>
+                q.difficulty == DifficultyTag.veryEasy ||
+                q.difficulty == DifficultyTag.easy)
+            .toList();
+        final mediumQuestions = questions
+            .where((q) => q.difficulty == DifficultyTag.medium)
+            .toList();
+        final hardQuestions = questions
+            .where((q) =>
+                q.difficulty == DifficultyTag.hard ||
+                q.difficulty == DifficultyTag.veryHard)
+            .toList();
 
         // Create lessons for each difficulty level
         if (easyQuestions.isNotEmpty) {

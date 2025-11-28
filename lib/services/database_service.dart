@@ -17,7 +17,7 @@ class DatabaseService {
   Box<Map>? _questionsBox;
   Box<StudentProgress>? _progressBox;
   Box<Map>? _analyticsBox;
-  Box<Map>? _settingsBox;
+  Box<dynamic>? _settingsBox;
 
   bool _isInitialized = false;
 
@@ -76,14 +76,14 @@ class DatabaseService {
         debugPrint('   Box already open, checking type...');
         // Try to get the box with the correct type, or use dynamic and cast
         try {
-          _settingsBox = Hive.box<Map>(_settingsBoxName);
+          _settingsBox = Hive.box(_settingsBoxName);
           debugPrint('   ✅ Using existing settings box');
         } catch (e) {
           debugPrint('   ⚠️ Box type mismatch, reopening: $e');
           // If it's open with wrong type, close and reopen
           final box = Hive.box(_settingsBoxName);
           await box.close();
-          _settingsBox = await Hive.openBox<Map>(_settingsBoxName);
+          _settingsBox = await Hive.openBox(_settingsBoxName);
           debugPrint('   ✅ Reopened settings box with correct type');
         }
       } else {
@@ -130,7 +130,7 @@ class DatabaseService {
   }
 
   /// Get settings box
-  Box<Map> get settingsBox {
+  Box<dynamic> get settingsBox {
     if (_settingsBox == null) {
       throw StateError('Database not initialized. Call initialize() first.');
     }

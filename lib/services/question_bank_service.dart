@@ -537,4 +537,125 @@ class QuestionBankService {
 
     return json.encode(exportData);
   }
+
+  /// Remove duplicate questions based on content similarity
+  /// Returns the number of duplicates removed
+  Future<Map<String, dynamic>> removeDuplicates() async {
+    await initialize();
+
+    final Map<String, String> contentHashToId = {};
+    final List<String> duplicateIds = [];
+    final List<String> keptIds = [];
+
+    for (final question in _questionBank.values) {
+      // Create a content hash based on question text, subject, topic, and answer
+      final contentHash = _generateContentHash(question);
+
+      if (contentHashToId.containsKey(contentHash)) {
+        // This is a duplicate
+        duplicateIds.add(question.id);
+      } else {
+        // First occurrence, keep it
+        contentHashToId[contentHash] = question.id;
+        keptIds.add(question.id);
+      }
+    }
+
+    // Remove duplicates
+    for (final id in duplicateIds) {
+      _removeQuestionFromIndexes(id);
+      _questionBank.remove(id);
+    }
+
+    return {
+      'duplicates_removed': duplicateIds.length,
+      'questions_remaining': _questionBank.length,
+      'duplicate_ids': duplicateIds,
+    };
+  }
+
+  /// Generate a content hash for duplicate detection
+  String _generateContentHash(Question question) {
+    // Normalize the question text and answer for comparison
+    final normalizedText = question.questionText.toLowerCase().trim();
+    final normalizedAnswer = question.answerKey.toLowerCase().trim();
+    final subject = question.subject.toLowerCase().trim();
+    final topic = question.topic.toLowerCase().trim();
+
+    return '$normalizedText|$subject|$topic|$normalizedAnswer';
+  }
+
+  /// Remove a question from all indexes
+  void _removeQuestionFromIndexes(String questionId) {
+    // Remove from grade index
+    for (final list in _gradeQuestionIndex.values) {
+      list.remove(questionId);
+    }
+
+    // Remove from topic index
+    for (final list in _topicQuestionIndex.values) {
+      list.remove(questionId);
+    }
+
+    // Remove from difficulty index
+    for (final list in _difficultyQuestionIndex.values) {
+      list.remove(questionId);
+    }
+  }
+
+  /// Find potential duplicates without removing them
+  Future<List<Map<String, dynamic>>> findDuplicates() async {
+    await initialize();
+
+    final Map<String, List<Question>> contentHashToQuestions = {};
+
+    for (final question in _questionBank.values) {
+      final contentHash = _generateContentHash(question);
+      contentHashToQuestions.putIfAbsent(contentHash, () => []);
+      contentHashToQuestions[contentHash]!.add(question);
+    }
+
+    final duplicateGroups = <Map<String, dynamic>>[];
+
+    for (final entry in contentHashToQuestions.entries) {
+      if (entry.value.length > 1) {
+        duplicateGroups.add({
+          'content_hash': entry.key,
+          'count': entry.value.length,
+          'questions': entry.value
+              .map((q) => {
+                    'id': q.id,
+                    'question_text': q.questionText.length > 50
+                        ? '${q.questionText.substring(0, 50)}...'
+                        : q.questionText,
+                    'subject': q.subject,
+                    'topic': q.topic,
+                  })
+              .toList(),
+        });
+      }
+    }
+
+    return duplicateGroups;
+  }
+
+  /// Remove a specific question by ID
+  void removeQuestion(String questionId) {
+    _removeQuestionFromIndexes(questionId);
+    _questionBank.remove(questionId);
+  }
+
+  /// Clear all questions from the bank
+  void clearAllQuestions() {
+    _questionBank.clear();
+    _gradeQuestionIndex.clear();
+    _topicQuestionIndex.clear();
+    _difficultyQuestionIndex.clear();
+  }
+
+  /// Reset and reinitialize (useful after clearing duplicates)
+  Future<void> reset() async {
+    _isInitialized = false;
+    clearAllQuestions();
+  }
 }

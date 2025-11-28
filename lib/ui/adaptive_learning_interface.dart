@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/question.dart';
+import '../models/lesson.dart';
 import '../providers/app_provider.dart';
 import '../services/adaptive_learning_engine.dart';
 import '../services/student_progress_service.dart';
+import '../screens/exercise_practice_screen.dart';
 
 class AdaptiveLearningInterface extends StatefulWidget {
   const AdaptiveLearningInterface({super.key});
@@ -59,7 +61,8 @@ class _AdaptiveLearningInterfaceState extends State<AdaptiveLearningInterface> {
       final studentId = childProfile?.id ?? 'main_user';
 
       // Build learning profile for the specific student
-      _learningProfile = await _adaptiveEngine.buildLearningProfileForStudent(studentId);
+      _learningProfile =
+          await _adaptiveEngine.buildLearningProfileForStudent(studentId);
       await _generateRecommendations();
     } catch (e) {
       _showErrorSnackBar('Failed to load learning profile: $e');
@@ -421,11 +424,14 @@ class _AdaptiveLearningInterfaceState extends State<AdaptiveLearningInterface> {
           children: [
             Row(
               children: [
-                const Text(
-                  'Recommended Questions',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Flexible(
+                  child: const Text(
+                    'Recommended Questions',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                const Spacer(),
+                const SizedBox(width: 8),
                 Chip(
                   label: Text('${_recommendedQuestions.length} questions'),
                   backgroundColor: Colors.blue.shade100,
@@ -486,8 +492,8 @@ class _AdaptiveLearningInterfaceState extends State<AdaptiveLearningInterface> {
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: () => _startPracticeSession(),
-                icon: const Icon(Icons.play_arrow),
-                label: const Text('Start Practice Session'),
+                icon: const Icon(Icons.smart_toy),
+                label: const Text('Start AI Practice'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
                   foregroundColor: Colors.white,
@@ -618,11 +624,37 @@ class _AdaptiveLearningInterfaceState extends State<AdaptiveLearningInterface> {
   void _startPracticeSession() {
     if (_recommendedQuestions.isEmpty) return;
 
-    // TODO: Navigate to practice session with recommended questions
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Starting practice session with personalized questions!'),
-        backgroundColor: Colors.green,
+    // Get active child profile for grade level
+    final appProvider = context.read<AppProvider>();
+    final childProfile = appProvider.activeProfile;
+
+    // Convert questions to exercises
+    final exercises = _recommendedQuestions.asMap().entries.map((entry) {
+      return entry.value.toExercise(questionNumber: entry.key + 1);
+    }).toList();
+
+    // Create a practice lesson from recommended questions
+    final practiceLesson = Lesson(
+      id: 'adaptive_practice_${DateTime.now().millisecondsSinceEpoch}',
+      lessonTitle: '$_selectedSubject AI Practice',
+      targetLanguage: 'English',
+      gradeLevel: childProfile?.grade ?? 1,
+      subject: _selectedSubject,
+      topic: _selectedTopic ?? 'Mixed Topics',
+      subtopic: 'Personalized Practice',
+      learningObjective: 'Practice questions tailored to your learning profile',
+      standardPencapaian: 'Adaptive learning based on performance',
+      exercises: exercises,
+      difficulty: DifficultyLevel.intermediate,
+      estimatedDuration:
+          _recommendedQuestions.length * 3, // ~3 min per question
+    );
+
+    // Navigate to practice screen
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ExercisePracticeScreen(lesson: practiceLesson),
       ),
     );
   }

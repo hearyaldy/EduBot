@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter run:*)",
+      "Bash(adb logcat:*)",
+      "Bash(if [ -f .env ])",
+      "Bash(then grep \"OPENROUTER_API_KEY\" .env)",
+      "Bash(else echo \".env file not found\")",
+      "Bash(fi)",
+      "Bash(curl:*)",
+      "Bash(find:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

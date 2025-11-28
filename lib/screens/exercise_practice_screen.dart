@@ -8,6 +8,7 @@ import '../models/exercise.dart';
 import '../models/question.dart';
 import '../services/lesson_service.dart';
 import '../services/student_progress_service.dart';
+import '../services/ai_service.dart';
 import '../providers/app_provider.dart';
 
 class ExercisePracticeScreen extends StatefulWidget {
@@ -25,16 +26,23 @@ class ExercisePracticeScreen extends StatefulWidget {
 class _ExercisePracticeScreenState extends State<ExercisePracticeScreen> {
   final LessonService _lessonService = LessonService();
   final StudentProgressService _progressService = StudentProgressService();
+  final AIService _aiService = AIService();
   final TextEditingController _answerController = TextEditingController();
   final PageController _pageController = PageController();
 
   late List<Exercise> _exercises;
   int _currentExerciseIndex = 0;
   bool _showExplanation = false;
+  bool _showHint = false;
   bool _isAnswerSubmitted = false;
   bool _isCorrect = false;
   int _correctAnswers = 0;
   DateTime? _questionStartTime; // Track when question was shown
+
+  // AI Hints state
+  bool _isLoadingAIHints = false;
+  Map<String, String>? _aiHints;
+  bool _aiHintsError = false;
 
   @override
   void initState() {
@@ -64,6 +72,51 @@ class _ExercisePracticeScreenState extends State<ExercisePracticeScreen> {
     setState(() {
       _correctAnswers = progress['completed'] ?? 0;
     });
+  }
+
+  /// Load AI-generated hints for the current exercise
+  Future<void> _loadAIHints() async {
+    if (_aiHints != null || _isLoadingAIHints)
+      return; // Already loaded or loading
+
+    // Capture the current question index to check later
+    final questionIndex = _currentExerciseIndex;
+
+    setState(() {
+      _isLoadingAIHints = true;
+      _aiHintsError = false;
+    });
+
+    try {
+      final exercise = _currentExercise;
+      final hints = await _aiService.generateQuestionHints(
+        questionText: exercise.questionText,
+        subject: widget.lesson.subject,
+        topic: widget.lesson.topic,
+        answerKey: exercise.answerKey,
+      );
+
+      // Only apply hints if still on the same question
+      if (mounted && _currentExerciseIndex == questionIndex) {
+        setState(() {
+          _aiHints = hints;
+          _isLoadingAIHints = false;
+        });
+      } else if (mounted) {
+        // User moved to different question, just clear loading state
+        setState(() {
+          _isLoadingAIHints = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading AI hints: $e');
+      if (mounted && _currentExerciseIndex == questionIndex) {
+        setState(() {
+          _isLoadingAIHints = false;
+          _aiHintsError = true;
+        });
+      }
+    }
   }
 
   Exercise get _currentExercise => _exercises[_currentExerciseIndex];
@@ -147,6 +200,10 @@ class _ExercisePracticeScreenState extends State<ExercisePracticeScreen> {
                       const SizedBox(height: 16),
                       _buildAnswerInput(),
                       const SizedBox(height: 16),
+                      if (_showHint && !_isAnswerSubmitted) ...[
+                        _buildHintCard(),
+                        const SizedBox(height: 16),
+                      ],
                       if (_showExplanation) ...[
                         _buildExplanationCard(),
                         const SizedBox(height: 16),
@@ -313,6 +370,290 @@ class _ExercisePracticeScreenState extends State<ExercisePracticeScreen> {
     );
   }
 
+  Widget _buildHintCard() {
+    // If AI hints are loading, show a loading indicator
+    if (_isLoadingAIHints) {
+      return GlassCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.auto_awesome,
+                  color: Colors.purple.shade600,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'AI is Analyzing Your Question...',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.purple.shade600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Center(
+              child: Column(
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 12),
+                  Text(
+                    'Generating personalized hints and tips...',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      );
+    }
+
+    // Determine hint sources - prioritize AI hints, fallback to static
+    String solvingSteps = '';
+    String tips = '';
+    String example = '';
+    bool isAIPowered = false;
+
+    if (_aiHints != null &&
+        (_aiHints!['solvingSteps']?.isNotEmpty == true ||
+            _aiHints!['tips']?.isNotEmpty == true ||
+            _aiHints!['example']?.isNotEmpty == true)) {
+      // Use AI-generated hints
+      solvingSteps = _aiHints!['solvingSteps'] ?? '';
+      tips = _aiHints!['tips'] ?? '';
+      example = _aiHints!['example'] ?? '';
+      isAIPowered = true;
+    } else {
+      // Fallback: Extract sections from the explanation
+      final explanation = _currentExercise.explanation;
+
+      // Define markers
+      const solveMarker = '🔧 How to Solve:';
+      const tipsMarker = '💡 Tips:';
+      const exampleMarker = '📝 Example:';
+
+      // Find positions of all markers
+      final solvePos = explanation.indexOf(solveMarker);
+      final tipsPos = explanation.indexOf(tipsMarker);
+      final examplePos = explanation.indexOf(exampleMarker);
+      final topicPos = explanation.indexOf('📚 Topic:');
+
+      // Extract solving steps
+      if (solvePos != -1) {
+        int endPos = explanation.length;
+        if (tipsPos > solvePos) endPos = tipsPos;
+        solvingSteps =
+            explanation.substring(solvePos + solveMarker.length, endPos).trim();
+      }
+
+      // Extract tips
+      if (tipsPos != -1) {
+        int endPos = explanation.length;
+        if (examplePos > tipsPos) {
+          endPos = examplePos;
+        } else if (topicPos > tipsPos) {
+          endPos = topicPos;
+        }
+        tips =
+            explanation.substring(tipsPos + tipsMarker.length, endPos).trim();
+      }
+
+      // Extract example
+      if (examplePos != -1) {
+        int endPos = explanation.length;
+        if (topicPos > examplePos) endPos = topicPos;
+        example = explanation
+            .substring(examplePos + exampleMarker.length, endPos)
+            .trim();
+      }
+    }
+
+    // Default content if nothing found
+    if (tips.isEmpty && solvingSteps.isEmpty && example.isEmpty) {
+      solvingSteps =
+          '1. Read the question carefully.\n2. Identify key information.\n3. Think about what is being asked.\n4. Apply your knowledge to answer.';
+      tips =
+          '• Take your time to understand the question.\n• Eliminate wrong answers if multiple choice.\n• Check your answer before submitting.';
+      example = 'Think step by step and apply what you have learned.';
+    }
+
+    return GlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                isAIPowered ? Icons.auto_awesome : Icons.lightbulb,
+                color: isAIPowered
+                    ? Colors.purple.shade600
+                    : Colors.amber.shade700,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  isAIPowered
+                      ? 'AI-Powered Hints & Tips'
+                      : 'Hints, Tips & Examples',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: isAIPowered
+                        ? Colors.purple.shade600
+                        : Colors.amber.shade700,
+                  ),
+                ),
+              ),
+              if (isAIPowered)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.purple.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.check_circle,
+                          size: 12, color: Colors.purple.shade600),
+                      const SizedBox(width: 4),
+                      Text(
+                        'AI',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.purple.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              if (_aiHintsError && !isAIPowered)
+                Tooltip(
+                  message: 'AI hints unavailable. Showing default hints.',
+                  child: Icon(Icons.info_outline,
+                      size: 16, color: Colors.grey.shade400),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Solving Steps Section
+          if (solvingSteps.isNotEmpty) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.build, size: 16, color: Colors.blue.shade700),
+                      const SizedBox(width: 6),
+                      Text(
+                        'How to Solve',
+                        style: AppTextStyles.bodySmall.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.blue.shade700,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    solvingSteps,
+                    style: AppTextStyles.bodyMedium.copyWith(height: 1.5),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+
+          // Tips Section
+          if (tips.isNotEmpty) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.tips_and_updates,
+                          size: 16, color: Colors.amber.shade700),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Tips',
+                        style: AppTextStyles.bodySmall.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.amber.shade700,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    tips,
+                    style: AppTextStyles.bodyMedium.copyWith(height: 1.5),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+
+          // Example Section
+          if (example.isNotEmpty) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.school,
+                          size: 16, color: Colors.green.shade700),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Example',
+                        style: AppTextStyles.bodySmall.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.green.shade700,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    example,
+                    style: AppTextStyles.bodyMedium.copyWith(height: 1.5),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildExplanationCard() {
     return GlassCard(
       child: Column(
@@ -356,25 +697,49 @@ class _ExercisePracticeScreenState extends State<ExercisePracticeScreen> {
 
   Widget _buildActionButtons() {
     if (!_isAnswerSubmitted) {
-      return Row(
+      return Column(
         children: [
-          if (_currentExerciseIndex > 0)
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: _previousQuestion,
-                icon: const Icon(Icons.arrow_back),
-                label: const Text('Previous'),
+          // Hint button row
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _toggleHint,
+              icon: Icon(
+                _showHint ? Icons.lightbulb : Icons.lightbulb_outline,
+                color: Colors.amber.shade700,
+              ),
+              label: Text(
+                _showHint ? 'Hide Hints' : 'Show Hints & Tips',
+                style: TextStyle(color: Colors.amber.shade700),
+              ),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: Colors.amber.shade300),
               ),
             ),
-          if (_currentExerciseIndex > 0) const SizedBox(width: 12),
-          Expanded(
-            flex: _currentExerciseIndex > 0 ? 1 : 2,
-            child: ElevatedButton(
-              onPressed: _answerController.text.trim().isNotEmpty
-                  ? _submitAnswer
-                  : null,
-              child: const Text('Submit Answer'),
-            ),
+          ),
+          const SizedBox(height: 12),
+          // Navigation and submit row
+          Row(
+            children: [
+              if (_currentExerciseIndex > 0)
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _previousQuestion,
+                    icon: const Icon(Icons.arrow_back),
+                    label: const Text('Previous'),
+                  ),
+                ),
+              if (_currentExerciseIndex > 0) const SizedBox(width: 12),
+              Expanded(
+                flex: _currentExerciseIndex > 0 ? 1 : 2,
+                child: ElevatedButton(
+                  onPressed: _answerController.text.trim().isNotEmpty
+                      ? _submitAnswer
+                      : null,
+                  child: const Text('Submit Answer'),
+                ),
+              ),
+            ],
           ),
         ],
       );
@@ -470,8 +835,13 @@ class _ExercisePracticeScreenState extends State<ExercisePracticeScreen> {
   void _resetExercise() {
     _answerController.clear();
     _showExplanation = false;
+    _showHint = false;
     _isAnswerSubmitted = false;
     _isCorrect = false;
+    // Reset AI hints for new question
+    _aiHints = null;
+    _isLoadingAIHints = false;
+    _aiHintsError = false;
   }
 
   void _submitAnswer() async {
@@ -543,7 +913,8 @@ class _ExercisePracticeScreenState extends State<ExercisePracticeScreen> {
         },
       );
 
-      debugPrint('✅ Progress recorded for $studentId: ${isCorrect ? "Correct" : "Incorrect"}');
+      debugPrint(
+          '✅ Progress recorded for $studentId: ${isCorrect ? "Correct" : "Incorrect"}');
     } catch (e) {
       debugPrint('Failed to record progress: $e');
       // Don't block the user flow if progress recording fails
@@ -589,6 +960,17 @@ class _ExercisePracticeScreenState extends State<ExercisePracticeScreen> {
     setState(() {
       _showExplanation = !_showExplanation;
     });
+  }
+
+  void _toggleHint() {
+    setState(() {
+      _showHint = !_showHint;
+    });
+
+    // Load AI hints when showing hints for the first time
+    if (_showHint && _aiHints == null && !_isLoadingAIHints) {
+      _loadAIHints();
+    }
   }
 
   void _nextQuestion() {

@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:convert';
+import 'dart:io';
 import '../models/homework_question.dart';
 import '../models/explanation.dart';
 import '../providers/app_provider.dart';
 import '../services/openrouter_ai_service.dart';
+import '../services/firebase_service.dart';
 import '../services/ad_service.dart';
 import '../services/audio_service.dart';
 import '../services/voice_input_service.dart';
@@ -26,11 +30,17 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
   final OpenRouterAIService _aiService = OpenRouterAIService();
   final AdService _adService = AdService();
   final VoiceInputService _voiceService = VoiceInputService();
+  final ImagePicker _imagePicker = ImagePicker();
 
   bool _isLoading = false;
   bool _isListening = false;
   String _partialSpeech = '';
   String? _selectedSubject;
+  String _selectedGradeLevel = 'Elementary'; // Default grade level
+  XFile? _selectedImage;
+  String? _imageBase64;
+  String? _lastError;
+  bool _showRetryButton = false;
 
   final List<String> _subjects = [
     'Math',
@@ -41,6 +51,30 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
     'Art',
     'Other',
   ];
+
+  final List<String> _gradeLevels = [
+    'Elementary',
+    'Middle School',
+    'High School',
+    'College',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeServices();
+  }
+
+  /// Initialize required services (voice, etc.)
+  Future<void> _initializeServices() async {
+    try {
+      await _voiceService.initialize();
+      debugPrint('✅ Voice service initialized successfully');
+    } catch (e) {
+      debugPrint('⚠️ Failed to initialize voice service: $e');
+      // Continue without voice - don't crash the app
+    }
+  }
 
   @override
   void dispose() {
@@ -105,9 +139,79 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
     });
   }
 
+  /// Pick an image from gallery or camera
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        // Convert image to base64
+        final bytes = await image.readAsBytes();
+        final base64String = base64Encode(bytes);
+
+        setState(() {
+          _selectedImage = image;
+          _imageBase64 = base64String;
+        });
+
+        _showSnackBar('Image selected successfully!');
+      }
+    } catch (e) {
+      _showSnackBar('Failed to pick image: ${e.toString()}', isError: true);
+    }
+  }
+
+  /// Remove selected image
+  void _removeImage() {
+    setState(() {
+      _selectedImage = null;
+      _imageBase64 = null;
+    });
+    _showSnackBar('Image removed');
+  }
+
   Future<void> _submitQuestion() async {
-    if (_questionController.text.trim().isEmpty) {
+    // Prevent multiple simultaneous requests
+    if (_isLoading) {
+      debugPrint('⚠️ Request already in progress, ignoring duplicate submit');
+      return;
+    }
+
+    // Comprehensive input validation
+    final questionText = _questionController.text.trim();
+
+    if (questionText.isEmpty) {
       _showSnackBar('Please enter a question', isError: true);
+      _questionFocusNode.requestFocus();
+      return;
+    }
+
+    if (questionText.length < 3) {
+      _showSnackBar('Question is too short. Please provide more details.',
+          isError: true);
+      _questionFocusNode.requestFocus();
+      return;
+    }
+
+    if (questionText.length > 2000) {
+      _showSnackBar(
+          'Question is too long. Please keep it under 2000 characters.',
+          isError: true);
+      _questionFocusNode.requestFocus();
+      return;
+    }
+
+    // Check if question contains only special characters or numbers
+    final alphaNumericRegex = RegExp(r'[a-zA-Z0-9]');
+    if (!alphaNumericRegex.hasMatch(questionText)) {
+      _showSnackBar('Please enter a valid question with text or numbers.',
+          isError: true);
+      _questionFocusNode.requestFocus();
       return;
     }
 
@@ -147,12 +251,25 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
         childProfileId: provider.activeProfile?.id,
       );
 
-      // Get explanation from OpenRouter AI with Gemini 2.0 Flash
-      final explanation = await _aiService.getExplanation(
+      // Get explanation from OpenRouter AI with timeout (60 seconds)
+      final explanation = await _aiService
+          .getExplanation(
         question: question.question,
         language: provider.selectedLanguage,
-        gradeLevel: 'Elementary', // Default grade level
+        gradeLevel: _selectedGradeLevel, // Use selected grade level
+        imageBase64: _imageBase64, // Pass image if available
+      )
+          .timeout(
+        const Duration(seconds: 60),
+        onTimeout: () {
+          throw Exception(
+            'Request timed out. The AI service took too long to respond. Please try again.',
+          );
+        },
       );
+
+      // Check if widget is still mounted after async operation
+      if (!mounted) return;
 
       // Ensure explanation has correct question ID (fixes rate limit fallback issue)
       final correctedExplanation = Explanation(
@@ -169,50 +286,90 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
       );
 
       // Add to provider with persistent storage
-      if (mounted) {
-        await provider.saveQuestionWithExplanation(
-            question, correctedExplanation);
-        await provider.incrementDailyQuestions(subject: question.subject);
+      await provider.saveQuestionWithExplanation(
+          question, correctedExplanation);
+      await provider.incrementDailyQuestions(subject: question.subject);
 
-        // Set current explanation in provider for viewing
-        provider.setCurrentExplanation(correctedExplanation);
+      // Set current explanation in provider for viewing
+      provider.setCurrentExplanation(correctedExplanation);
 
-        // Estimate token usage (rough approximation: 4 characters per token)
-        final questionTokens = (question.question.length / 4).ceil();
-        final answerTokens = (explanation.answer.length / 4).ceil();
-        final stepsTokens = explanation.steps.fold<int>(
-            0,
-            (sum, step) =>
-                sum +
-                (step.description.length / 4).ceil() +
-                (step.title.length / 4).ceil());
-        final totalTokens = questionTokens + answerTokens + stepsTokens;
+      // Estimate token usage (rough approximation: 4 characters per token)
+      final questionTokens = (question.question.length / 4).ceil();
+      final answerTokens = (explanation.answer.length / 4).ceil();
+      final stepsTokens = explanation.steps.fold<int>(
+          0,
+          (sum, step) =>
+              sum +
+              (step.description.length / 4).ceil() +
+              (step.title.length / 4).ceil());
+      final totalTokens = questionTokens + answerTokens + stepsTokens;
 
-        // Track token usage
-        await provider.addTokenUsage(totalTokens);
-      }
+      // Track token usage
+      await provider.addTokenUsage(totalTokens);
+
+      // Check mounted again before setState
+      if (!mounted) return;
 
       setState(() {
         _isLoading = false;
       });
 
       _showSnackBar('Question answered successfully!');
+
+      // Clear error state on success
+      if (mounted) {
+        setState(() {
+          _lastError = null;
+          _showRetryButton = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
+      // Check mounted before setState in error handler
+      if (!mounted) return;
 
       String errorMessage = e.toString();
+
+      setState(() {
+        _isLoading = false;
+        _lastError = errorMessage;
+        _showRetryButton = true;
+      });
 
       // Check if it's a rate limit error and provide specific guidance
       if (errorMessage.toLowerCase().contains('rate limit') ||
           errorMessage.toLowerCase().contains('rate') ||
           errorMessage.toLowerCase().contains('429')) {
         _showRateLimitSnackBar();
+      } else if (errorMessage.toLowerCase().contains('timeout')) {
+        _showSnackBar(
+          'Request timed out. Please check your connection and try again.',
+          isError: true,
+        );
+      } else if (errorMessage.toLowerCase().contains('network') ||
+          errorMessage.toLowerCase().contains('connection')) {
+        _showSnackBar(
+          'Network error. Please check your internet connection.',
+          isError: true,
+        );
       } else {
         _showSnackBar('Failed to get answer: $errorMessage', isError: true);
       }
     }
+  }
+
+  /// Retry the last failed request
+  Future<void> _retryLastQuestion() async {
+    if (_questionController.text.trim().isEmpty) {
+      _showSnackBar('No question to retry', isError: true);
+      return;
+    }
+
+    setState(() {
+      _showRetryButton = false;
+      _lastError = null;
+    });
+
+    await _submitQuestion();
   }
 
   void _showRateLimitSnackBar() {
@@ -237,6 +394,17 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
   /// Check if user is approaching or at their daily question limit
   /// Returns true if user should continue, false if they hit the limit or chose not to continue
   Future<bool> _checkQuestionLimitAndShowWarning(AppProvider provider) async {
+    // Superadmin bypass - no limits for superadmin users
+    try {
+      final isSuperadmin = await FirebaseService.instance.isSuperadmin();
+      if (isSuperadmin) {
+        debugPrint('✅ Superadmin detected - bypassing question limits');
+        return true; // No limits for superadmin
+      }
+    } catch (e) {
+      debugPrint('⚠️ Could not check superadmin status: $e');
+    }
+
     final currentQuestions = provider.dailyQuestionsUsed;
     final maxQuestions = provider.isRegistered ? 10 : 5;
     final remaining = maxQuestions - currentQuestions;
@@ -719,6 +887,9 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
     setState(() {
       _questionController.clear();
       _selectedSubject = null;
+      _selectedGradeLevel = 'Elementary'; // Reset to default
+      _selectedImage = null;
+      _imageBase64 = null;
     });
 
     // Clear current explanation from provider
@@ -770,6 +941,8 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                       // Ad Banner
                       const AdBannerWidget(),
                       const SizedBox(height: 24),
+                      // Retry button for failed requests
+                      if (_showRetryButton && !_isLoading) _buildRetryWidget(),
                       if (_isLoading) _buildLoadingWidget(),
                       if (provider.currentExplanation != null)
                         _buildExplanationWidget(),
@@ -818,6 +991,131 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                   _selectedSubject = value;
                 });
               },
+            ),
+
+            const SizedBox(height: 12),
+
+            // Grade Level Selection
+            DropdownButtonFormField<String>(
+              value: _selectedGradeLevel,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                prefixIcon: const Icon(Icons.grade),
+                labelText: 'Grade Level',
+              ),
+              items: _gradeLevels.map((level) {
+                return DropdownMenuItem(value: level, child: Text(level));
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  _selectedGradeLevel = value ?? 'Elementary';
+                });
+              },
+            ),
+
+            const SizedBox(height: 16),
+
+            // Image Upload Section
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.gray100,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.gray300,
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.image_outlined,
+                        size: 18,
+                        color: AppColors.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Attach Image (Optional)',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primary,
+                            ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  if (_selectedImage != null) ...[
+                    // Show selected image
+                    Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.file(
+                            File(_selectedImage!.path),
+                            height: 200,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: IconButton(
+                            onPressed: _removeImage,
+                            icon: const Icon(Icons.close),
+                            style: IconButton.styleFrom(
+                              backgroundColor:
+                                  Colors.red.withValues(alpha: 0.8),
+                              foregroundColor: Colors.white,
+                            ),
+                            tooltip: 'Remove image',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ] else ...[
+                    // Show image picker buttons
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => _pickImage(ImageSource.gallery),
+                            icon: const Icon(Icons.photo_library, size: 18),
+                            label: const Text('Gallery'),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => _pickImage(ImageSource.camera),
+                            icon: const Icon(Icons.camera_alt, size: 18),
+                            label: const Text('Camera'),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Add a photo of the homework problem for better answers',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppColors.gray600,
+                            fontSize: 11,
+                          ),
+                    ),
+                  ],
+                ],
+              ),
             ),
 
             const SizedBox(height: 16),
@@ -958,6 +1256,59 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
     );
   }
 
+  Widget _buildRetryWidget() {
+    return Card(
+      color: AppColors.error.withValues(alpha: 0.05),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            const Icon(
+              Icons.error_outline,
+              color: AppColors.error,
+              size: 48,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Request Failed',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.error,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _lastError?.contains('timeout') == true
+                  ? 'The request took too long. Please try again.'
+                  : _lastError?.contains('network') == true ||
+                          _lastError?.contains('connection') == true
+                      ? 'Network connection issue. Check your internet.'
+                      : 'Something went wrong. Please try again.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.gray600,
+                  ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _retryLastQuestion,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry Question'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildLoadingWidget() {
     return Card(
       child: Padding(
@@ -1073,11 +1424,12 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                                   ),
                         ),
                         Text(
-                          '$questionsRemaining',
+                          questionsRemaining < 0 ? '∞' : '$questionsRemaining',
                           style:
                               Theme.of(context).textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.w600,
-                                    color: questionsRemaining > 0
+                                    color: questionsRemaining < 0 ||
+                                            questionsRemaining > 0
                                         ? AppColors.success
                                         : AppColors.error,
                                   ),

@@ -50,6 +50,18 @@ class ProfileService {
     }
   }
 
+  /// Public method to save profiles to local storage (used for Firestore sync)
+  Future<void> saveProfilesToLocal() async {
+    await _saveProfiles();
+  }
+
+  /// Add a profile directly (used for Firestore sync, bypasses limit checks)
+  void addProfileFromSync(ChildProfile profile) {
+    if (!_profiles.any((p) => p.id == profile.id)) {
+      _profiles.add(profile);
+    }
+  }
+
   Future<void> _loadActiveProfile() async {
     _activeProfileId = _prefs?.getString(_activeProfileKey);
 

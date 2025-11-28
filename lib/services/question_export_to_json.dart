@@ -4,8 +4,29 @@ import '../services/database_service.dart';
 import '../services/firebase_service.dart';
 import '../services/lesson_service.dart';
 
+/// Helper to deeply convert Map<dynamic, dynamic> to Map<String, dynamic>
+Map<String, dynamic> _deepConvertMap(Map map) {
+  return map.map((key, value) {
+    final stringKey = key.toString();
+    if (value is Map) {
+      return MapEntry(stringKey, _deepConvertMap(value));
+    } else if (value is List) {
+      return MapEntry(
+          stringKey,
+          value.map((item) {
+            if (item is Map) {
+              return _deepConvertMap(item);
+            }
+            return item;
+          }).toList());
+    }
+    return MapEntry(stringKey, value);
+  });
+}
+
 class QuestionExportToJSON {
-  static final QuestionExportToJSON _instance = QuestionExportToJSON._internal();
+  static final QuestionExportToJSON _instance =
+      QuestionExportToJSON._internal();
   factory QuestionExportToJSON() => _instance;
   QuestionExportToJSON._internal();
 
@@ -28,9 +49,8 @@ class QuestionExportToJSON {
         firestoreQuestions = firestoreData
             .map((data) {
               try {
-                // Convert Map<dynamic, dynamic> to Map<String, dynamic>
-              final Map<String, dynamic> stringData = Map<String, dynamic>.from(data);
-              return Question.fromJson(stringData);
+                // Deep convert Map<dynamic, dynamic> to Map<String, dynamic>
+                return Question.fromJson(_deepConvertMap(data));
               } catch (e) {
                 print('Error parsing question from Firestore: $e');
                 return null;
@@ -42,12 +62,12 @@ class QuestionExportToJSON {
 
       // Combine and deduplicate (Firestore takes priority for updates)
       final allQuestions = <String, Question>{};
-      
+
       // Add database questions first
       for (final question in dbQuestions) {
         allQuestions[question.id] = question;
       }
-      
+
       // Firestore questions override local ones
       for (final question in firestoreQuestions) {
         allQuestions[question.id] = question;
@@ -61,7 +81,8 @@ class QuestionExportToJSON {
           'version': '1.0',
           'exported_from': 'Complete Question Bank Export',
           'exported_at': DateTime.now().toIso8601String(),
-          'description': 'Complete export of all questions from database and Firestore',
+          'description':
+              'Complete export of all questions from database and Firestore',
           'total_questions': questionsJson.length,
         },
         'questions': questionsJson,
@@ -88,12 +109,14 @@ class QuestionExportToJSON {
         {
           'id': 'unique_question_id_001',
           'question_text': 'Your question text here',
-          'question_type': 2, // 0: MCQ, 1: True/False, 2: Fill in blank, 3: Short answer, etc.
+          'question_type':
+              2, // 0: MCQ, 1: True/False, 2: Fill in blank, 3: Short answer, etc.
           'subject': 'Subject Name',
           'topic': 'Main Topic',
           'subtopic': 'Sub Topic',
           'grade_level': 5, // 1-12
-          'difficulty': 2, // 0: veryEasy, 1: easy, 2: medium, 3: hard, 4: veryHard
+          'difficulty':
+              2, // 0: veryEasy, 1: easy, 2: medium, 3: hard, 4: veryHard
           'answer_key': 'Correct answer',
           'explanation': 'Explanation of the answer',
           'choices': [], // Fill with options for MCQ, otherwise keep empty
@@ -115,16 +138,17 @@ class QuestionExportToJSON {
   /// Export all hardcoded lessons to questions JSON format
   Future<String> exportHardcodedLessonsToQuestions() async {
     await _lessonService.initialize();
-    
+
     // Get all lessons (hardcoded ones)
-    final allLessons = _lessonService._lessons; // Accessing the internal list directly
+    final allLessons =
+        _lessonService._lessons; // Accessing the internal list directly
 
     final questions = <Map<String, dynamic>>[];
 
     for (final lesson in allLessons) {
       for (int i = 0; i < lesson.exercises.length; i++) {
         final exercise = lesson.exercises[i];
-        
+
         questions.add({
           'id': '${lesson.id}_q${i + 1}',
           'question_text': exercise.questionText,
@@ -158,7 +182,8 @@ class QuestionExportToJSON {
         'version': '1.0',
         'exported_from': 'Hardcoded Lessons',
         'exported_at': DateTime.now().toIso8601String(),
-        'description': 'Export of all hardcoded lesson exercises converted to questions',
+        'description':
+            'Export of all hardcoded lesson exercises converted to questions',
         'total_questions': questions.length,
         'total_lessons': allLessons.length,
       },
@@ -195,7 +220,8 @@ class QuestionExportToJSON {
   int _getDifficultyFromLessonDifficulty(dynamic lessonDifficulty) {
     // Note: This is a simplified mapping - you might need to adjust based on actual enum values
     if (lessonDifficulty.toString().contains('beginner')) return 1; // easy
-    if (lessonDifficulty.toString().contains('intermediate')) return 2; // medium
+    if (lessonDifficulty.toString().contains('intermediate'))
+      return 2; // medium
     if (lessonDifficulty.toString().contains('advanced')) return 3; // hard
     return 2; // medium as default
   }

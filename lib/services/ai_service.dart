@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:http/http.dart' as http;
 import '../models/explanation.dart';
 import '../utils/environment_config.dart';
 import 'storage_service.dart';
@@ -8,21 +8,41 @@ class AIService {
   // Get configuration from environment
   static final _config = EnvironmentConfig.instance;
   static final _storage = StorageService();
-  static String get _model => _config.geminiModel;
-  static int get _maxTokens => _config.geminiMaxTokens;
-  static double get _temperature => _config.geminiTemperature;
 
-  // Initialize Gemini model with user's API key
-  GenerativeModel? _geminiModel;
+  // OpenRouter configuration
+  static const String _openRouterBaseUrl =
+      'https://openrouter.ai/api/v1/chat/completions';
+  // Use a reliable, cost-effective model as default
+  static const String _defaultModel = 'google/gemma-2-9b-it';
+
+  // Available models on OpenRouter (updated November 2025)
+  // These are reliable models that work with OpenRouter API keys
+  static const Map<String, String> availableModels = {
+    'Gemma 2 (9B)': 'google/gemma-2-9b-it',
+    'Llama 3.1 (8B)': 'meta-llama/llama-3.1-8b-instruct',
+    'Mistral (7B)': 'mistralai/mistral-7b-instruct',
+    'Qwen 2.5 (7B)': 'qwen/qwen-2.5-7b-instruct',
+    'DeepSeek V3': 'deepseek/deepseek-chat',
+  };
 
   // Constructor
   AIService();
 
-  // Get user's API key from storage
+  // Get user's API key from storage (OpenRouter key)
   Future<String?> _getUserApiKey() async {
     try {
       await _storage.initialize();
-      return _storage.getSetting<String>('user_gemini_api_key');
+      // First try to get user-specific key from storage
+      final userKey = _storage.getSetting<String>('user_openrouter_api_key');
+      if (userKey != null && userKey.isNotEmpty) {
+        return userKey;
+      }
+      // Fall back to .env file key
+      final envKey = _config.openRouterApiKey;
+      if (envKey.isNotEmpty) {
+        return envKey;
+      }
+      return null;
     } catch (e) {
       if (_config.isDebugMode) {
         print('Error getting user API key: $e');
@@ -31,24 +51,49 @@ class AIService {
     }
   }
 
-  // Initialize or recreate the model with user's API key
-  Future<GenerativeModel?> _getModel() async {
-    final apiKey = await _getUserApiKey();
-    if (apiKey == null || apiKey.isEmpty) {
-      return null;
-    }
+  // Get the selected model (validates it's still available)
+  Future<String> _getSelectedModel() async {
+    try {
+      await _storage.initialize();
+      final storedModel = _storage.getSetting<String>('selected_ai_model');
 
-    _geminiModel ??= GenerativeModel(
-      model: _model,
-      apiKey: apiKey,
-      generationConfig: GenerationConfig(
-        temperature: _temperature,
-        maxOutputTokens: _maxTokens,
-        responseMimeType: 'application/json',
-      ),
-      systemInstruction: Content.system(_systemPrompt),
-    );
-    return _geminiModel;
+      // If no stored model or stored model is not in available list, use default
+      if (storedModel == null || storedModel.isEmpty) {
+        return _defaultModel;
+      }
+
+      // Check if the stored model is still in the available models list
+      final isAvailable = availableModels.values.contains(storedModel);
+
+      if (!isAvailable) {
+        // Model no longer available, reset to default
+        if (_config.isDebugMode) {
+          print(
+              'Stored model "$storedModel" is not available, resetting to default: $_defaultModel');
+        }
+        await _storage.saveSetting('selected_ai_model', _defaultModel);
+        return _defaultModel;
+      }
+
+      return storedModel;
+    } catch (e) {
+      return _defaultModel;
+    }
+  }
+
+  // Set the selected model
+  Future<void> setSelectedModel(String modelId) async {
+    try {
+      await _storage.initialize();
+      await _storage.saveSetting('selected_ai_model', modelId);
+      if (_config.isDebugMode) {
+        print('AI model changed to: $modelId');
+      }
+    } catch (e) {
+      if (_config.isDebugMode) {
+        print('Error setting model: $e');
+      }
+    }
   }
 
   static const String _systemPrompt = '''
@@ -70,7 +115,7 @@ Format your response as JSON with the following structure:
       "title": "Step title",
       "description": "Detailed explanation",
       "tip": "Optional parent tip",
-      "isKeyStep": true/false
+      "isKeyStep": true
     }
   ],
   "parentFriendlyTip": "Encouraging tip for the parent",
@@ -80,127 +125,190 @@ Format your response as JSON with the following structure:
 }
 
 Remember: You're helping a parent help their child. Be supportive, clear, and never condescending.
+Always respond with valid JSON only, no markdown code blocks.
 ''';
+
+  // Make API call to OpenRouter
+  Future<Map<String, dynamic>?> _callOpenRouter({
+    required String prompt,
+    String? systemPrompt,
+  }) async {
+    final apiKey = await _getUserApiKey();
+    if (apiKey == null || apiKey.isEmpty) {
+      throw Exception(
+          'OpenRouter API key is not configured. Please add your API key in Settings.');
+    }
+
+    final model = await _getSelectedModel();
+
+    final messages = <Map<String, String>>[];
+
+    if (systemPrompt != null) {
+      messages.add({'role': 'system', 'content': systemPrompt});
+    }
+    messages.add({'role': 'user', 'content': prompt});
+
+    final body = {
+      'model': model,
+      'messages': messages,
+      'max_tokens': 1500,
+      'temperature': 0.7,
+    };
+
+    if (_config.isDebugMode) {
+      print('Calling OpenRouter with model: $model');
+    }
+
+    try {
+      final response = await http.post(
+        Uri.parse(_openRouterBaseUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $apiKey',
+          'HTTP-Referer': 'https://edubot.app',
+          'X-Title': 'EduBot - AI Homework Helper',
+        },
+        body: jsonEncode(body),
+      );
+
+      if (_config.isDebugMode) {
+        print('OpenRouter response status: ${response.statusCode}');
+      }
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final content = data['choices']?[0]?['message']?['content'];
+
+        if (content != null) {
+          if (_config.isDebugMode) {
+            print('OpenRouter response: $content');
+          }
+
+          // Clean up the response - remove thinking tags, markdown code blocks, etc.
+          String cleanContent = content.toString().trim();
+
+          // Remove <think>...</think> tags (some models include reasoning)
+          final thinkRegex = RegExp(r'<think>.*?</think>', dotAll: true);
+          cleanContent = cleanContent.replaceAll(thinkRegex, '').trim();
+
+          // Remove markdown code blocks if present
+          if (cleanContent.startsWith('```json')) {
+            cleanContent = cleanContent.substring(7);
+          } else if (cleanContent.startsWith('```')) {
+            cleanContent = cleanContent.substring(3);
+          }
+          if (cleanContent.endsWith('```')) {
+            cleanContent = cleanContent.substring(0, cleanContent.length - 3);
+          }
+          cleanContent = cleanContent.trim();
+
+          // Try to extract JSON from the response if it's not pure JSON
+          if (!cleanContent.startsWith('{')) {
+            final jsonMatch = RegExp(r'\{[\s\S]*\}').firstMatch(cleanContent);
+            if (jsonMatch != null) {
+              cleanContent = jsonMatch.group(0) ?? cleanContent;
+            }
+          }
+
+          // Try to parse as JSON
+          try {
+            return jsonDecode(cleanContent);
+          } catch (e) {
+            // Return as raw text if not valid JSON
+            return {'raw_response': content};
+          }
+        }
+      } else {
+        final errorBody = jsonDecode(response.body);
+        final errorMessage = errorBody['error']?['message'] ?? 'Unknown error';
+        throw Exception(
+            'OpenRouter API error: $errorMessage (Status: ${response.statusCode})');
+      }
+    } catch (e) {
+      if (_config.isDebugMode) {
+        print('OpenRouter call failed: $e');
+      }
+      rethrow;
+    }
+
+    return null;
+  }
 
   String _getLanguageInstruction(String language) {
     switch (language.toLowerCase()) {
       case 'malay':
-        return '''
-Please respond in Bahasa Malaysia (Malay). Use simple, clear Malay language that parents can easily understand. 
-Provide explanations, tips, and examples in Malay while maintaining the same helpful and encouraging tone.
-Format your response as JSON with Malay text in all fields.
-''';
+        return 'Please respond in Bahasa Malaysia (Malay). Use simple, clear Malay language.';
       case 'spanish':
-        return '''
-Please respond in Spanish. Use simple, clear Spanish that parents can easily understand.
-Format your response as JSON with Spanish text in all fields.
-''';
+        return 'Please respond in Spanish. Use simple, clear Spanish.';
       case 'french':
-        return '''
-Please respond in French. Use simple, clear French that parents can easily understand.
-Format your response as JSON with French text in all fields.
-''';
+        return 'Please respond in French. Use simple, clear French.';
       case 'german':
-        return '''
-Please respond in German. Use simple, clear German that parents can easily understand.
-Format your response as JSON with German text in all fields.
-''';
+        return 'Please respond in German. Use simple, clear German.';
       case 'chinese':
-        return '''
-Please respond in Simplified Chinese. Use simple, clear Chinese that parents can easily understand.
-Format your response as JSON with Chinese text in all fields.
-''';
+        return 'Please respond in Simplified Chinese.';
       case 'japanese':
-        return '''
-Please respond in Japanese. Use simple, clear Japanese that parents can easily understand.
-Format your response as JSON with Japanese text in all fields.
-''';
+        return 'Please respond in Japanese.';
       default:
-        return '''
-Please respond in English. Use simple, clear English that parents can easily understand.
-Format your response as JSON with English text in all fields.
-''';
+        return 'Please respond in English.';
     }
   }
 
   Future<Explanation> explainProblem(String question, String questionId,
       {String language = 'English'}) async {
     try {
-      final model = await _getModel();
-      if (model == null) {
-        throw Exception(
-            'Gemini API key is not configured. Please add your API key in Settings.');
-      }
-
-      // Create language-specific instruction
       final languageInstruction = _getLanguageInstruction(language);
-
-      // Create the prompt for the user question
       final prompt = '$languageInstruction\n\nQuestion: $question';
 
       if (_config.isDebugMode) {
-        print('Sending question to Gemini: $question (Language: $language)');
+        print(
+            'Sending question to OpenRouter: $question (Language: $language)');
       }
 
-      // Generate content using Gemini
-      final response = await model.generateContent([
-        Content.text(prompt),
-      ]);
+      final response = await _callOpenRouter(
+        prompt: prompt,
+        systemPrompt: _systemPrompt,
+      );
 
-      if (_config.isDebugMode) {
-        print('Gemini Response: ${response.text}');
-      }
-
-      if (response.text != null && response.text!.isNotEmpty) {
-        final content = response.text!;
-
-        // Try to parse the JSON response from Gemini
-        try {
-          final explanationData = jsonDecode(content);
-
+      if (response != null) {
+        // Check if we got a raw response (non-JSON)
+        if (response.containsKey('raw_response')) {
           return Explanation(
             questionId: questionId,
             question: question,
-            answer: explanationData['answer'] ?? 'No answer provided',
-            steps: (explanationData['steps'] as List? ?? [])
-                .map((step) => ExplanationStep.fromJson(step))
-                .toList(),
-            parentFriendlyTip: explanationData['parentFriendlyTip'],
-            realWorldExample: explanationData['realWorldExample'],
-            subject: explanationData['subject'] ?? 'General',
-            difficulty: DifficultyLevel.values.firstWhere(
-              (e) => e.name == explanationData['difficulty'],
-              orElse: () => DifficultyLevel.medium,
-            ),
-          );
-        } catch (jsonError) {
-          // If JSON parsing fails, create a simple explanation
-          if (_config.isDebugMode) {
-            print('JSON Parsing Error: $jsonError');
-            print('Content that failed to parse: $content');
-          }
-
-          return Explanation(
-            questionId: questionId,
-            question: question,
-            answer: content, // Use the raw content as answer
+            answer: response['raw_response'],
             steps: [],
-            parentFriendlyTip:
-                "The AI provided a response, but it wasn't in the expected format.",
+            parentFriendlyTip: "The AI provided a response.",
             realWorldExample: null,
             subject: 'General',
             difficulty: DifficultyLevel.medium,
           );
         }
+
+        return Explanation(
+          questionId: questionId,
+          question: question,
+          answer: response['answer'] ?? 'No answer provided',
+          steps: (response['steps'] as List? ?? [])
+              .map((step) => ExplanationStep.fromJson(
+                  step is Map<String, dynamic>
+                      ? step
+                      : Map<String, dynamic>.from(step)))
+              .toList(),
+          parentFriendlyTip: response['parentFriendlyTip'],
+          realWorldExample: response['realWorldExample'],
+          subject: response['subject'] ?? 'General',
+          difficulty: DifficultyLevel.values.firstWhere(
+            (e) => e.name == response['difficulty'],
+            orElse: () => DifficultyLevel.medium,
+          ),
+        );
       } else {
-        throw Exception('Gemini API returned empty response');
+        throw Exception('OpenRouter API returned empty response');
       }
     } catch (e) {
       if (_config.isDebugMode) {
         print('AI Service Error: $e');
       }
-
-      // Return a fallback explanation with the actual error
       return _createFallbackExplanation(question, questionId,
           error: e.toString());
     }
@@ -215,9 +323,9 @@ Format your response as JSON with English text in all fields.
     String fallbackDescription;
 
     if (isConfigError) {
-      fallbackAnswer = "Gemini API is not properly configured.";
+      fallbackAnswer = "OpenRouter API is not properly configured.";
       fallbackDescription =
-          "The Gemini API key is missing or invalid. Please add your API key in the Settings screen.";
+          "The OpenRouter API key is missing or invalid. Please add your API key in the Settings screen.";
     } else if (isApiError) {
       fallbackAnswer = "There was an issue with the AI service.";
       fallbackDescription =
@@ -239,7 +347,7 @@ Format your response as JSON with English text in all fields.
           title: isConfigError ? "Configuration Error" : "Service Unavailable",
           description: fallbackDescription,
           tip: isConfigError
-              ? "Please add your Gemini API key in the Settings screen to use AI explanations."
+              ? "Please add your OpenRouter API key in the Settings screen to use AI explanations."
               : "Don't worry! You can try asking the question again, or break it down into smaller parts.",
           isKeyStep: true,
         ),
@@ -264,19 +372,18 @@ Format your response as JSON with English text in all fields.
   // Check if API is properly configured
   Future<bool> get isConfigured async {
     final apiKey = await _getUserApiKey();
-    return apiKey != null &&
-        apiKey.isNotEmpty &&
-        apiKey != 'your_gemini_api_key_here';
+    return apiKey != null && apiKey.isNotEmpty;
   }
 
   // Get configuration status for debugging
   Future<Map<String, dynamic>> getConfigStatus() async {
+    final model = await _getSelectedModel();
     return {
       'api_key_configured': await isConfigured,
-      'model': _model,
-      'max_tokens': _maxTokens,
-      'temperature': _temperature,
-      'service': 'Google Gemini',
+      'model': model,
+      'max_tokens': 1500,
+      'temperature': 0.7,
+      'service': 'OpenRouter',
     };
   }
 
@@ -284,9 +391,7 @@ Format your response as JSON with English text in all fields.
   Future<void> saveUserApiKey(String apiKey) async {
     try {
       await _storage.initialize();
-      await _storage.saveSetting('user_gemini_api_key', apiKey);
-      // Reset model to use new API key
-      _geminiModel = null;
+      await _storage.saveSetting('user_openrouter_api_key', apiKey);
       if (_config.isDebugMode) {
         print('User API key saved successfully');
       }
@@ -302,8 +407,7 @@ Format your response as JSON with English text in all fields.
   Future<void> removeUserApiKey() async {
     try {
       await _storage.initialize();
-      await _storage.deleteSetting('user_gemini_api_key');
-      _geminiModel = null;
+      await _storage.deleteSetting('user_openrouter_api_key');
       if (_config.isDebugMode) {
         print('User API key removed successfully');
       }
@@ -323,9 +427,127 @@ Format your response as JSON with English text in all fields.
 
     try {
       final response = await explainProblem("What is 2 + 2?", "test");
-      return response.answer.isNotEmpty;
+      return response.answer.isNotEmpty &&
+          !response.answer.contains('not configured') &&
+          !response.answer.contains('error');
     } catch (e) {
       return false;
     }
+  }
+
+  /// Generate AI-powered hints for a question
+  Future<Map<String, String>> generateQuestionHints({
+    required String questionText,
+    required String subject,
+    required String topic,
+    String? answerKey,
+  }) async {
+    try {
+      final prompt = '''
+Analyze this question and provide helpful hints for a student trying to solve it.
+Do NOT give the answer directly - just help them understand HOW to solve it.
+
+Question: $questionText
+Subject: $subject
+Topic: $topic
+
+Provide your response as JSON with this exact structure (no markdown, just JSON):
+{
+  "solvingSteps": "Step-by-step approach to solve this specific question (numbered steps, be specific to this question)",
+  "tips": "Specific tips and things to watch out for in this question (bullet points with •)",
+  "example": "A similar worked example that teaches the same concept without giving away the answer"
+}
+
+Be specific to THIS question. Don't give generic advice.
+Focus on teaching the approach, not revealing the answer.
+''';
+
+      if (_config.isDebugMode) {
+        print('Generating hints for question: $questionText');
+      }
+
+      final response = await _callOpenRouter(prompt: prompt);
+
+      if (response != null && !response.containsKey('raw_response')) {
+        // Handle solvingSteps - could be a list or string
+        String solvingSteps = '';
+        final stepsData = response['solvingSteps'];
+        if (stepsData is List) {
+          solvingSteps = stepsData.join('\n');
+        } else if (stepsData != null) {
+          solvingSteps = stepsData.toString();
+        }
+
+        // Handle tips - could be a list or string
+        String tips = '';
+        final tipsData = response['tips'];
+        if (tipsData is List) {
+          tips = tipsData.join('\n');
+        } else if (tipsData != null) {
+          tips = tipsData.toString();
+        }
+
+        // Handle example - usually a string
+        String example = response['example']?.toString() ?? '';
+
+        return {
+          'solvingSteps': _cleanMarkdown(solvingSteps),
+          'tips': _cleanMarkdown(tips),
+          'example': _cleanMarkdown(example),
+        };
+      }
+      return _getFallbackHints(questionText, subject, topic);
+    } catch (e) {
+      if (_config.isDebugMode) {
+        print('Error generating hints: $e');
+      }
+      return _getFallbackHints(questionText, subject, topic);
+    }
+  }
+
+  /// Clean markdown formatting from text for plain display
+  String _cleanMarkdown(String text) {
+    if (text.isEmpty) return text;
+
+    String cleaned = text;
+
+    // Remove bold markers (**text** or __text__)
+    cleaned = cleaned.replaceAllMapped(
+      RegExp(r'\*\*(.+?)\*\*'),
+      (match) => match.group(1) ?? '',
+    );
+    cleaned = cleaned.replaceAllMapped(
+      RegExp(r'__(.+?)__'),
+      (match) => match.group(1) ?? '',
+    );
+
+    // Remove italic markers (*text* or _text_) - be careful not to remove bullet points
+    cleaned = cleaned.replaceAllMapped(
+      RegExp(r'(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)'),
+      (match) => match.group(1) ?? '',
+    );
+
+    // Remove inline code markers (`text`)
+    cleaned = cleaned.replaceAllMapped(
+      RegExp(r'`(.+?)`'),
+      (match) => match.group(1) ?? '',
+    );
+
+    // Clean up any double spaces
+    cleaned = cleaned.replaceAll(RegExp(r'  +'), ' ');
+
+    return cleaned.trim();
+  }
+
+  Map<String, String> _getFallbackHints(
+      String question, String subject, String topic) {
+    return {
+      'solvingSteps':
+          '1. Read the question carefully.\n2. Identify what is being asked.\n3. Recall what you know about $topic.\n4. Apply your knowledge step by step.\n5. Check your answer.',
+      'tips':
+          '• Take your time to understand the question.\n• Look for key words and numbers.\n• Think about similar problems you\'ve solved.\n• Don\'t rush - accuracy is more important than speed.',
+      'example':
+          'Think about the concepts from $topic. Break the problem into smaller parts and solve each part.',
+    };
   }
 }

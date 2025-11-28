@@ -21,7 +21,7 @@ if (keystorePropertiesFile.exists()) {
 android {
     namespace = "com.edubot.app"  // Reverted for Play Store compatibility
     compileSdk = 36  // Updated to support camera_android plugin
-    ndkVersion = "27.0.12077973"  // Updated to support multiple plugins
+    ndkVersion = "28.2.13676358"  // Updated for speech_to_text plugin
 
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
@@ -38,7 +38,7 @@ android {
         applicationId = "com.edubot.app"  // Must match existing Play Store app
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = 23  // Required for Firebase Auth and flutter_local_notifications
+        minSdk = flutter.minSdkVersion  // Required for Firebase Auth and flutter_local_notifications
         targetSdk = 36  // Updated to match compileSdk
         versionCode = flutter.versionCode
         versionName = flutter.versionName
