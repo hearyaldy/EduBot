@@ -141,10 +141,68 @@ class _AILessonGeneratorScreenState extends State<AILessonGeneratorScreen>
 
   String _selectedTopic = 'Whole Numbers';
 
-  // Curriculum document source reference
+  // Curriculum document source reference - DSKP KSSR documents
   static const String _curriculumSourceUrl =
       'https://drive.google.com/drive/folders/1Rj34RtvoUlS8qw60IfzwWxuwTh8Tfmds';
-  static const String _curriculumSourceName = 'KSSR Curriculum Documents';
+  static const String _curriculumSourceName = 'DSKP KSSR (Semakan 2017)';
+
+  // Mapping of subjects to their DSKP document names
+  static const Map<String, Map<int, String>> _dskpDocuments = {
+    'Mathematics': {
+      1: 'DSKP KSSR MATEMATIK THN 1 SK (SEMAKAN)',
+      2: 'DSKP KSSR MATEMATIK THN 2 SK (SEMAKAN)',
+      3: 'DSKP KSSR MATEMATIK THN 3 SK (SEMAKAN)',
+      4: 'DSKP KSSR MATEMATIK THN 4 SK (SEMAKAN)',
+      5: 'DSKP KSSR MATEMATIK THN 5 SK (SEMAKAN)',
+      6: 'DSKP KSSR MATEMATIK THN 6 SK (SEMAKAN 2017)',
+    },
+    'Matematik': {
+      1: 'DSKP KSSR MATEMATIK THN 1 SK (SEMAKAN)',
+      2: 'DSKP KSSR MATEMATIK THN 2 SK (SEMAKAN)',
+      3: 'DSKP KSSR MATEMATIK THN 3 SK (SEMAKAN)',
+      4: 'DSKP KSSR MATEMATIK THN 4 SK (SEMAKAN)',
+      5: 'DSKP KSSR MATEMATIK THN 5 SK (SEMAKAN)',
+      6: 'DSKP KSSR MATEMATIK THN 6 SK (SEMAKAN 2017)',
+    },
+    'Science': {
+      1: 'DSKP KSSR SCIENCE DLP Year 1 (SEMAKAN 2017)',
+      2: 'DSKP KSSR SAINS TAHUN 2 (SEMAKAN 2017)',
+      3: 'DSKP KSSR SCIENCE DLP Year 3 (SEMAKAN 2017)',
+      4: 'DSKP KSSR SCIENCE DLP Year 4 (SEMAKAN 2017)',
+      5: 'DSKP KSSR SCIENCE DLP Year 5 (SEMAKAN 2017)',
+      6: 'DSKP KSSR SCIENCE DLP Year 6 (SEMAKAN 2017)',
+    },
+    'Sains': {
+      1: 'DSKP KSSR SCIENCE DLP Year 1 (SEMAKAN 2017)',
+      2: 'DSKP KSSR SAINS TAHUN 2 (SEMAKAN 2017)',
+      3: 'DSKP KSSR SCIENCE DLP Year 3 (SEMAKAN 2017)',
+      4: 'DSKP KSSR SCIENCE DLP Year 4 (SEMAKAN 2017)',
+      5: 'DSKP KSSR SCIENCE DLP Year 5 (SEMAKAN 2017)',
+      6: 'DSKP KSSR SAINS TAHUN 6 (SEMAKAN 2017)',
+    },
+    'English': {
+      1: 'DSKP KSSR ENGLISH YEAR 1 SK (SEMAKAN 2017)',
+      2: 'DSKP KSSR ENGLISH YEAR 2 SK (SEMAKAN 2017)',
+      3: 'DSKP KSSR ENGLISH YEAR 3 SK (SEMAKAN 2017)',
+      4: 'DSKP KSSR ENGLISH YEAR 4 SK (SEMAKAN 2017)',
+      5: 'DSKP KSSR ENGLISH YEAR 5 SK (SEMAKAN 2017)',
+      6: 'DSKP KSSR Semakan 2017 Bahasa Inggeris Tahun 6 SK',
+    },
+    'Bahasa Melayu': {
+      1: 'DSKP KSSR BM THN 1 SK (SEMAKAN 2017)',
+      2: 'DSKP KSSR BM THN 2 SK (SEMAKAN 2017)',
+      3: 'DSKP KSSR BM THN 3 SK (SEMAKAN 2017)',
+      4: 'DSKP KSSR BM THN 4 SK (SEMAKAN 2017)',
+      5: 'DSKP KSSR BM THN 5 SK (SEMAKAN 2017)',
+      6: 'DSKP KSSR BM THN 6 SK (SEMAKAN 2017)',
+    },
+  };
+
+  // Get the DSKP document name for current selection
+  String get _currentDskpDocument {
+    return _dskpDocuments[_selectedSubject]?[_selectedGrade] ??
+        'DSKP KSSR $_selectedSubject Year $_selectedGrade';
+  }
 
   @override
   void initState() {
@@ -299,36 +357,66 @@ class _AILessonGeneratorScreenState extends State<AILessonGeneratorScreen>
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: Colors.blue.shade200),
             ),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(Icons.library_books_rounded,
+                          color: Colors.blue.shade700, size: 24),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '📚 $_curriculumSourceName',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: Colors.blue.shade800,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Official Malaysian Ministry of Education curriculum',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade100,
-                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.white.withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(Icons.library_books_rounded,
-                      color: Colors.blue.shade700, size: 24),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
                     children: [
-                      Text(
-                        '📚 $_curriculumSourceName',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          color: Colors.blue.shade800,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Questions aligned with official Malaysian KSSR curriculum standards',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
+                      Icon(Icons.description_outlined,
+                          color: Colors.indigo.shade600, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _currentDskpDocument,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.indigo.shade700,
+                          ),
                         ),
                       ),
                     ],
@@ -1169,24 +1257,28 @@ class _AILessonGeneratorScreenState extends State<AILessonGeneratorScreen>
     return '''
 You are an expert education content creator specializing in creating engaging lessons for primary school students (Year 1-6) following the Malaysian KSSR (Kurikulum Standard Sekolah Rendah) curriculum.
 
-Your questions MUST be based on and aligned with the official Malaysian Ministry of Education curriculum documents and standards. Reference the KSSR curriculum framework for:
-- Learning standards (Standard Pembelajaran)
-- Content standards (Standard Kandungan)
-- Performance standards (Standard Pencapaian)
+Your questions MUST be based on and aligned with the official DSKP (Dokumen Standard Kurikulum dan Pentaksiran) documents from the Malaysian Ministry of Education (Kementerian Pendidikan Malaysia).
 
-CURRICULUM REFERENCE SOURCE:
-- Official KSSR curriculum documents from Malaysian Ministry of Education
-- Document source: $_curriculumSourceUrl
+DSKP CURRICULUM DOCUMENT REFERENCE:
+- Document: $_currentDskpDocument
+- Source: $_curriculumSourceUrl
+- These are the official Semakan 2017 curriculum documents
+
+DSKP STRUCTURE TO FOLLOW:
+- Standard Kandungan (SK) - Content Standards: What students should know
+- Standard Pembelajaran (SP) - Learning Standards: What students should be able to do
+- Standard Prestasi (SPi) - Performance Standards: Assessment criteria (TP1-TP6)
 
 IMPORTANT RULES:
-1. Create age-appropriate content strictly following KSSR curriculum for the specified grade level
+1. Create age-appropriate content strictly following DSKP KSSR curriculum for the specified year/grade
 2. Use clear, simple language appropriate for Malaysian primary school children
-3. Include detailed step-by-step explanations for each answer
-4. Make questions progressively challenging within the lesson
+3. Include detailed step-by-step explanations (Penerangan) for each answer
+4. Make questions progressively challenging within the lesson (following TP1-TP6 levels)
 5. For multiple choice, always include 4 options (A, B, C, D)
-6. Align questions with Malaysian education standards and local context
-7. Use examples relevant to Malaysian culture and daily life
-8. Respond ONLY with valid JSON, no markdown or extra text
+6. Align questions with Standard Kandungan and Standard Pembelajaran from DSKP
+7. Use examples relevant to Malaysian culture, names, places, and daily life
+8. Include Malaysian context: RM for money, Malaysian names (Ali, Siti, Ahmad), local places
+9. Respond ONLY with valid JSON, no markdown or extra text
 ''';
   }
 
@@ -1213,16 +1305,18 @@ Generate a lesson with exactly $_numberOfQuestions questions for:
 Subject: $_selectedSubject
 Topic: $_selectedTopic${_customTopic.isNotEmpty ? " - $_customTopic" : ""}
 Subtopic Focus: $topicVariation
-Grade Level: Year $_selectedGrade (Primary School - Malaysian KSSR)
+Grade Level: Year $_selectedGrade (Tahun $_selectedGrade - Malaysian KSSR)
 Difficulty: ${difficultyGuide[_selectedDifficulty]}
 $questionTypeInstruction
 $languageInstruction
 
-CURRICULUM ALIGNMENT:
-- All questions MUST align with Malaysian KSSR Year $_selectedGrade curriculum standards
-- Reference the official curriculum documents for $_selectedSubject
-- Include content that matches the learning standards for this grade level
-- Use Malaysian context (e.g., RM for money, local names, Malaysian scenarios)
+DSKP CURRICULUM ALIGNMENT (MANDATORY):
+- Reference Document: $_currentDskpDocument
+- All questions MUST align with Standard Kandungan (SK) and Standard Pembelajaran (SP) from DSKP
+- Follow the learning outcomes specified in DSKP for Year $_selectedGrade $_selectedSubject
+- Match the Performance Standards (TP - Tahap Penguasaan) for assessment
+- Use Malaysian context: RM for currency, Malaysian names (Ali, Aminah, Kumar, Mei Ling), local scenarios
+- Include real-world examples from Malaysian daily life
 
 Respond with this exact JSON structure (no markdown, just JSON):
 {
