@@ -1057,6 +1057,54 @@ class FirebaseService {
     }
   }
 
+  /// Save an AI-generated lesson to Firestore
+  Future<void> saveLessonToFirestore(dynamic lesson) async {
+    if (!_isInitialized) {
+      debugPrint('Firebase not initialized. Cannot save lesson.');
+      return;
+    }
+
+    try {
+      final lessonData = lesson.toJson();
+      await _firestore
+          .collection('aiLessons')
+          .doc(lessonData['id'])
+          .set(lessonData);
+      debugPrint('Lesson saved to Firestore: ${lessonData['lesson_title']}');
+    } catch (e) {
+      debugPrint('Failed to save lesson to Firestore: $e');
+      rethrow;
+    }
+  }
+
+  /// Get AI-generated lessons from Firestore
+  Future<List<Map<String, dynamic>>> getAILessonsFromFirestore({
+    String? subject,
+    int? gradeLevel,
+  }) async {
+    if (!_isInitialized) {
+      return [];
+    }
+
+    try {
+      Query<Map<String, dynamic>> query = _firestore.collection('aiLessons');
+
+      if (subject != null && subject.isNotEmpty) {
+        query = query.where('subject', isEqualTo: subject);
+      }
+
+      if (gradeLevel != null) {
+        query = query.where('grade_level', isEqualTo: gradeLevel);
+      }
+
+      final snapshot = await query.get();
+      return snapshot.docs.map((doc) => doc.data()).toList();
+    } catch (e) {
+      debugPrint('Failed to get AI lessons from Firestore: $e');
+      return [];
+    }
+  }
+
   // Handle Firebase Auth exceptions
   String _handleAuthException(FirebaseAuthException e) {
     switch (e.code) {

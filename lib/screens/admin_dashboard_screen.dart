@@ -6,6 +6,7 @@ import '../providers/app_provider.dart';
 import '../utils/app_theme.dart';
 import '../core/theme/app_colors.dart';
 import '../widgets/gradient_header.dart';
+import 'ai_lesson_generator_screen.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -862,6 +863,21 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                     title: const Text('Send Notification'),
                     subtitle: const Text('Send notification to all users'),
                     onTap: _sendNotification,
+                  ),
+                  const Divider(),
+                  ListTile(
+                    leading:
+                        const Icon(Icons.auto_awesome, color: Colors.purple),
+                    title: const Text('AI Lesson Generator'),
+                    subtitle: const Text('Create lessons using AI'),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AILessonGeneratorScreen(),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
