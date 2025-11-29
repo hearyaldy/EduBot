@@ -9,6 +9,32 @@ service cloud.firestore {
              exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.accountType == 'superadmin';
     }
+    
+    // Helper function to check if user is admin or superadmin
+    function isAdminOrSuperadmin() {
+      return request.auth != null && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.accountType == 'superadmin' ||
+              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.accountType == 'admin');
+    }
+
+    // AI Generated Lessons - Created by admins
+    match /aiLessons/{lessonId} {
+      // Anyone authenticated can read AI lessons
+      allow read: if request.auth != null;
+
+      // Only admins and superadmins can create/update/delete AI lessons
+      allow write: if isAdminOrSuperadmin();
+    }
+
+    // Lessons collection - for general lessons
+    match /lessons/{lessonId} {
+      // Anyone authenticated can read lessons
+      allow read: if request.auth != null;
+
+      // Only admins and superadmins can write lessons
+      allow write: if isAdminOrSuperadmin();
+    }
 
     // Question Bank - Global shared questions
     match /questionBank/{questionId} {
