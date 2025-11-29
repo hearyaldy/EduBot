@@ -30,13 +30,13 @@ class CsvImportService {
     try {
       final lines = csvContent.split('\n');
       if (lines.isEmpty) {
-        throw FormatException('CSV file is empty');
+        throw const FormatException('CSV file is empty');
       }
 
       // Parse header
       final header = _parseCsvLine(lines[0]);
       if (header.isEmpty) {
-        throw FormatException('CSV header is empty');
+        throw const FormatException('CSV header is empty');
       }
 
       // Validate required columns

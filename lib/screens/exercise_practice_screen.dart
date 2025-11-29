@@ -76,8 +76,9 @@ class _ExercisePracticeScreenState extends State<ExercisePracticeScreen> {
 
   /// Load AI-generated hints for the current exercise
   Future<void> _loadAIHints() async {
-    if (_aiHints != null || _isLoadingAIHints)
+    if (_aiHints != null || _isLoadingAIHints) {
       return; // Already loaded or loading
+    }
 
     // Capture the current question index to check later
     final questionIndex = _currentExerciseIndex;
@@ -335,7 +336,7 @@ class _ExercisePracticeScreenState extends State<ExercisePracticeScreen> {
               ),
               child: Row(
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.lightbulb_outline,
                     color: AppColors.info,
                     size: 18,
@@ -661,7 +662,7 @@ class _ExercisePracticeScreenState extends State<ExercisePracticeScreen> {
         children: [
           Row(
             children: [
-              Icon(
+              const Icon(
                 Icons.school,
                 color: AppColors.secondary,
                 size: 20,

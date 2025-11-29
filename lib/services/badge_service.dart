@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/badge.dart';
+import 'firebase_service.dart';
 
 class BadgeService {
   static const String _badgesKey = 'user_badges';
@@ -21,6 +22,8 @@ class BadgeService {
     _initializeBadges();
     await _loadBadgeData();
     await _loadSubjectsUsed();
+    // Sync with Firestore after loading local data
+    await _syncFromFirestore();
   }
 
   void _initializeBadges() {
@@ -108,6 +111,8 @@ class BadgeService {
       final jsonData = _badges.map((badge) => badge.toJson()).toList();
       final jsonString = jsonEncode(jsonData);
       await _prefs?.setString(_badgesKey, jsonString);
+      // Also sync to Firestore
+      await _syncToFirestore();
     } catch (e) {
       debugPrint('Error saving badge data: $e');
     }
@@ -117,8 +122,84 @@ class BadgeService {
     try {
       final jsonString = jsonEncode(_subjectsUsed.toList());
       await _prefs?.setString(_subjectsUsedKey, jsonString);
+      // Also sync to Firestore (subjects are part of badge data)
+      await _syncToFirestore();
     } catch (e) {
       debugPrint('Error saving subjects used: $e');
+    }
+  }
+
+  /// Sync badge data to Firestore
+  Future<void> _syncToFirestore() async {
+    try {
+      final badgeData = _badges.map((badge) => badge.toJson()).toList();
+      await FirebaseService.instance.saveBadgeData(
+        badges: badgeData,
+        subjectsUsed: _subjectsUsed.toList(),
+      );
+    } catch (e) {
+      debugPrint('Error syncing badges to Firestore: $e');
+    }
+  }
+
+  /// Sync badge data from Firestore (merge with local)
+  Future<void> _syncFromFirestore() async {
+    try {
+      final firestoreData = await FirebaseService.instance.getBadgeData();
+      if (firestoreData == null) {
+        // No Firestore data - upload local data
+        if (_badges.isNotEmpty) {
+          debugPrint('📤 Uploading local badge data to Firestore...');
+          await _syncToFirestore();
+        }
+        return;
+      }
+
+      // Merge badges: keep unlocked status from either source
+      final firestoreBadges = (firestoreData['badges'] as List<dynamic>?)
+              ?.map((json) => Badge.fromJson(json as Map<String, dynamic>))
+              .toList() ??
+          [];
+
+      for (int i = 0; i < _badges.length; i++) {
+        final firestoreBadge = firestoreBadges.firstWhere(
+          (b) => b.id == _badges[i].id,
+          orElse: () => _badges[i],
+        );
+
+        // If unlocked in either source, keep it unlocked
+        if (firestoreBadge.isUnlocked && !_badges[i].isUnlocked) {
+          _badges[i] = _badges[i].copyWith(
+            isUnlocked: true,
+            unlockedAt: firestoreBadge.unlockedAt,
+          );
+        }
+      }
+
+      // Merge subjects used
+      final firestoreSubjects =
+          (firestoreData['subjectsUsed'] as List<dynamic>?)
+                  ?.cast<String>()
+                  .toSet() ??
+              <String>{};
+      _subjectsUsed.addAll(firestoreSubjects);
+
+      // Save merged data locally
+      final jsonData = _badges.map((badge) => badge.toJson()).toList();
+      await _prefs?.setString(_badgesKey, jsonEncode(jsonData));
+      await _prefs?.setString(
+          _subjectsUsedKey, jsonEncode(_subjectsUsed.toList()));
+
+      // Update Firestore with merged data
+      await FirebaseService.instance.saveBadgeData(
+        badges: jsonData,
+        subjectsUsed: _subjectsUsed.toList(),
+      );
+
+      debugPrint(
+          '✅ Badge data synced from Firestore (${unlockedCount}/${totalCount} unlocked)');
+    } catch (e) {
+      debugPrint('Error syncing badges from Firestore: $e');
     }
   }
 
@@ -133,9 +214,8 @@ class BadgeService {
   int get unlockedCount => unlockedBadges.length;
   int get totalCount => _badges.length;
 
-  double get completionPercentage => totalCount > 0
-      ? (unlockedCount / totalCount) * 100
-      : 0.0;
+  double get completionPercentage =>
+      totalCount > 0 ? (unlockedCount / totalCount) * 100 : 0.0;
 
   /// Check and unlock badges based on current stats
   Future<List<Badge>> checkBadges({

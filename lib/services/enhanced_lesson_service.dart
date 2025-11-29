@@ -91,8 +91,9 @@ class EnhancedLessonService {
             topic: topic,
             difficulty: DifficultyLevel.intermediate,
           );
-          if (intermediateLesson != null)
+          if (intermediateLesson != null) {
             dynamicLessons.add(intermediateLesson);
+          }
 
           // Generate advanced lesson
           final advancedLesson = await _generateTopicLesson(

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:flutter/foundation.dart';
 import '../core/theme/app_colors.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -85,11 +84,13 @@ class _SplashScreenState extends State<SplashScreen>
       debugPrint('⏱️ SplashScreen: Waiting 400ms for background animation');
       await Future.delayed(const Duration(milliseconds: 400));
       if (mounted) {
-        debugPrint('🎨 SplashScreen: Starting background animation (mounted: true)');
+        debugPrint(
+            '🎨 SplashScreen: Starting background animation (mounted: true)');
         await _controller.forward();
         debugPrint('✅ SplashScreen: Background animation forwarded');
       } else {
-        debugPrint('⚠️ SplashScreen: Skipping background animation (mounted: false)');
+        debugPrint(
+            '⚠️ SplashScreen: Skipping background animation (mounted: false)');
       }
 
       debugPrint('🎉 SplashScreen: All animations complete');

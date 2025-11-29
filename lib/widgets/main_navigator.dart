@@ -19,7 +19,7 @@ import '../widgets/glass_card.dart';
 import '../widgets/gradient_header.dart';
 import '../l10n/app_localizations.dart';
 import '../services/admin_service.dart';
-import '../services/admin_auth_service.dart';
+// import '../services/admin_auth_service.dart'; // Unused
 
 class MainNavigator extends StatefulWidget {
   const MainNavigator({super.key});
@@ -87,8 +87,8 @@ class _MainNavigatorState extends State<MainNavigator> {
                   BottomNavigationBarItem(
                     icon: Container(
                       padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
                           colors: [AppColors.primary, AppColors.secondary],
                         ),
                         shape: BoxShape.circle,
@@ -98,8 +98,8 @@ class _MainNavigatorState extends State<MainNavigator> {
                     ),
                     activeIcon: Container(
                       padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
                           colors: [AppColors.primary, AppColors.secondary],
                         ),
                         shape: BoxShape.circle,

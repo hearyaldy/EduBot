@@ -38,7 +38,7 @@ class QuestionImportService {
       final data = json.decode(jsonString);
 
       if (data is! Map<String, dynamic>) {
-        throw FormatException('JSON must be an object');
+        throw const FormatException('JSON must be an object');
       }
 
       return await _processImportData(data);
@@ -67,7 +67,7 @@ class QuestionImportService {
 
     // Process questions
     if (!data.containsKey('questions') || data['questions'] is! List) {
-      throw FormatException('Missing or invalid questions array');
+      throw const FormatException('Missing or invalid questions array');
     }
 
     final questions = data['questions'] as List<dynamic>;
@@ -89,7 +89,7 @@ class QuestionImportService {
   Future<void> _processQuestion(dynamic questionData, int questionIndex,
       Map<String, dynamic> results) async {
     if (questionData is! Map<String, dynamic>) {
-      throw FormatException('Question must be an object');
+      throw const FormatException('Question must be an object');
     }
 
     // Validate and normalize question data
@@ -114,7 +114,7 @@ class QuestionImportService {
     // Create and add question
     final question = Question.fromJson(normalizedData);
     _questionBankService.addQuestion(question);
-    
+
     // Also save question to database so it can be retrieved by LessonService
     await _databaseService.initialize();
     await _databaseService.saveQuestion(question);
@@ -131,7 +131,7 @@ class QuestionImportService {
   /// Check if question ID already exists
   Future<bool> _isDuplicate(String questionId) async {
     try {
-      final filter = QuestionFilter();
+      const filter = QuestionFilter();
       final allQuestions = await _questionBankService.getQuestions(filter);
       return allQuestions.any((q) => q.id == questionId);
     } catch (e) {
@@ -421,15 +421,19 @@ class QuestionImportService {
 
     if (text.contains('add') || text.contains('+')) return 'Addition';
     if (text.contains('subtract') || text.contains('-')) return 'Subtraction';
-    if (text.contains('multiply') || text.contains('×') || text.contains('*'))
+    if (text.contains('multiply') || text.contains('×') || text.contains('*')) {
       return 'Multiplication';
-    if (text.contains('divide') || text.contains('÷') || text.contains('/'))
+    }
+    if (text.contains('divide') || text.contains('÷') || text.contains('/')) {
       return 'Division';
+    }
     if (text.contains('fraction')) return 'Fractions';
     if (text.contains('time') || text.contains('clock')) return 'Time';
     if (text.contains('money') ||
         text.contains('ringgit') ||
-        text.contains('sen')) return 'Money';
+        text.contains('sen')) {
+      return 'Money';
+    }
 
     return 'General';
   }

@@ -488,7 +488,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
               // Bottom info row
               Row(
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.assignment,
                     size: 16,
                     color: AppColors.gray500,
@@ -501,7 +501,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                     ),
                   ),
                   const SizedBox(width: 16),
-                  Icon(
+                  const Icon(
                     Icons.access_time,
                     size: 16,
                     color: AppColors.gray500,
@@ -542,7 +542,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                       ),
                     )
                   else
-                    Icon(
+                    const Icon(
                       Icons.play_circle_outline,
                       color: AppColors.primary,
                       size: 24,

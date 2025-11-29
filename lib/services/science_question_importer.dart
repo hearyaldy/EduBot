@@ -1,13 +1,11 @@
-import 'dart:convert';
 import '../services/question_import_service.dart';
-import '../models/question.dart';
 
 class ScienceQuestionImporter {
   final QuestionImportService _importService = QuestionImportService();
 
   /// Import the Year 6 Science questions directly
   Future<Map<String, dynamic>> importYear6ScienceQuestions() async {
-    final jsonString = '''{
+    const jsonString = '''{
   "metadata": {
     "version": "1.0",
     "exported_from": "Manual Import",
@@ -1184,11 +1182,11 @@ class ScienceQuestionImporter {
       print('   Total processed: ${result['total_processed']}');
       print('   Successfully imported: ${result['successfully_imported']}');
       print('   Failed imports: ${result['failed_imports']}');
-      
+
       if (result['errors'].length > 0) {
         print('   Errors: ${result['errors']}');
       }
-      
+
       return result;
     } catch (e) {
       print('❌ Error importing questions: $e');
@@ -1206,7 +1204,7 @@ class ScienceQuestionImporter {
   /// You can call this method from anywhere in the app to import the questions
   /// For example, you could call this from the main.dart during initialization
   Future<void> importIfNotAlreadyPresent() async {
-    // This would check if the questions are already in the database 
+    // This would check if the questions are already in the database
     // and only import them if they're not there yet
   }
 }

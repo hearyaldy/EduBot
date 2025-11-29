@@ -490,9 +490,14 @@ class FirebaseService {
   // Save child profile to Firestore
   Future<void> saveChildProfile(Map<String, dynamic> profileData) async {
     final userId = currentUserId;
-    if (userId == null) return;
+    if (userId == null) {
+      debugPrint('⚠️ Cannot save child profile: No user logged in');
+      return;
+    }
 
     try {
+      debugPrint(
+          '💾 Saving child profile to Firestore: ${profileData['name']} (${profileData['id']})');
       await _firestore
           .collection('users')
           .doc(userId)
@@ -502,26 +507,33 @@ class FirebaseService {
         ...profileData,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
+      debugPrint('✅ Child profile saved successfully');
     } catch (e) {
-      debugPrint('Failed to save child profile: $e');
+      debugPrint('❌ Failed to save child profile: $e');
     }
   }
 
   // Get child profiles from Firestore
   Future<List<Map<String, dynamic>>> getChildProfiles() async {
     final userId = currentUserId;
-    if (userId == null) return [];
+    if (userId == null) {
+      debugPrint('⚠️ Cannot get child profiles: No user logged in');
+      return [];
+    }
 
     try {
+      debugPrint('📥 Fetching child profiles from Firestore for user: $userId');
       final snapshot = await _firestore
           .collection('users')
           .doc(userId)
           .collection('childProfiles')
           .get();
 
+      debugPrint(
+          '✅ Retrieved ${snapshot.docs.length} child profiles from Firestore');
       return snapshot.docs.map((doc) => doc.data()).toList();
     } catch (e) {
-      debugPrint('Failed to get child profiles: $e');
+      debugPrint('❌ Failed to get child profiles: $e');
       return [];
     }
   }
@@ -605,6 +617,106 @@ class FirebaseService {
     }
   }
 
+  // ===== STREAK DATA SYNC =====
+
+  /// Save streak data to Firestore
+  Future<void> saveStreakData(Map<String, dynamic> streakData) async {
+    final userId = currentUserId;
+    if (userId == null) {
+      debugPrint('⚠️ Cannot save streak data: No user logged in');
+      return;
+    }
+
+    try {
+      debugPrint('💾 Saving streak data to Firestore...');
+      await _firestore.collection('users').doc(userId).set({
+        'streakData': {
+          ...streakData,
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+      }, SetOptions(merge: true));
+      debugPrint('✅ Streak data saved successfully');
+    } catch (e) {
+      debugPrint('❌ Failed to save streak data: $e');
+    }
+  }
+
+  /// Get streak data from Firestore
+  Future<Map<String, dynamic>?> getStreakData() async {
+    final userId = currentUserId;
+    if (userId == null) {
+      debugPrint('⚠️ Cannot get streak data: No user logged in');
+      return null;
+    }
+
+    try {
+      debugPrint('📥 Fetching streak data from Firestore for user: $userId');
+      final doc = await _firestore.collection('users').doc(userId).get();
+
+      if (doc.exists && doc.data()?['streakData'] != null) {
+        debugPrint('✅ Retrieved streak data from Firestore');
+        return doc.data()!['streakData'] as Map<String, dynamic>;
+      }
+      debugPrint('ℹ️ No streak data found in Firestore');
+      return null;
+    } catch (e) {
+      debugPrint('❌ Failed to get streak data: $e');
+      return null;
+    }
+  }
+
+  // ===== BADGE DATA SYNC =====
+
+  /// Save badge data to Firestore
+  Future<void> saveBadgeData({
+    required List<Map<String, dynamic>> badges,
+    required List<String> subjectsUsed,
+  }) async {
+    final userId = currentUserId;
+    if (userId == null) {
+      debugPrint('⚠️ Cannot save badge data: No user logged in');
+      return;
+    }
+
+    try {
+      debugPrint('💾 Saving badge data to Firestore...');
+      await _firestore.collection('users').doc(userId).set({
+        'badgeData': {
+          'badges': badges,
+          'subjectsUsed': subjectsUsed,
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+      }, SetOptions(merge: true));
+      debugPrint('✅ Badge data saved successfully');
+    } catch (e) {
+      debugPrint('❌ Failed to save badge data: $e');
+    }
+  }
+
+  /// Get badge data from Firestore
+  Future<Map<String, dynamic>?> getBadgeData() async {
+    final userId = currentUserId;
+    if (userId == null) {
+      debugPrint('⚠️ Cannot get badge data: No user logged in');
+      return null;
+    }
+
+    try {
+      debugPrint('📥 Fetching badge data from Firestore for user: $userId');
+      final doc = await _firestore.collection('users').doc(userId).get();
+
+      if (doc.exists && doc.data()?['badgeData'] != null) {
+        debugPrint('✅ Retrieved badge data from Firestore');
+        return doc.data()!['badgeData'] as Map<String, dynamic>;
+      }
+      debugPrint('ℹ️ No badge data found in Firestore');
+      return null;
+    } catch (e) {
+      debugPrint('❌ Failed to get badge data: $e');
+      return null;
+    }
+  }
+
   // ===== SHARED QUESTION BANK (GLOBAL FOR ALL USERS) =====
 
   /// Save a question to the global question bank in Firestore
@@ -616,10 +728,7 @@ class FirebaseService {
     }
 
     try {
-      await _firestore
-          .collection('questionBank')
-          .doc(questionData['id'])
-          .set({
+      await _firestore.collection('questionBank').doc(questionData['id']).set({
         ...questionData,
         'createdAt': questionData['createdAt'] ?? FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
@@ -726,8 +835,7 @@ class FirebaseService {
       return const Stream.empty();
     }
 
-    Query<Map<String, dynamic>> query =
-        _firestore.collection('questionBank');
+    Query<Map<String, dynamic>> query = _firestore.collection('questionBank');
 
     if (subject != null && subject.isNotEmpty) {
       query = query.where('subject', isEqualTo: subject);
@@ -770,16 +878,19 @@ class FirebaseService {
       int count = 0;
 
       for (final questionData in questions) {
-        final docRef = _firestore
-            .collection('questionBank')
-            .doc(questionData['id']);
+        final docRef =
+            _firestore.collection('questionBank').doc(questionData['id']);
 
-        batch.set(docRef, {
-          ...questionData,
-          'createdAt': questionData['createdAt'] ?? FieldValue.serverTimestamp(),
-          'updatedAt': FieldValue.serverTimestamp(),
-          'createdBy': currentUserId ?? 'anonymous',
-        }, SetOptions(merge: true));
+        batch.set(
+            docRef,
+            {
+              ...questionData,
+              'createdAt':
+                  questionData['createdAt'] ?? FieldValue.serverTimestamp(),
+              'updatedAt': FieldValue.serverTimestamp(),
+              'createdBy': currentUserId ?? 'anonymous',
+            },
+            SetOptions(merge: true));
 
         count++;
 
@@ -799,6 +910,117 @@ class FirebaseService {
     } catch (e) {
       debugPrint('Failed to sync questions to Firestore: $e');
       rethrow;
+    }
+  }
+
+  /// Find and remove duplicate questions from Firestore
+  /// Returns detailed statistics about the cleanup
+  Future<Map<String, dynamic>> removeFirestoreDuplicates() async {
+    if (!_isInitialized) {
+      debugPrint('Firebase not initialized. Cannot remove duplicates.');
+      return {
+        'total': 0,
+        'duplicates_found': 0,
+        'duplicates_removed': 0,
+        'unique_remaining': 0,
+        'errors': ['Firebase not initialized']
+      };
+    }
+
+    try {
+      debugPrint(
+          '🔍 Fetching all questions from Firestore for deduplication...');
+      final snapshot = await _firestore.collection('questionBank').get();
+      final allDocs = snapshot.docs;
+      final total = allDocs.length;
+      debugPrint('📊 Found $total total questions in Firestore');
+
+      // Create a map to track unique questions by content hash
+      final Map<String, String> contentHashToDocId = {};
+      final List<String> duplicateDocIds = [];
+
+      for (final doc in allDocs) {
+        final data = doc.data();
+
+        // Generate content hash based on question content
+        final questionText =
+            (data['question_text'] ?? '').toString().toLowerCase().trim();
+        final answerKey =
+            (data['answer_key'] ?? '').toString().toLowerCase().trim();
+        final subject = (data['subject'] ?? '').toString().toLowerCase().trim();
+        final topic = (data['topic'] ?? '').toString().toLowerCase().trim();
+
+        final contentHash = '$questionText|$subject|$topic|$answerKey';
+
+        if (contentHashToDocId.containsKey(contentHash)) {
+          // This is a duplicate - mark for deletion
+          duplicateDocIds.add(doc.id);
+        } else {
+          // First occurrence - keep it
+          contentHashToDocId[contentHash] = doc.id;
+        }
+      }
+
+      final duplicatesFound = duplicateDocIds.length;
+      debugPrint('🔄 Found $duplicatesFound duplicate questions to remove');
+
+      if (duplicateDocIds.isEmpty) {
+        return {
+          'total': total,
+          'duplicates_found': 0,
+          'duplicates_removed': 0,
+          'unique_remaining': total,
+          'errors': <String>[]
+        };
+      }
+
+      // Delete duplicates in batches
+      int deleted = 0;
+      final List<String> errors = [];
+      const batchSize = 500;
+
+      for (int i = 0; i < duplicateDocIds.length; i += batchSize) {
+        try {
+          final batch = _firestore.batch();
+          final end = (i + batchSize < duplicateDocIds.length)
+              ? i + batchSize
+              : duplicateDocIds.length;
+
+          for (int j = i; j < end; j++) {
+            final docRef =
+                _firestore.collection('questionBank').doc(duplicateDocIds[j]);
+            batch.delete(docRef);
+          }
+
+          await batch.commit();
+          deleted += (end - i);
+          debugPrint('🗑️ Deleted batch: $deleted/$duplicatesFound');
+        } catch (e) {
+          errors.add('Batch delete error: $e');
+          debugPrint('❌ Batch delete error: $e');
+        }
+      }
+
+      final uniqueRemaining = total - deleted;
+      debugPrint(
+          '✅ Removed $deleted duplicates. $uniqueRemaining unique questions remaining.');
+
+      return {
+        'total': total,
+        'duplicates_found': duplicatesFound,
+        'duplicates_removed': deleted,
+        'unique_remaining': uniqueRemaining,
+        'errors': errors
+      };
+    } catch (e) {
+      debugPrint('❌ Failed to remove duplicates from Firestore: $e');
+      return {
+        'total': 0,
+        'duplicates_found': 0,
+        'duplicates_removed': 0,
+        'unique_remaining': 0,
+        'errors': [e.toString()]
+      };
     }
   }
 

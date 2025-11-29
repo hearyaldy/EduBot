@@ -1,16 +1,17 @@
 /// Converts the lesson-based JSON format to question bank format
-/// 
+///
 /// Usage: Pass your lesson JSON as input, and it will return properly formatted questions
+library;
 
 String convertLessonToQuestionBankFormat(String lessonJsonString) {
   // This is a manual conversion - you would need to parse this with dart:convert
   // in a real implementation, but here's the general structure
-  
+
   // 1. Parse the lesson JSON
   // 2. Extract each section and its questions
   // 3. Convert each question to proper question bank format
   // 4. Return in the question bank format
-  
+
   return '''{
   "metadata": {
     "version": "1.0",

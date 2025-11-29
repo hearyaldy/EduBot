@@ -572,7 +572,7 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
               ),
             ),
             if (onTap != null)
-              Icon(
+              const Icon(
                 Icons.arrow_forward_ios,
                 size: 14,
                 color: AppColors.gray400,

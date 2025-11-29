@@ -420,7 +420,7 @@ class ManageProfilesScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<int>(
-                value: selectedGrade,
+                initialValue: selectedGrade,
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.school_outlined),
@@ -609,7 +609,7 @@ class ManageProfilesScreen extends StatelessWidget {
                         TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<int>(
-                  value: selectedGrade,
+                  initialValue: selectedGrade,
                   decoration:
                       const InputDecoration(border: OutlineInputBorder()),
                   items: List.generate(13, (index) {

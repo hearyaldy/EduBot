@@ -5,7 +5,7 @@ import '../models/lesson.dart';
 import '../models/exercise.dart';
 
 class QuestionBankDemo extends StatefulWidget {
-  const QuestionBankDemo({Key? key}) : super(key: key);
+  const QuestionBankDemo({super.key});
 
   @override
   State<QuestionBankDemo> createState() => _QuestionBankDemoState();

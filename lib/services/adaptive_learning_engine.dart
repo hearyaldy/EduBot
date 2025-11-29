@@ -23,9 +23,11 @@ class AdaptiveLearningEngine {
     bool includeReview = true,
     bool adaptDifficulty = true,
   }) async {
-    debugPrint('🎯 AdaptiveLearning: Getting recommendations for student: $studentId');
+    debugPrint(
+        '🎯 AdaptiveLearning: Getting recommendations for student: $studentId');
     debugPrint('📚 Subject: $subject, Topic: $topic, Count: $count');
-    debugPrint('⚙️ includeReview: $includeReview, adaptDifficulty: $adaptDifficulty');
+    debugPrint(
+        '⚙️ includeReview: $includeReview, adaptDifficulty: $adaptDifficulty');
 
     try {
       debugPrint('📊 AdaptiveLearning: Building learning profile...');
@@ -35,23 +37,27 @@ class AdaptiveLearningEngine {
       debugPrint('🔍 AdaptiveLearning: Getting available questions pool...');
       final questionPool =
           _getAvailableQuestions(subject: subject, topic: topic);
-      debugPrint('✅ AdaptiveLearning: Found ${questionPool.length} questions in pool');
+      debugPrint(
+          '✅ AdaptiveLearning: Found ${questionPool.length} questions in pool');
 
       final recommendations = <Question>[];
 
       // 1. Add review questions for struggling topics
       if (includeReview) {
-        debugPrint('📝 AdaptiveLearning: Getting review questions (${count ~/ 3} requested)...');
+        debugPrint(
+            '📝 AdaptiveLearning: Getting review questions (${count ~/ 3} requested)...');
         final reviewQuestions =
             await _getReviewQuestions(learningProfile, count ~/ 3);
         recommendations.addAll(reviewQuestions);
-        debugPrint('✅ AdaptiveLearning: Added ${reviewQuestions.length} review questions');
+        debugPrint(
+            '✅ AdaptiveLearning: Added ${reviewQuestions.length} review questions');
       }
 
       // 2. Add questions at appropriate difficulty level
       if (adaptDifficulty) {
         final adaptiveCount = count - recommendations.length;
-        debugPrint('🎚️ AdaptiveLearning: Getting adaptive difficulty questions ($adaptiveCount)...');
+        debugPrint(
+            '🎚️ AdaptiveLearning: Getting adaptive difficulty questions ($adaptiveCount)...');
         final adaptiveQuestions = await _getAdaptiveDifficultyQuestions(
           learningProfile,
           questionPool,
@@ -60,13 +66,15 @@ class AdaptiveLearningEngine {
           topic: topic,
         );
         recommendations.addAll(adaptiveQuestions);
-        debugPrint('✅ AdaptiveLearning: Added ${adaptiveQuestions.length} adaptive questions');
+        debugPrint(
+            '✅ AdaptiveLearning: Added ${adaptiveQuestions.length} adaptive questions');
       }
 
       // 3. Fill remaining slots with diverse questions
       final remainingCount = count - recommendations.length;
       if (remainingCount > 0) {
-        debugPrint('🎲 AdaptiveLearning: Getting diverse questions ($remainingCount)...');
+        debugPrint(
+            '🎲 AdaptiveLearning: Getting diverse questions ($remainingCount)...');
         final diverseQuestions = await _getDiverseQuestions(
           learningProfile,
           questionPool,
@@ -74,16 +82,20 @@ class AdaptiveLearningEngine {
           excludeQuestions: recommendations,
         );
         recommendations.addAll(diverseQuestions);
-        debugPrint('✅ AdaptiveLearning: Added ${diverseQuestions.length} diverse questions');
+        debugPrint(
+            '✅ AdaptiveLearning: Added ${diverseQuestions.length} diverse questions');
       }
 
       // 4. Apply learning science principles (spacing, interleaving)
       debugPrint('🧠 AdaptiveLearning: Applying learning principles...');
-      final finalRecommendations = _applyLearningPrinciples(recommendations, learningProfile);
-      debugPrint('🎉 AdaptiveLearning: Returning ${finalRecommendations.length} total recommendations');
+      final finalRecommendations =
+          _applyLearningPrinciples(recommendations, learningProfile);
+      debugPrint(
+          '🎉 AdaptiveLearning: Returning ${finalRecommendations.length} total recommendations');
       return finalRecommendations;
     } catch (e, stackTrace) {
-      debugPrint('❌ AdaptiveLearning ERROR in getPersonalizedRecommendations: $e');
+      debugPrint(
+          '❌ AdaptiveLearning ERROR in getPersonalizedRecommendations: $e');
       debugPrint('📍 Stack trace: $stackTrace');
 
       // Fallback to basic recommendations
@@ -94,13 +106,17 @@ class AdaptiveLearningEngine {
   }
 
   /// Internal method to build comprehensive learning profile for the specific student
-  Future<LearningProfile> _buildLearningProfileForStudent(String studentId) async {
+  Future<LearningProfile> _buildLearningProfileForStudent(
+      String studentId) async {
     debugPrint('👤 AdaptiveLearning: Building profile for student: $studentId');
 
     try {
-      debugPrint('📥 AdaptiveLearning: Fetching recent progress (last $_recentAttemptsWindow attempts)...');
-      final recentProgress = await _progressService.getRecentProgressByStudent(studentId, _recentAttemptsWindow);
-      debugPrint('✅ AdaptiveLearning: Found ${recentProgress.length} progress entries');
+      debugPrint(
+          '📥 AdaptiveLearning: Fetching recent progress (last $_recentAttemptsWindow attempts)...');
+      final recentProgress = await _progressService.getRecentProgressByStudent(
+          studentId, _recentAttemptsWindow);
+      debugPrint(
+          '✅ AdaptiveLearning: Found ${recentProgress.length} progress entries');
 
       if (recentProgress.isEmpty) {
         debugPrint('⚠️ AdaptiveLearning: No progress data found for student');
@@ -109,42 +125,51 @@ class AdaptiveLearningEngine {
       // Analyze performance patterns
       debugPrint('📊 AdaptiveLearning: Analyzing subject performance...');
       final subjectPerformance = _analyzeSubjectPerformance(recentProgress);
-      debugPrint('✅ AdaptiveLearning: Analyzed ${subjectPerformance.length} subjects');
+      debugPrint(
+          '✅ AdaptiveLearning: Analyzed ${subjectPerformance.length} subjects');
 
       debugPrint('🎚️ AdaptiveLearning: Analyzing difficulty preference...');
       final difficultyPreference = _analyzeDifficultyPreference(recentProgress);
-      debugPrint('✅ AdaptiveLearning: Preferred difficulty: ${difficultyPreference.preferredLevel.name}');
+      debugPrint(
+          '✅ AdaptiveLearning: Preferred difficulty: ${difficultyPreference.preferredLevel.name}');
 
       debugPrint('📈 AdaptiveLearning: Calculating learning velocity...');
       final learningVelocity = _calculateLearningVelocity(recentProgress);
-      debugPrint('✅ AdaptiveLearning: Improvement rate: ${learningVelocity.improvementRate.toStringAsFixed(3)}');
+      debugPrint(
+          '✅ AdaptiveLearning: Improvement rate: ${learningVelocity.improvementRate.toStringAsFixed(3)}');
 
       debugPrint('💪 AdaptiveLearning: Identifying conceptual strengths...');
       final conceptualStrengths = _identifyConceptualStrengths(recentProgress);
-      debugPrint('✅ AdaptiveLearning: Found ${conceptualStrengths.length} strength areas');
+      debugPrint(
+          '✅ AdaptiveLearning: Found ${conceptualStrengths.length} strength areas');
 
       debugPrint('🎓 AdaptiveLearning: Inferring learning style...');
       final learningStyle = _inferLearningStyle(recentProgress);
-      debugPrint('✅ AdaptiveLearning: Learning style: ${learningStyle.primaryStyle}');
+      debugPrint(
+          '✅ AdaptiveLearning: Learning style: ${learningStyle.primaryStyle}');
 
       // Identify knowledge gaps
       debugPrint('🔍 AdaptiveLearning: Identifying knowledge gaps...');
       final knowledgeGaps = _identifyKnowledgeGaps(recentProgress);
-      debugPrint('✅ AdaptiveLearning: Found ${knowledgeGaps.length} knowledge gaps');
+      debugPrint(
+          '✅ AdaptiveLearning: Found ${knowledgeGaps.length} knowledge gaps');
 
       // Calculate confidence levels
       debugPrint('💯 AdaptiveLearning: Calculating confidence levels...');
       final confidenceLevels = _calculateConfidenceLevels(recentProgress);
-      debugPrint('✅ AdaptiveLearning: Overall confidence: ${(confidenceLevels["overall"] ?? 0) * 100}%');
+      debugPrint(
+          '✅ AdaptiveLearning: Overall confidence: ${(confidenceLevels["overall"] ?? 0) * 100}%');
 
       debugPrint('🎯 AdaptiveLearning: Calculating mastery levels...');
       final masteryLevels = _calculateMasteryLevels(recentProgress);
 
       debugPrint('🎮 AdaptiveLearning: Analyzing question type preferences...');
-      final preferredQuestionTypes = _analyzeQuestionTypePreferences(recentProgress);
+      final preferredQuestionTypes =
+          _analyzeQuestionTypePreferences(recentProgress);
 
       debugPrint('⏱️ AdaptiveLearning: Calculating optimal session length...');
-      final optimalSessionLength = _calculateOptimalSessionLength(recentProgress);
+      final optimalSessionLength =
+          _calculateOptimalSessionLength(recentProgress);
 
       debugPrint('🕐 AdaptiveLearning: Identifying best study times...');
       final bestStudyTimes = _identifyOptimalStudyTimes(recentProgress);
@@ -169,21 +194,25 @@ class AdaptiveLearningEngine {
         errorPatterns: errorPatterns,
       );
     } catch (e, stackTrace) {
-      debugPrint('❌ AdaptiveLearning ERROR in _buildLearningProfileForStudent: $e');
+      debugPrint(
+          '❌ AdaptiveLearning ERROR in _buildLearningProfileForStudent: $e');
       debugPrint('📍 Stack trace: $stackTrace');
       rethrow;
     }
   }
 
   /// Public method to build comprehensive learning profile for the specific student
-  Future<LearningProfile> buildLearningProfileForStudent(String studentId) async {
-    debugPrint('🔄 AdaptiveLearning: Public buildLearningProfileForStudent called for: $studentId');
+  Future<LearningProfile> buildLearningProfileForStudent(
+      String studentId) async {
+    debugPrint(
+        '🔄 AdaptiveLearning: Public buildLearningProfileForStudent called for: $studentId');
     try {
       final profile = await _buildLearningProfileForStudent(studentId);
       debugPrint('✅ AdaptiveLearning: Profile successfully returned');
       return profile;
     } catch (e, stackTrace) {
-      debugPrint('❌ AdaptiveLearning ERROR in buildLearningProfileForStudent: $e');
+      debugPrint(
+          '❌ AdaptiveLearning ERROR in buildLearningProfileForStudent: $e');
       debugPrint('📍 Stack trace: $stackTrace');
       rethrow;
     }
@@ -466,9 +495,13 @@ class AdaptiveLearningEngine {
     }
 
     if (difficultyStats.isEmpty) {
-      return DifficultyPreference(
+      return const DifficultyPreference(
         preferredLevel: DifficultyTag.medium,
-        comfortRange: [DifficultyTag.easy, DifficultyTag.medium, DifficultyTag.hard],
+        comfortRange: [
+          DifficultyTag.easy,
+          DifficultyTag.medium,
+          DifficultyTag.hard
+        ],
         confidenceByDifficulty: {},
       );
     }
@@ -502,7 +535,7 @@ class AdaptiveLearningEngine {
   /// Calculates learning velocity (how quickly student improves)
   LearningVelocity _calculateLearningVelocity(List<StudentProgress> progress) {
     if (progress.length < 5) {
-      return LearningVelocity(
+      return const LearningVelocity(
         improvementRate: 0.0,
         accelerationRate: 0.0,
         plateauIndicator: 0.0,
@@ -564,7 +597,8 @@ class AdaptiveLearningEngine {
 
       // Only include as strength if accuracy is above 70%
       if (accuracy > 0.7) {
-        final accuracyList = conceptProgress.map((p) => p.isCorrect ? 1.0 : 0.0).toList();
+        final accuracyList =
+            conceptProgress.map((p) => p.isCorrect ? 1.0 : 0.0).toList();
         final consistency = 1.0 - _calculateVariance(accuracyList);
 
         strengths.add(ConceptualStrength(
@@ -585,8 +619,9 @@ class AdaptiveLearningEngine {
   LearningStyle _inferLearningStyle(List<StudentProgress> progress) {
     // Return default learning style if no progress data
     if (progress.isEmpty) {
-      debugPrint('⚠️ AdaptiveLearning: No progress data, using default learning style');
-      return LearningStyle(
+      debugPrint(
+          '⚠️ AdaptiveLearning: No progress data, using default learning style');
+      return const LearningStyle(
         primaryStyle: 'visual',
         secondaryStyle: 'auditory',
         processingSpeed: 'medium',
@@ -596,13 +631,16 @@ class AdaptiveLearningEngine {
 
     try {
       // Analyze patterns to infer learning preferences
-      final avgResponseTime =
-          progress.map((p) => p.responseTime.inSeconds).reduce((a, b) => a + b) /
-              progress.length;
-      final hintUsage = progress.map((p) => p.hintsUsedCount).reduce((a, b) => a + b) /
+      final avgResponseTime = progress
+              .map((p) => p.responseTime.inSeconds)
+              .reduce((a, b) => a + b) /
           progress.length;
+      final hintUsage =
+          progress.map((p) => p.hintsUsedCount).reduce((a, b) => a + b) /
+              progress.length;
 
-      debugPrint('📊 AdaptiveLearning: Avg response time: ${avgResponseTime.toStringAsFixed(1)}s, Avg hints: ${hintUsage.toStringAsFixed(1)}');
+      debugPrint(
+          '📊 AdaptiveLearning: Avg response time: ${avgResponseTime.toStringAsFixed(1)}s, Avg hints: ${hintUsage.toStringAsFixed(1)}');
 
       String primaryStyle = 'visual';
       if (avgResponseTime < 30) {
@@ -626,7 +664,7 @@ class AdaptiveLearningEngine {
       debugPrint('❌ AdaptiveLearning ERROR in _inferLearningStyle: $e');
       debugPrint('📍 Stack trace: $stackTrace');
       // Return default on error
-      return LearningStyle(
+      return const LearningStyle(
         primaryStyle: 'visual',
         secondaryStyle: 'auditory',
         processingSpeed: 'medium',
@@ -640,7 +678,8 @@ class AdaptiveLearningEngine {
     final gaps = <KnowledgeGap>[];
 
     // Group by subject and topic to identify weak areas
-    final subjectTopicPerformance = <String, Map<String, List<StudentProgress>>>{};
+    final subjectTopicPerformance =
+        <String, Map<String, List<StudentProgress>>>{};
 
     for (final p in progress) {
       subjectTopicPerformance
@@ -657,7 +696,8 @@ class AdaptiveLearningEngine {
         final topic = topicEntry.key;
         final attempts = topicEntry.value;
 
-        if (attempts.length < 2) continue; // Need minimum attempts to identify gap
+        if (attempts.length < 2)
+          continue; // Need minimum attempts to identify gap
 
         final correctAttempts = attempts.where((p) => p.isCorrect).length;
         final accuracy = correctAttempts / attempts.length;
@@ -702,7 +742,9 @@ class AdaptiveLearningEngine {
       subjectGroups.putIfAbsent(p.subject, () => []).add(p);
     }
 
-    final confidenceLevels = <String, double>{'overall': overallConfidence / 5.0};
+    final confidenceLevels = <String, double>{
+      'overall': overallConfidence / 5.0
+    };
 
     for (final entry in subjectGroups.entries) {
       final subjectProgress = entry.value;
@@ -799,13 +841,13 @@ class AdaptiveLearningEngine {
   List<ErrorPattern> _analyzeErrorPatterns(List<StudentProgress> progress) {
     // Mock error pattern analysis
     return [
-      ErrorPattern(
+      const ErrorPattern(
         pattern: 'Calculation errors in multi-step problems',
         frequency: 0.35,
         topics: ['algebra', 'calculus'],
         remedy: 'Practice step-by-step verification',
       ),
-      ErrorPattern(
+      const ErrorPattern(
         pattern: 'Misreading word problems',
         frequency: 0.22,
         topics: ['word_problems', 'applications'],
@@ -817,12 +859,14 @@ class AdaptiveLearningEngine {
   // Utility methods
   List<Question> _getAvailableQuestions({String? subject, String? topic}) {
     try {
-      debugPrint('🔍 AdaptiveLearning: Getting available questions (subject: $subject, topic: $topic)');
+      debugPrint(
+          '🔍 AdaptiveLearning: Getting available questions (subject: $subject, topic: $topic)');
       final questions = _databaseService.getFilteredQuestions(
         subject: subject,
         topic: topic,
       );
-      debugPrint('✅ AdaptiveLearning: Retrieved ${questions.length} questions from database');
+      debugPrint(
+          '✅ AdaptiveLearning: Retrieved ${questions.length} questions from database');
       return questions;
     } catch (e, stackTrace) {
       debugPrint('❌ AdaptiveLearning ERROR in _getAvailableQuestions: $e');
@@ -965,29 +1009,34 @@ class AdaptiveLearningEngine {
     required int count,
   }) {
     debugPrint('🆘 AdaptiveLearning: Using fallback recommendations');
-    debugPrint('   Student: $studentId, Subject: $subject, Topic: $topic, Count: $count');
+    debugPrint(
+        '   Student: $studentId, Subject: $subject, Topic: $topic, Count: $count');
 
     try {
       // Simple fallback when adaptive engine fails
       debugPrint('📚 AdaptiveLearning: Getting all questions from database...');
       final allQuestions = _databaseService.getAllQuestions();
-      debugPrint('✅ AdaptiveLearning: Found ${allQuestions.length} total questions');
+      debugPrint(
+          '✅ AdaptiveLearning: Found ${allQuestions.length} total questions');
 
       final questions = allQuestions
           .where((q) => subject == null || q.subject == subject)
           .where((q) => topic == null || q.topic == topic)
           .toList();
 
-      debugPrint('🔍 AdaptiveLearning: After filtering: ${questions.length} questions');
+      debugPrint(
+          '🔍 AdaptiveLearning: After filtering: ${questions.length} questions');
 
       if (questions.isEmpty) {
-        debugPrint('⚠️ AdaptiveLearning: No questions found matching criteria!');
+        debugPrint(
+            '⚠️ AdaptiveLearning: No questions found matching criteria!');
         return [];
       }
 
       questions.shuffle();
       final result = questions.take(count).toList();
-      debugPrint('✅ AdaptiveLearning: Returning ${result.length} fallback recommendations');
+      debugPrint(
+          '✅ AdaptiveLearning: Returning ${result.length} fallback recommendations');
       return result;
     } catch (e, stackTrace) {
       debugPrint('❌ AdaptiveLearning ERROR in _getFallbackRecommendations: $e');

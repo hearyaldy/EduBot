@@ -6,7 +6,6 @@ import '../models/student_progress.dart';
 import '../providers/app_provider.dart';
 import '../services/database_service.dart';
 import '../services/student_progress_service.dart';
-import 'dart:math';
 
 class AnalyticsDashboard extends StatefulWidget {
   const AnalyticsDashboard({super.key});
@@ -84,8 +83,8 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard>
       _analyticsData = await _progressService.getAnalyticsSummary(studentId);
 
       // Load recent progress for specific student within date range
-      _recentProgress =
-          await _progressService.getStudentProgressInDateRange(studentId, startDate, endDate);
+      _recentProgress = await _progressService.getStudentProgressInDateRange(
+          studentId, startDate, endDate);
 
       // Generate chart data
       _generateChartData();
@@ -153,12 +152,27 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard>
       Colors.pink,
     ];
 
+    // Use actual subject data from progress records
     for (final progress in _recentProgress) {
-      // We would need to get question details to get subject
-      // For now, using mock data
-      final subjects = ['Mathematics', 'Science', 'English', 'History'];
-      final subject = subjects[Random().nextInt(subjects.length)];
+      final subject = progress.subject.isNotEmpty ? progress.subject : 'Other';
       subjectCounts[subject] = (subjectCounts[subject] ?? 0) + 1;
+    }
+
+    // If no data, show empty state
+    if (subjectCounts.isEmpty) {
+      return [
+        PieChartSectionData(
+          color: Colors.grey.shade300,
+          value: 1,
+          title: 'No Data',
+          radius: 60,
+          titleStyle: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey,
+          ),
+        ),
+      ];
     }
 
     final sections = <PieChartSectionData>[];
@@ -192,10 +206,9 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard>
       difficultyStats[difficulty] = {'correct': 0, 'incorrect': 0};
     }
 
-    // Count progress by difficulty (mock data for now)
+    // Use actual difficulty data from progress records
     for (final progress in _recentProgress) {
-      final difficulty =
-          DifficultyTag.values[Random().nextInt(DifficultyTag.values.length)];
+      final difficulty = progress.difficulty;
       if (progress.isCorrect) {
         difficultyStats[difficulty]!['correct'] =
             difficultyStats[difficulty]!['correct']! + 1;
@@ -987,30 +1000,123 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Learning Analytics'),
-        backgroundColor: Colors.blue.shade50,
+        title: const Text(
+          'Learning Analytics',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.teal.shade600,
+        foregroundColor: Colors.white,
+        elevation: 0,
         actions: [
           IconButton(
             onPressed: _loadAnalyticsData,
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh_rounded),
             tooltip: 'Refresh data',
           ),
-          IconButton(
-            onPressed: () {
-              // TODO: Export analytics report
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert_rounded),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'export',
+                child: ListTile(
+                  leading: Icon(Icons.download_rounded, color: Colors.blue),
+                  title: Text('Export Report'),
+                  subtitle: Text('Download analytics as PDF',
+                      style: TextStyle(fontSize: 11)),
+                  dense: true,
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'share',
+                child: ListTile(
+                  leading: Icon(Icons.share_rounded, color: Colors.green),
+                  title: Text('Share Progress'),
+                  subtitle: Text('Share with parents/teachers',
+                      style: TextStyle(fontSize: 11)),
+                  dense: true,
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'reset',
+                child: ListTile(
+                  leading:
+                      Icon(Icons.restart_alt_rounded, color: Colors.orange),
+                  title: Text('Reset Filters'),
+                  dense: true,
+                ),
+              ),
+            ],
+            onSelected: (value) {
+              // Handle menu actions
+              if (value == 'export') {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Export feature coming soon!')),
+                );
+              }
             },
-            icon: const Icon(Icons.download),
-            tooltip: 'Export report',
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(icon: Icon(Icons.dashboard), text: 'Overview'),
-            Tab(icon: Icon(Icons.subject), text: 'Subjects'),
-            Tab(icon: Icon(Icons.bar_chart), text: 'Difficulty'),
-            Tab(icon: Icon(Icons.trending_up), text: 'Trends'),
-          ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(60),
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: TabBar(
+              controller: _tabController,
+              indicator: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              indicatorSize: TabBarIndicatorSize.tab,
+              indicatorPadding: const EdgeInsets.all(4),
+              labelColor: Colors.teal.shade700,
+              unselectedLabelColor: Colors.white.withOpacity(0.9),
+              labelStyle: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 11,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 11,
+              ),
+              dividerColor: Colors.transparent,
+              tabs: const [
+                Tab(
+                  icon: Icon(Icons.dashboard_rounded, size: 20),
+                  text: 'Overview',
+                  iconMargin: EdgeInsets.only(bottom: 4),
+                ),
+                Tab(
+                  icon: Icon(Icons.subject_rounded, size: 20),
+                  text: 'Subjects',
+                  iconMargin: EdgeInsets.only(bottom: 4),
+                ),
+                Tab(
+                  icon: Icon(Icons.bar_chart_rounded, size: 20),
+                  text: 'Difficulty',
+                  iconMargin: EdgeInsets.only(bottom: 4),
+                ),
+                Tab(
+                  icon: Icon(Icons.trending_up_rounded, size: 20),
+                  text: 'Trends',
+                  iconMargin: EdgeInsets.only(bottom: 4),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
       body: TabBarView(

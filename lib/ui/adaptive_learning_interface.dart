@@ -286,7 +286,7 @@ class _AdaptiveLearningInterfaceState extends State<AdaptiveLearningInterface> {
 
             // Subject selection
             DropdownButtonFormField<String>(
-              value: _selectedSubject,
+              initialValue: _selectedSubject,
               decoration: const InputDecoration(
                 labelText: 'Subject',
                 border: OutlineInputBorder(),
@@ -309,7 +309,7 @@ class _AdaptiveLearningInterfaceState extends State<AdaptiveLearningInterface> {
 
             // Topic selection
             DropdownButtonFormField<String?>(
-              value: _selectedTopic,
+              initialValue: _selectedTopic,
               decoration: const InputDecoration(
                 labelText: 'Topic (Optional)',
                 border: OutlineInputBorder(),
@@ -424,8 +424,8 @@ class _AdaptiveLearningInterfaceState extends State<AdaptiveLearningInterface> {
           children: [
             Row(
               children: [
-                Flexible(
-                  child: const Text(
+                const Flexible(
+                  child: Text(
                     'Recommended Questions',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     overflow: TextOverflow.ellipsis,
@@ -591,8 +591,9 @@ class _AdaptiveLearningInterfaceState extends State<AdaptiveLearningInterface> {
   }
 
   String _generateRecommendationInsight() {
-    if (_learningProfile == null)
+    if (_learningProfile == null) {
       return 'Generating personalized recommendations...';
+    }
 
     final profile = _learningProfile!;
     final insights = <String>[];
@@ -663,18 +664,88 @@ class _AdaptiveLearningInterfaceState extends State<AdaptiveLearningInterface> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Adaptive Learning'),
-        backgroundColor: Colors.blue.shade50,
+        title: const Text(
+          'AI Learning',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.indigo.shade600,
+        foregroundColor: Colors.white,
+        elevation: 0,
         actions: [
           IconButton(
             onPressed: _loadLearningProfile,
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh_rounded),
             tooltip: 'Refresh profile',
+          ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert_rounded),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'reset_profile',
+                child: ListTile(
+                  leading:
+                      Icon(Icons.restart_alt_rounded, color: Colors.orange),
+                  title: Text('Reset Learning Profile'),
+                  subtitle: Text('Start fresh with new recommendations',
+                      style: TextStyle(fontSize: 11)),
+                  dense: true,
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'study_plan',
+                child: ListTile(
+                  leading:
+                      Icon(Icons.calendar_today_rounded, color: Colors.blue),
+                  title: Text('Generate Study Plan'),
+                  subtitle: Text('Create personalized schedule',
+                      style: TextStyle(fontSize: 11)),
+                  dense: true,
+                ),
+              ),
+            ],
+            onSelected: (value) {
+              if (value == 'reset_profile') {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                      content: Text('Profile reset feature coming soon!')),
+                );
+              }
+            },
           ),
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.indigo.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: CircularProgressIndicator(
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(Colors.indigo.shade600),
+                      strokeWidth: 3,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Building your learning profile...',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            )
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(

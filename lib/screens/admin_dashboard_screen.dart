@@ -43,7 +43,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
 
   void _checkAdminAccess() {
     final appProvider = Provider.of<AppProvider>(context, listen: false);
-    if (!appProvider.isSuperadmin) {
+    if (!appProvider.isSuperadmin && !_adminService.isAdmin) {
       Navigator.of(context).pop();
       _showSnackBar('Admin access required');
       return;
@@ -274,7 +274,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 children: [
                   Expanded(
                     child: DropdownButtonFormField<AccountType?>(
-                      value: _selectedAccountFilter,
+                      initialValue: _selectedAccountFilter,
                       decoration: InputDecoration(
                         labelText: 'Account Type',
                         border: OutlineInputBorder(
@@ -302,7 +302,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                   const SizedBox(width: 12),
                   Expanded(
                     child: DropdownButtonFormField<UserStatus?>(
-                      value: _selectedStatusFilter,
+                      initialValue: _selectedStatusFilter,
                       decoration: InputDecoration(
                         labelText: 'Status',
                         border: OutlineInputBorder(

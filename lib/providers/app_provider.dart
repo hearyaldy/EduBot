@@ -857,17 +857,34 @@ class AppProvider with ChangeNotifier {
   /// This is called on app initialization to ensure profiles are synced across devices
   Future<void> _syncChildProfilesFromFirestore() async {
     try {
+      debugPrint('🔄 Starting child profile sync...');
+      debugPrint(
+          '   Current user ID: ${FirebaseService.instance.currentUserId}');
+      debugPrint('   Local profiles count: ${_profileService.profiles.length}');
+
       final firestoreProfiles =
           await FirebaseService.instance.getChildProfiles();
+      debugPrint('   Firestore profiles count: ${firestoreProfiles.length}');
+
       if (firestoreProfiles.isEmpty) {
         // No Firestore profiles - sync local profiles to Firestore
-        for (final profile in _profileService.profiles) {
-          await FirebaseService.instance.saveChildProfile(profile.toJson());
+        if (_profileService.profiles.isNotEmpty) {
+          debugPrint('📤 Uploading local profiles to Firestore...');
+          for (final profile in _profileService.profiles) {
+            await FirebaseService.instance.saveChildProfile(profile.toJson());
+            debugPrint(
+                '   ✓ Uploaded profile: ${profile.name} (${profile.id})');
+          }
+          debugPrint(
+              '✅ Synced ${_profileService.profiles.length} local profiles to Firestore');
+        } else {
+          debugPrint(
+              'ℹ️ No profiles to sync (both local and Firestore are empty)');
         }
-        debugPrint(
-            'Synced ${_profileService.profiles.length} local profiles to Firestore');
       } else {
         // Merge Firestore profiles with local ones
+        debugPrint('📥 Merging Firestore profiles with local...');
+        int addedCount = 0;
         for (final profileData in firestoreProfiles) {
           final existingIndex = _profileService.profiles.indexWhere(
             (p) => p.id == profileData['id'],
@@ -876,15 +893,18 @@ class AppProvider with ChangeNotifier {
             // Profile exists in Firestore but not locally - add it
             final profile = ChildProfile.fromJson(profileData);
             _profileService.addProfileFromSync(profile);
+            debugPrint(
+                '   ✓ Added from Firestore: ${profile.name} (${profile.id})');
+            addedCount++;
           }
         }
         // Save merged profiles locally
         await _profileService.saveProfilesToLocal();
         debugPrint(
-            'Synced ${firestoreProfiles.length} profiles from Firestore');
+            '✅ Synced ${firestoreProfiles.length} profiles from Firestore ($addedCount new)');
       }
     } catch (e) {
-      debugPrint('Error syncing child profiles from Firestore: $e');
+      debugPrint('❌ Error syncing child profiles from Firestore: $e');
     }
   }
 

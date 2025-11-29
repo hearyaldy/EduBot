@@ -139,9 +139,8 @@ class QuestionExportToJSON {
   Future<String> exportHardcodedLessonsToQuestions() async {
     await _lessonService.initialize();
 
-    // Get all lessons (hardcoded ones)
-    final allLessons =
-        _lessonService._lessons; // Accessing the internal list directly
+    // Get all lessons using the public method
+    final allLessons = await _lessonService.getAllLessons();
 
     final questions = <Map<String, dynamic>>[];
 
@@ -220,8 +219,9 @@ class QuestionExportToJSON {
   int _getDifficultyFromLessonDifficulty(dynamic lessonDifficulty) {
     // Note: This is a simplified mapping - you might need to adjust based on actual enum values
     if (lessonDifficulty.toString().contains('beginner')) return 1; // easy
-    if (lessonDifficulty.toString().contains('intermediate'))
+    if (lessonDifficulty.toString().contains('intermediate')) {
       return 2; // medium
+    }
     if (lessonDifficulty.toString().contains('advanced')) return 3; // hard
     return 2; // medium as default
   }

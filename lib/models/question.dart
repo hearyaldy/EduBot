@@ -71,7 +71,7 @@ class QuestionMetadata {
 
   factory QuestionMetadata.fromJson(Map<String, dynamic> json) {
     // Helper to safely convert additional data
-    Map<String, dynamic> _convertAdditionalData(dynamic data) {
+    Map<String, dynamic> convertAdditionalData(dynamic data) {
       if (data == null) return {};
       if (data is Map<String, dynamic>) return data;
       if (data is Map) {
@@ -88,7 +88,7 @@ class QuestionMetadata {
       tags: List<String>.from(json['tags'] ?? []),
       estimatedTime: Duration(minutes: json['estimated_time_minutes'] ?? 2),
       cognitiveLevel: BloomsTaxonomy.values[json['cognitive_level'] ?? 0],
-      additionalData: _convertAdditionalData(json['additional_data']),
+      additionalData: convertAdditionalData(json['additional_data']),
     );
   }
 }
@@ -526,7 +526,7 @@ class Question {
 
   factory Question.fromJson(Map<String, dynamic> json) {
     // Helper to safely convert metadata
-    Map<String, dynamic> _convertMetadata(dynamic metadata) {
+    Map<String, dynamic> convertMetadata(dynamic metadata) {
       if (metadata == null) return {};
       if (metadata is Map<String, dynamic>) return metadata;
       if (metadata is Map) {
@@ -549,7 +549,7 @@ class Question {
       answerKey: json['answer_key'] ?? '',
       explanation: json['explanation'] ?? '',
       choices: List<String>.from(json['choices'] ?? []),
-      metadata: QuestionMetadata.fromJson(_convertMetadata(json['metadata'])),
+      metadata: QuestionMetadata.fromJson(convertMetadata(json['metadata'])),
       targetLanguage: json['target_language'] ?? 'English',
     );
   }

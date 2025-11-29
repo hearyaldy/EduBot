@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum UserStatus {
   active,
@@ -52,18 +53,12 @@ class AdminUser extends Equatable {
       accountType: _parseAccountTypeFromProfiles(data['account_type']),
       status: _parseUserStatus(data['status']),
       isEmailVerified: data['is_email_verified'] ?? false,
-      createdAt: DateTime.parse(data['created_at']),
-      lastSignIn: data['updated_at'] != null 
-          ? DateTime.parse(data['updated_at']) 
-          : null,
-      premiumExpiresAt: data['premium_expires_at'] != null 
-          ? DateTime.parse(data['premium_expires_at']) 
-          : null,
+      createdAt: _parseDateTime(data['created_at']) ?? DateTime.now(),
+      lastSignIn: _parseDateTime(data['updated_at']),
+      premiumExpiresAt: _parseDateTime(data['premium_expires_at']),
       totalQuestions: data['total_questions'] ?? 0,
       dailyQuestions: data['daily_questions'] ?? 0,
-      lastQuestionAt: data['last_question_at'] != null 
-          ? DateTime.parse(data['last_question_at']) 
-          : null,
+      lastQuestionAt: _parseDateTime(data['last_question_at']),
       metadata: data['metadata'] as Map<String, dynamic>?,
     );
   }
@@ -216,6 +211,35 @@ class AdminUser extends Equatable {
         lastQuestionAt,
         metadata,
       ];
+
+  static DateTime? _parseDateTime(dynamic value) {
+    if (value == null) return null;
+
+    if (value is String) {
+      try {
+        return DateTime.parse(value);
+      } catch (e) {
+        // If the string cannot be parsed, try to handle common timestamp formats
+        if (value.contains(' ')) {
+          // Handle timestamp format like "YYYY-MM-DD HH:MM:SS"
+          try {
+            return DateTime.parse(value.replaceAll(' ', 'T'));
+          } catch (e2) {
+            // If all parsing fails, return null
+            return null;
+          }
+        }
+        return null;
+      }
+    } else if (value is Timestamp) {
+      return value.toDate();
+    } else if (value is DateTime) {
+      return value;
+    }
+
+    // If value is of an unexpected type, return null
+    return null;
+  }
 
   @override
   String toString() {

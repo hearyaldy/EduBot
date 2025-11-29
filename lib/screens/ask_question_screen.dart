@@ -475,9 +475,9 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
               const SizedBox(height: 24),
 
               // Title
-              Text(
+              const Text(
                 'Daily Question Limit Reached',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: AppColors.gray900,
@@ -975,7 +975,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
 
             // Subject Selection
             DropdownButtonFormField<String>(
-              value: _selectedSubject,
+              initialValue: _selectedSubject,
               hint: const Text('Select subject (optional)'),
               decoration: InputDecoration(
                 border: OutlineInputBorder(
@@ -997,7 +997,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
 
             // Grade Level Selection
             DropdownButtonFormField<String>(
-              value: _selectedGradeLevel,
+              initialValue: _selectedGradeLevel,
               decoration: InputDecoration(
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),

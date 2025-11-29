@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/question.dart';
 import '../services/database_service.dart';
 import '../services/question_bank_service.dart';
-import 'dart:math';
+// import 'dart:math'; // Unused
 
 class QuestionDiscoveryHub extends StatefulWidget {
   const QuestionDiscoveryHub({super.key});
@@ -29,7 +29,7 @@ class _QuestionDiscoveryHubState extends State<QuestionDiscoveryHub>
   List<Question> _semanticResults = [];
 
   // Topic exploration state
-  Map<String, List<Question>> _topicClusters = {};
+  final Map<String, List<Question>> _topicClusters = {};
   String? _selectedTopic;
 
   // Question similarity state
@@ -39,7 +39,7 @@ class _QuestionDiscoveryHubState extends State<QuestionDiscoveryHub>
   // Curriculum alignment state
   String _selectedGrade = 'All';
   String _selectedStandard = 'All';
-  Map<String, List<Question>> _curriculumMap = {};
+  final Map<String, List<Question>> _curriculumMap = {};
 
   @override
   void initState() {
@@ -527,103 +527,429 @@ class _QuestionDiscoveryHubState extends State<QuestionDiscoveryHub>
   }
 
   Widget _buildTopicExplorationTab() {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          // Topic list
-          Expanded(
-            flex: 1,
-            child: Card(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Text(
-                      'Topics',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: _topicClusters.keys.length,
-                      itemBuilder: (context, index) {
-                        final topic = _topicClusters.keys.elementAt(index);
-                        final count = _topicClusters[topic]!.length;
-                        final isSelected = _selectedTopic == topic;
+    // Group topics by subject for better organization
+    final Map<String, List<MapEntry<String, List<Question>>>> subjectGroups =
+        {};
+    for (final entry in _topicClusters.entries) {
+      final parts = entry.key.split(' > ');
+      final subject = parts.isNotEmpty ? parts[0] : 'Other';
+      subjectGroups.putIfAbsent(subject, () => []).add(entry);
+    }
 
-                        return ListTile(
-                          title: Text(topic),
-                          subtitle: Text('$count questions'),
-                          selected: isSelected,
-                          onTap: () {
-                            setState(() {
-                              _selectedTopic = topic;
-                            });
-                          },
-                        );
-                      },
+    // Subject colors for visual distinction
+    final subjectColors = {
+      'Math': Colors.blue,
+      'Mathematics': Colors.blue,
+      'Science': Colors.green,
+      'English': Colors.orange,
+      'History': Colors.brown,
+      'Geography': Colors.teal,
+      'Art': Colors.pink,
+      'Music': Colors.purple,
+    };
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        // Header info card
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.deepPurple.shade400, Colors.deepPurple.shade600],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.folder_open,
+                    color: Colors.white, size: 28),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Browse by Topic',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${_topicClusters.length} topics • ${_allQuestions.length} questions',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // Subject cards with topics
+        ...subjectGroups.entries.map((subjectEntry) {
+          final subject = subjectEntry.key;
+          final topics = subjectEntry.value;
+          final color = subjectColors[subject] ?? Colors.grey;
+          final totalQuestions =
+              topics.fold<int>(0, (sum, t) => sum + t.value.length);
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Theme(
+                data: Theme.of(context)
+                    .copyWith(dividerColor: Colors.transparent),
+                child: ExpansionTile(
+                  tilePadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  leading: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      _getSubjectIcon(subject),
+                      color: color,
+                      size: 24,
                     ),
                   ),
-                ],
+                  title: Text(
+                    subject,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  subtitle: Text(
+                    '${topics.length} topics • $totalQuestions questions',
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 13,
+                    ),
+                  ),
+                  children: [
+                    Container(
+                      color: Colors.grey.shade50,
+                      child: Column(
+                        children: topics.map((topicEntry) {
+                          final topicName =
+                              topicEntry.key.split(' > ').length > 1
+                                  ? topicEntry.key.split(' > ')[1]
+                                  : topicEntry.key;
+                          final questions = topicEntry.value;
+                          final isSelected = _selectedTopic == topicEntry.key;
+
+                          return InkWell(
+                            onTap: () {
+                              setState(() {
+                                _selectedTopic =
+                                    isSelected ? null : topicEntry.key;
+                              });
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? color.withValues(alpha: 0.1)
+                                    : null,
+                                border: Border(
+                                  left: BorderSide(
+                                    color:
+                                        isSelected ? color : Colors.transparent,
+                                    width: 4,
+                                  ),
+                                ),
+                              ),
+                              child: Column(
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          isSelected
+                                              ? Icons.check_circle
+                                              : Icons.circle_outlined,
+                                          color: isSelected
+                                              ? color
+                                              : Colors.grey.shade400,
+                                          size: 20,
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Text(
+                                            topicName,
+                                            style: TextStyle(
+                                              fontWeight: isSelected
+                                                  ? FontWeight.w600
+                                                  : FontWeight.normal,
+                                              color: isSelected
+                                                  ? color.shade700
+                                                  : Colors.black87,
+                                            ),
+                                          ),
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: isSelected
+                                                ? color.withValues(alpha: 0.2)
+                                                : Colors.grey.shade200,
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                          ),
+                                          child: Text(
+                                            '${questions.length}',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: isSelected
+                                                  ? color
+                                                  : Colors.grey.shade700,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Icon(
+                                          isSelected
+                                              ? Icons.keyboard_arrow_up
+                                              : Icons.keyboard_arrow_right,
+                                          color: Colors.grey.shade400,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  // Show questions when topic is selected
+                                  if (isSelected)
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        border: Border(
+                                          top: BorderSide(
+                                              color: Colors.grey.shade200),
+                                        ),
+                                      ),
+                                      child: Column(
+                                        children: questions.take(5).map((q) {
+                                          return ListTile(
+                                            dense: true,
+                                            leading: CircleAvatar(
+                                              radius: 14,
+                                              backgroundColor:
+                                                  _getDifficultyColor(
+                                                      q.difficulty),
+                                              child: Text(
+                                                q.difficulty.name[0]
+                                                    .toUpperCase(),
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                            title: Text(
+                                              q.questionText,
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                              style:
+                                                  const TextStyle(fontSize: 13),
+                                            ),
+                                            trailing: const Icon(
+                                              Icons.arrow_forward_ios,
+                                              size: 14,
+                                              color: Colors.grey,
+                                            ),
+                                            onTap: () =>
+                                                _showQuestionDetails(q),
+                                          );
+                                        }).toList(),
+                                      ),
+                                    ),
+                                  if (isSelected && questions.length > 5)
+                                    Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        border: Border(
+                                          top: BorderSide(
+                                              color: Colors.grey.shade200),
+                                        ),
+                                      ),
+                                      child: TextButton.icon(
+                                        onPressed: () => _showAllTopicQuestions(
+                                            topicEntry.key, questions),
+                                        icon: const Icon(Icons.visibility,
+                                            size: 18),
+                                        label: Text(
+                                            'View all ${questions.length} questions'),
+                                      ),
+                                    ),
+                                  Divider(
+                                      height: 1, color: Colors.grey.shade200),
+                                ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
+          );
+        }),
+      ],
+    );
+  }
 
-          const SizedBox(width: 16),
+  IconData _getSubjectIcon(String subject) {
+    switch (subject.toLowerCase()) {
+      case 'math':
+      case 'mathematics':
+        return Icons.calculate;
+      case 'science':
+        return Icons.science;
+      case 'english':
+        return Icons.menu_book;
+      case 'history':
+        return Icons.history_edu;
+      case 'geography':
+        return Icons.public;
+      case 'art':
+        return Icons.palette;
+      case 'music':
+        return Icons.music_note;
+      default:
+        return Icons.folder;
+    }
+  }
 
-          // Topic questions
-          Expanded(
-            flex: 2,
-            child: Card(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
+  void _showAllTopicQuestions(String topic, List<Question> questions) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (context, scrollController) {
+            return Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.deepPurple.shade50,
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(20)),
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        topic.split(' > ').last,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${questions.length} questions',
+                        style: TextStyle(color: Colors.grey.shade600),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: ListView.separated(
+                    controller: scrollController,
                     padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            _selectedTopic ?? 'Select a topic',
-                            style: const TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.bold),
+                    itemCount: questions.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final q = questions[index];
+                      return Card(
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: _getDifficultyColor(q.difficulty),
+                            child: Text(
+                              '${index + 1}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          title: Text(
+                            q.questionText,
+                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
+                          subtitle: Text(q.difficulty.name),
+                          trailing:
+                              const Icon(Icons.arrow_forward_ios, size: 16),
+                          onTap: () {
+                            Navigator.pop(context);
+                            _showQuestionDetails(q);
+                          },
                         ),
-                        if (_selectedTopic != null) ...[
-                          const SizedBox(width: 8),
-                          Chip(
-                            label: Text(
-                                '${_topicClusters[_selectedTopic!]!.length} questions'),
-                            backgroundColor: Colors.blue.shade100,
-                          ),
-                        ],
-                      ],
-                    ),
+                      );
+                    },
                   ),
-                  Expanded(
-                    child: _selectedTopic == null
-                        ? const Center(
-                            child: Text('Select a topic to explore questions'))
-                        : ListView.separated(
-                            itemCount: _topicClusters[_selectedTopic!]!.length,
-                            separatorBuilder: (context, index) =>
-                                const Divider(),
-                            itemBuilder: (context, index) {
-                              return _buildQuestionTile(
-                                  _topicClusters[_selectedTopic!]![index]);
-                            },
-                          ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -744,9 +1070,12 @@ class _QuestionDiscoveryHubState extends State<QuestionDiscoveryHub>
                       Expanded(
                         child: DropdownButtonFormField<String>(
                           value: _selectedGrade,
+                          isExpanded: true,
                           decoration: const InputDecoration(
                             labelText: 'Grade Level',
                             border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
                           ),
                           items: [
                             'All',
@@ -754,7 +1083,8 @@ class _QuestionDiscoveryHubState extends State<QuestionDiscoveryHub>
                           ]
                               .map((grade) => DropdownMenuItem(
                                     value: grade,
-                                    child: Text(grade),
+                                    child: Text(grade,
+                                        overflow: TextOverflow.ellipsis),
                                   ))
                               .toList(),
                           onChanged: (value) {
@@ -768,9 +1098,12 @@ class _QuestionDiscoveryHubState extends State<QuestionDiscoveryHub>
                       Expanded(
                         child: DropdownButtonFormField<String>(
                           value: _selectedStandard,
+                          isExpanded: true,
                           decoration: const InputDecoration(
                             labelText: 'Curriculum Standard',
                             border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
                           ),
                           items: [
                             'All',
@@ -781,7 +1114,8 @@ class _QuestionDiscoveryHubState extends State<QuestionDiscoveryHub>
                           ]
                               .map((standard) => DropdownMenuItem(
                                     value: standard,
-                                    child: Text(standard),
+                                    child: Text(standard,
+                                        overflow: TextOverflow.ellipsis),
                                   ))
                               .toList(),
                           onChanged: (value) {
@@ -991,32 +1325,252 @@ class _QuestionDiscoveryHubState extends State<QuestionDiscoveryHub>
   }
 
   void _showQuestionDetails(Question question) {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Question Details'),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.4,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (context, scrollController) {
+          return Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Column(
+              children: [
+                // Handle bar
+                Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                // Header
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(color: Colors.grey.shade200),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: _getDifficultyColor(question.difficulty),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.quiz_rounded,
+                          color: Colors.deepPurple.shade700,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          'Question Details',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close_rounded),
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.grey.shade100,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Content
+                Expanded(
+                  child: ListView(
+                    controller: scrollController,
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      // Question
+                      _buildDetailSection(
+                        icon: Icons.help_outline_rounded,
+                        title: 'Question',
+                        content: question.questionText,
+                        color: Colors.blue,
+                      ),
+                      const SizedBox(height: 16),
+                      // Answer
+                      _buildDetailSection(
+                        icon: Icons.check_circle_outline_rounded,
+                        title: 'Answer',
+                        content: question.answerKey,
+                        color: Colors.green,
+                      ),
+                      const SizedBox(height: 16),
+                      // Explanation
+                      _buildDetailSection(
+                        icon: Icons.lightbulb_outline_rounded,
+                        title: 'Explanation',
+                        content: question.explanation,
+                        color: Colors.orange,
+                      ),
+                      const SizedBox(height: 16),
+                      // Metadata
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Details',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            _buildMetadataRow(Icons.subject_rounded, 'Subject',
+                                question.subject),
+                            _buildMetadataRow(
+                                Icons.topic_rounded, 'Topic', question.topic),
+                            _buildMetadataRow(Icons.speed_rounded, 'Difficulty',
+                                question.difficulty.name),
+                            _buildMetadataRow(Icons.school_rounded,
+                                'Grade Level', question.gradeLevel.toString()),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      // Action buttons
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                _findSimilarQuestions(question);
+                                _tabController.animateTo(3);
+                              },
+                              icon: const Icon(Icons.compare_arrows_rounded),
+                              label: const Text('Find Similar'),
+                              style: OutlinedButton.styleFrom(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                _addToPractice(question);
+                              },
+                              icon: const Icon(Icons.add_rounded),
+                              label: const Text('Add to Practice'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.deepPurple,
+                                foregroundColor: Colors.white,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildDetailSection({
+    required IconData icon,
+    required String title,
+    required String content,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Text('Question: ${question.questionText}'),
-              const SizedBox(height: 8),
-              Text('Answer: ${question.answerKey}'),
-              const SizedBox(height: 8),
-              Text('Explanation: ${question.explanation}'),
-              const SizedBox(height: 8),
-              Text('Subject: ${question.subject}'),
-              Text('Topic: ${question.topic}'),
-              Text('Difficulty: ${question.difficulty.name}'),
-              Text('Grade Level: ${question.gradeLevel}'),
+              Icon(icon, color: color, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
             ],
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
+          const SizedBox(height: 8),
+          Text(
+            content,
+            style: const TextStyle(fontSize: 15, height: 1.5),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMetadataRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: Colors.grey.shade600),
+          const SizedBox(width: 8),
+          Text(
+            '$label: ',
+            style: TextStyle(
+              color: Colors.grey.shade600,
+              fontSize: 14,
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+              ),
+            ),
           ),
         ],
       ),
@@ -1033,38 +1587,179 @@ class _QuestionDiscoveryHubState extends State<QuestionDiscoveryHub>
   }
 
   void _showQuestionSelectionDialog() {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Select Reference Question'),
-        content: SizedBox(
-          width: double.maxFinite,
-          height: 400,
-          child: ListView.builder(
-            itemCount: _allQuestions.length.clamp(0, 20),
-            itemBuilder: (context, index) {
-              final question = _allQuestions[index];
-              return ListTile(
-                title: Text(
-                  question.questionText,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.4,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (context, scrollController) {
+          return Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Column(
+              children: [
+                // Handle bar
+                Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
-                subtitle: Text('${question.subject} - ${question.topic}'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _findSimilarQuestions(question);
-                },
-              );
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-        ],
+                // Header
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(color: Colors.grey.shade200),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.deepPurple.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.compare_arrows_rounded,
+                          color: Colors.deepPurple.shade700,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Select Reference Question',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'Choose a question to find similar ones',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close_rounded),
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.grey.shade100,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Question list
+                Expanded(
+                  child: ListView.separated(
+                    controller: scrollController,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    itemCount: _allQuestions.length.clamp(0, 30),
+                    separatorBuilder: (_, __) => Divider(
+                      height: 1,
+                      color: Colors.grey.shade200,
+                    ),
+                    itemBuilder: (context, index) {
+                      final question = _allQuestions[index];
+                      return ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        leading: Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: _getDifficultyColor(question.difficulty),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Center(
+                            child: Text(
+                              '${index + 1}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.deepPurple.shade700,
+                              ),
+                            ),
+                          ),
+                        ),
+                        title: Text(
+                          question.questionText,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.shade50,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  question.subject,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.blue.shade700,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  question.topic,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        trailing: Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 16,
+                          color: Colors.grey.shade400,
+                        ),
+                        onTap: () {
+                          Navigator.pop(context);
+                          _findSimilarQuestions(question);
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -1073,25 +1768,113 @@ class _QuestionDiscoveryHubState extends State<QuestionDiscoveryHub>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Question Discovery Hub'),
-        backgroundColor: Colors.purple.shade50,
+        title: const Text(
+          'Discover Questions',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.deepPurple.shade600,
+        foregroundColor: Colors.white,
+        elevation: 0,
         actions: [
           IconButton(
             onPressed: _loadQuestions,
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh_rounded),
             tooltip: 'Refresh',
           ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert_rounded),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'favorites',
+                child: ListTile(
+                  leading: Icon(Icons.favorite_rounded, color: Colors.red),
+                  title: Text('My Favorites'),
+                  dense: true,
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'history',
+                child: ListTile(
+                  leading: Icon(Icons.history_rounded, color: Colors.blue),
+                  title: Text('Search History'),
+                  dense: true,
+                ),
+              ),
+            ],
+            onSelected: (value) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('$value feature coming soon!')),
+              );
+            },
+          ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          tabs: const [
-            Tab(icon: Icon(Icons.search), text: 'Quick Search'),
-            Tab(icon: Icon(Icons.psychology), text: 'Semantic'),
-            Tab(icon: Icon(Icons.explore), text: 'Topics'),
-            Tab(icon: Icon(Icons.compare), text: 'Similarity'),
-            Tab(icon: Icon(Icons.school), text: 'Curriculum'),
-          ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(60),
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: TabBar(
+              controller: _tabController,
+              isScrollable: true,
+              indicator: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              indicatorSize: TabBarIndicatorSize.tab,
+              indicatorPadding: const EdgeInsets.all(4),
+              labelColor: Colors.deepPurple.shade700,
+              unselectedLabelColor: Colors.white.withOpacity(0.9),
+              labelStyle: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 11,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 11,
+              ),
+              dividerColor: Colors.transparent,
+              tabs: const [
+                Tab(
+                  icon: Icon(Icons.search_rounded, size: 20),
+                  text: 'Quick',
+                  iconMargin: EdgeInsets.only(bottom: 4),
+                ),
+                Tab(
+                  icon: Icon(Icons.psychology_rounded, size: 20),
+                  text: 'Semantic',
+                  iconMargin: EdgeInsets.only(bottom: 4),
+                ),
+                Tab(
+                  icon: Icon(Icons.explore_rounded, size: 20),
+                  text: 'Topics',
+                  iconMargin: EdgeInsets.only(bottom: 4),
+                ),
+                Tab(
+                  icon: Icon(Icons.compare_rounded, size: 20),
+                  text: 'Similar',
+                  iconMargin: EdgeInsets.only(bottom: 4),
+                ),
+                Tab(
+                  icon: Icon(Icons.school_rounded, size: 20),
+                  text: 'Curriculum',
+                  iconMargin: EdgeInsets.only(bottom: 4),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
       body: TabBarView(

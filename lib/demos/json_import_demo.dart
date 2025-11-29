@@ -77,7 +77,7 @@ class _JsonImportDemoState extends State<JsonImportDemo> {
   Future<void> _refreshQuestionsList() async {
     try {
       await _questionBankService.initialize();
-      final filter = const QuestionFilter();
+      const filter = QuestionFilter();
       final questions = await _questionBankService.getQuestions(filter);
       setState(() {
         _currentQuestions = questions;

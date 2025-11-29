@@ -51,10 +51,10 @@ class _QuestionBankManagerState extends State<QuestionBankManager>
 
   // Filter states
   String _searchText = '';
-  Set<String> _selectedSubjects = {};
-  Set<int> _selectedGrades = {};
-  Set<DifficultyTag> _selectedDifficulties = {};
-  Set<QuestionType> _selectedTypes = {};
+  final Set<String> _selectedSubjects = {};
+  final Set<int> _selectedGrades = {};
+  final Set<DifficultyTag> _selectedDifficulties = {};
+  final Set<QuestionType> _selectedTypes = {};
   String _sortBy = 'subject'; // subject, grade, difficulty, created
   bool _sortAscending = true;
 
@@ -2197,6 +2197,9 @@ class _QuestionBankManagerState extends State<QuestionBankManager>
       case 'remove_duplicates':
         _removeDuplicateQuestions();
         break;
+      case 'fix_empty_questions':
+        _findAndFixEmptyQuestions();
+        break;
     }
   }
 
@@ -2460,8 +2463,8 @@ class _QuestionBankManagerState extends State<QuestionBankManager>
       // Reload questions
       await _loadQuestions();
 
-      _showSuccessSnackBar('Successfully imported $successCount questions' +
-          (errorCount > 0 ? ' ($errorCount failed)' : ''));
+      _showSuccessSnackBar(
+          'Successfully imported $successCount questions${errorCount > 0 ? ' ($errorCount failed)' : ''}');
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -2495,8 +2498,7 @@ class _QuestionBankManagerState extends State<QuestionBankManager>
         await _loadQuestions();
 
         _showSuccessSnackBar(
-            'Successfully imported $successCount Year 6 Science questions!' +
-                (errorCount > 0 ? ' ($errorCount failed)' : ''));
+            'Successfully imported $successCount Year 6 Science questions!${errorCount > 0 ? ' ($errorCount failed)' : ''}');
       } else {
         _showErrorSnackBar(
             'No questions were imported. Errors occurred: ${errorList.join(', ')}');
@@ -2511,6 +2513,184 @@ class _QuestionBankManagerState extends State<QuestionBankManager>
   }
 
   Future<void> _removeDuplicateQuestions() async {
+    // Show bottom sheet with options for local and Firestore cleanup
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.5,
+        minChildSize: 0.3,
+        maxChildSize: 0.8,
+        builder: (context, scrollController) => Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[400],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Icon(Icons.cleaning_services,
+                        color: Colors.orange, size: 28),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Remove Duplicates',
+                            style: TextStyle(
+                                fontSize: 20, fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            'Clean up duplicate questions from storage',
+                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(),
+              Expanded(
+                child: ListView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    // Local duplicates option
+                    _buildDuplicateOptionCard(
+                      icon: Icons.storage,
+                      iconColor: Colors.blue,
+                      title: 'Clean Local Duplicates',
+                      subtitle: 'Remove duplicates from local Hive database',
+                      onTap: () {
+                        Navigator.pop(context);
+                        _cleanLocalDuplicates();
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    // Firestore duplicates option
+                    _buildDuplicateOptionCard(
+                      icon: Icons.cloud,
+                      iconColor: Colors.green,
+                      title: 'Clean Firestore Duplicates',
+                      subtitle:
+                          'Remove duplicates from cloud Firestore database',
+                      onTap: () {
+                        Navigator.pop(context);
+                        _cleanFirestoreDuplicates();
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    // Both option
+                    _buildDuplicateOptionCard(
+                      icon: Icons.auto_fix_high,
+                      iconColor: Colors.purple,
+                      title: 'Clean Both',
+                      subtitle: 'Remove duplicates from local and Firestore',
+                      onTap: () {
+                        Navigator.pop(context);
+                        _cleanAllDuplicates();
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.info_outline,
+                              color: Colors.blue, size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Duplicates are identified by matching question text, subject, topic, and answer. The oldest copy is kept.',
+                              style: TextStyle(
+                                  fontSize: 12, color: Colors.blue[800]),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDuplicateOptionCard({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: iconColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: iconColor, size: 28),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: Colors.grey),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _cleanLocalDuplicates() async {
     // First, find duplicates to show preview
     showDialog(
       context: context,
@@ -2521,7 +2701,7 @@ class _QuestionBankManagerState extends State<QuestionBankManager>
           children: [
             CircularProgressIndicator(),
             SizedBox(height: 16),
-            Text('Scanning for duplicate questions...'),
+            Text('Scanning local database for duplicates...'),
           ],
         ),
       ),
@@ -2532,7 +2712,7 @@ class _QuestionBankManagerState extends State<QuestionBankManager>
       Navigator.pop(context);
 
       if (duplicates.isEmpty) {
-        _showSuccessSnackBar('No duplicate questions found!');
+        _showSuccessSnackBar('No duplicate questions found in local database!');
         return;
       }
 
@@ -2551,7 +2731,7 @@ class _QuestionBankManagerState extends State<QuestionBankManager>
             children: [
               Icon(Icons.warning_amber_rounded, color: Colors.orange),
               SizedBox(width: 8),
-              Text('Duplicates Found'),
+              Text('Local Duplicates Found'),
             ],
           ),
           content: SizedBox(
@@ -2663,8 +2843,800 @@ class _QuestionBankManagerState extends State<QuestionBankManager>
       }
     } catch (e) {
       Navigator.pop(context);
-      _showErrorSnackBar('Failed to scan for duplicates: $e');
+      _showErrorSnackBar('Failed to scan for local duplicates: $e');
     }
+  }
+
+  Future<void> _cleanFirestoreDuplicates() async {
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Scanning Firestore for duplicates...'),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      final result = await _firebaseService.removeFirestoreDuplicates();
+      Navigator.pop(context);
+
+      final total = result['total'] ?? 0;
+      final duplicatesFound = result['duplicates_found'] ?? 0;
+      final duplicatesRemoved = result['duplicates_removed'] ?? 0;
+      final uniqueRemaining = result['unique_remaining'] ?? 0;
+      final errors = result['errors'] as List<String>? ?? [];
+
+      if (duplicatesFound == 0) {
+        _showSuccessSnackBar(
+            'No duplicate questions found in Firestore! Total: $total unique questions.');
+        return;
+      }
+
+      // Show result
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                child: Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[400],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+              ),
+              Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.green, size: 32),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Firestore Cleanup Complete',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              _buildStatRow(
+                  'Total Questions Scanned', total.toString(), Colors.blue),
+              _buildStatRow('Duplicates Found', duplicatesFound.toString(),
+                  Colors.orange),
+              _buildStatRow('Duplicates Removed', duplicatesRemoved.toString(),
+                  Colors.red),
+              _buildStatRow('Unique Questions Remaining',
+                  uniqueRemaining.toString(), Colors.green),
+              if (errors.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text(
+                  'Errors: ${errors.length}',
+                  style: const TextStyle(color: Colors.red),
+                ),
+              ],
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Done'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    } catch (e) {
+      Navigator.pop(context);
+      _showErrorSnackBar('Failed to clean Firestore duplicates: $e');
+    }
+  }
+
+  Widget _buildStatRow(String label, String value, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 14)),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              value,
+              style: TextStyle(fontWeight: FontWeight.bold, color: color),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _cleanAllDuplicates() async {
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.auto_fix_high, color: Colors.purple),
+            SizedBox(width: 8),
+            Text('Clean All Duplicates'),
+          ],
+        ),
+        content: const Text(
+          'This will remove duplicate questions from both:\n\n'
+          '• Local Hive database\n'
+          '• Cloud Firestore database\n\n'
+          'One copy of each duplicate will be kept.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
+            child: const Text('Clean Both'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Cleaning duplicates from all databases...'),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      int localRemoved = 0;
+      int firestoreRemoved = 0;
+
+      // Clean local duplicates
+      final duplicates = await _questionBankService.findDuplicates();
+      if (duplicates.isNotEmpty) {
+        final result = await _questionBankService.removeDuplicates();
+        localRemoved = result['duplicates_removed'] ?? 0;
+
+        // Also remove from local database
+        final duplicateIds = result['duplicate_ids'] as List<String>;
+        for (final id in duplicateIds) {
+          try {
+            await _databaseService.deleteQuestion(id);
+          } catch (e) {
+            debugPrint('Error removing duplicate from database: $e');
+          }
+        }
+      }
+
+      // Clean Firestore duplicates
+      final firestoreResult =
+          await _firebaseService.removeFirestoreDuplicates();
+      firestoreRemoved = firestoreResult['duplicates_removed'] ?? 0;
+
+      Navigator.pop(context);
+
+      // Reload questions
+      await _loadQuestions();
+
+      // Show results
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[400],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.green, size: 32),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'All Duplicates Cleaned',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              _buildStatRow('Local Duplicates Removed', localRemoved.toString(),
+                  Colors.blue),
+              _buildStatRow('Firestore Duplicates Removed',
+                  firestoreRemoved.toString(), Colors.green),
+              _buildStatRow('Total Removed',
+                  (localRemoved + firestoreRemoved).toString(), Colors.purple),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Done'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    } catch (e) {
+      Navigator.pop(context);
+      _showErrorSnackBar('Failed to clean all duplicates: $e');
+    }
+  }
+
+  Future<void> _findAndFixEmptyQuestions() async {
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Scanning for questions with empty text...'),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      // Find questions with empty or problematic questionText
+      final emptyQuestions = <Question>[];
+      final answerOnlyQuestions = <Question>[];
+
+      for (final question in _allQuestions) {
+        final text = question.questionText.trim();
+        if (text.isEmpty) {
+          emptyQuestions.add(question);
+        } else if (text.length < 10 && question.answerKey.isNotEmpty) {
+          // Questions with very short text but have answers
+          answerOnlyQuestions.add(question);
+        }
+      }
+
+      Navigator.pop(context);
+
+      final totalProblematic =
+          emptyQuestions.length + answerOnlyQuestions.length;
+
+      if (totalProblematic == 0) {
+        _showSuccessSnackBar('All questions have proper question text!');
+        return;
+      }
+
+      // Show bottom sheet with problematic questions
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => DraggableScrollableSheet(
+          initialChildSize: 0.8,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Column(
+                children: [
+                  // Handle bar
+                  Container(
+                    margin: const EdgeInsets.only(top: 12),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  // Header
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      border: Border(
+                        bottom: BorderSide(color: Colors.red.shade100),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.warning_rounded,
+                                color: Colors.red.shade700, size: 28),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Questions with Issues',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${emptyQuestions.length} empty, ${answerOnlyQuestions.length} very short',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.red.shade700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () => Navigator.pop(context),
+                              icon: const Icon(Icons.close_rounded),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () async {
+                                  Navigator.pop(context);
+                                  await _deleteProblematicQuestions([
+                                    ...emptyQuestions,
+                                    ...answerOnlyQuestions
+                                  ]);
+                                },
+                                icon: const Icon(Icons.delete_forever,
+                                    color: Colors.red),
+                                label: const Text('Delete All',
+                                    style: TextStyle(color: Colors.red)),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                  _showGenerateQuestionsDialog([
+                                    ...emptyQuestions,
+                                    ...answerOnlyQuestions
+                                  ]);
+                                },
+                                icon: const Icon(Icons.auto_fix_high),
+                                label: const Text('Generate Text'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green,
+                                  foregroundColor: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Question list
+                  Expanded(
+                    child: ListView.builder(
+                      controller: scrollController,
+                      padding: const EdgeInsets.all(16),
+                      itemCount: totalProblematic,
+                      itemBuilder: (context, index) {
+                        final isEmpty = index < emptyQuestions.length;
+                        final question = isEmpty
+                            ? emptyQuestions[index]
+                            : answerOnlyQuestions[
+                                index - emptyQuestions.length];
+
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(
+                              color: isEmpty
+                                  ? Colors.red.shade200
+                                  : Colors.orange.shade200,
+                            ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: isEmpty
+                                            ? Colors.red.shade100
+                                            : Colors.orange.shade100,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        isEmpty ? 'EMPTY' : 'SHORT',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: isEmpty
+                                              ? Colors.red.shade700
+                                              : Colors.orange.shade700,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blue.shade50,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        question.subject,
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: Colors.blue.shade700,
+                                        ),
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    IconButton(
+                                      onPressed: () => _editQuestion(question),
+                                      icon: const Icon(Icons.edit, size: 18),
+                                      tooltip: 'Edit',
+                                    ),
+                                    IconButton(
+                                      onPressed: () {
+                                        Navigator.pop(context);
+                                        _deleteQuestion(question);
+                                      },
+                                      icon: const Icon(Icons.delete,
+                                          size: 18, color: Colors.red),
+                                      tooltip: 'Delete',
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Question: ${question.questionText.isEmpty ? "(empty)" : question.questionText}',
+                                  style: TextStyle(
+                                    color: question.questionText.isEmpty
+                                        ? Colors.grey
+                                        : Colors.black87,
+                                    fontStyle: question.questionText.isEmpty
+                                        ? FontStyle.italic
+                                        : FontStyle.normal,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Answer: ${question.answerKey}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.green,
+                                  ),
+                                ),
+                                if (question.explanation.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Explanation: ${question.explanation}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Topic: ${question.topic} • Grade ${question.gradeLevel}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey.shade500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      );
+    } catch (e) {
+      Navigator.pop(context);
+      _showErrorSnackBar('Failed to scan for empty questions: $e');
+    }
+  }
+
+  Future<void> _deleteProblematicQuestions(List<Question> questions) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning_rounded, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Delete Questions'),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to delete ${questions.length} problematic questions?\n\nThis action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child:
+                const Text('Delete All', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      setState(() => _isLoading = true);
+
+      int deleted = 0;
+      for (final question in questions) {
+        try {
+          await _databaseService.deleteQuestion(question.id);
+          if (FirebaseService.isInitialized) {
+            await _firebaseService.deleteQuestionFromBank(question.id);
+          }
+          deleted++;
+        } catch (e) {
+          debugPrint('Error deleting question ${question.id}: $e');
+        }
+      }
+
+      await _loadQuestions();
+      _showSuccessSnackBar('Deleted $deleted problematic questions');
+    }
+  }
+
+  void _showGenerateQuestionsDialog(List<Question> questions) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Icon(Icons.auto_fix_high, size: 48, color: Colors.green.shade600),
+            const SizedBox(height: 16),
+            const Text(
+              'Generate Question Text',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'This will attempt to generate question text based on the answer, topic, and explanation for ${questions.length} questions.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.amber.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.amber.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.amber.shade700),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Suggested approach: Review each question manually and create appropriate question text based on the answer and context.',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _autoGenerateQuestionText(questions);
+                    },
+                    icon: const Icon(Icons.auto_fix_high),
+                    label: const Text('Auto Generate'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _autoGenerateQuestionText(List<Question> questions) async {
+    setState(() => _isLoading = true);
+
+    int fixed = 0;
+    for (final question in questions) {
+      try {
+        // Generate a question based on the answer and context
+        String generatedQuestion = _generateQuestionFromContext(question);
+
+        if (generatedQuestion.isNotEmpty) {
+          // Update the question
+          final updatedQuestion =
+              question.copyWith(questionText: generatedQuestion);
+
+          await _databaseService.saveQuestion(updatedQuestion);
+          if (FirebaseService.isInitialized) {
+            await _firebaseService.saveQuestionToBank(updatedQuestion.toJson());
+          }
+          fixed++;
+        }
+      } catch (e) {
+        debugPrint('Error generating question for ${question.id}: $e');
+      }
+    }
+
+    await _loadQuestions();
+    _showSuccessSnackBar('Generated question text for $fixed questions');
+  }
+
+  String _generateQuestionFromContext(Question question) {
+    final answer = question.answerKey.trim();
+    final topic = question.topic.trim();
+    final explanation = question.explanation.trim();
+    final subject = question.subject.trim();
+
+    // If the question has an explanation, try to form a question from it
+    if (explanation.isNotEmpty) {
+      // Common patterns to convert explanation to question
+      if (answer.toLowerCase() == 'true' || answer.toLowerCase() == 'false') {
+        return 'True or False: ${_extractStatementFromExplanation(explanation)}';
+      }
+
+      // For definitions
+      if (explanation.toLowerCase().contains('is ') ||
+          explanation.toLowerCase().contains('are ')) {
+        return 'What is/are ${answer.toLowerCase()}?';
+      }
+
+      // For processes or reasons
+      if (explanation.toLowerCase().contains('because') ||
+          explanation.toLowerCase().contains('due to')) {
+        return 'Explain why $answer.';
+      }
+    }
+
+    // Generate based on answer pattern
+    if (answer.contains('|')) {
+      // Multiple acceptable answers
+      return 'List possible examples or answers related to $topic.';
+    }
+
+    if (answer.length < 50) {
+      // Short answer - likely a definition or name
+      return 'What is $answer in $topic ($subject)?';
+    }
+
+    // For longer answers - likely explanation questions
+    return 'Explain the concept of $topic in $subject.';
+  }
+
+  String _extractStatementFromExplanation(String explanation) {
+    // Remove common explanation prefixes
+    String statement = explanation
+        .replaceAll(
+            RegExp(r'^(This is because|Because|The reason is|This means)\s*',
+                caseSensitive: false),
+            '')
+        .trim();
+
+    // Convert to a statement
+    if (statement.endsWith('.')) {
+      statement = statement.substring(0, statement.length - 1);
+    }
+
+    return statement;
   }
 
   void _showImportCsvDialog() {
@@ -3922,6 +4894,16 @@ class _QuestionBankManagerState extends State<QuestionBankManager>
                   leading: Icon(Icons.cleaning_services, color: Colors.orange),
                   title: Text('Remove Duplicates'),
                   subtitle: Text('Find and remove duplicate questions',
+                      style: TextStyle(fontSize: 11)),
+                  dense: true,
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'fix_empty_questions',
+                child: ListTile(
+                  leading: Icon(Icons.healing, color: Colors.red),
+                  title: Text('Fix Empty Questions'),
+                  subtitle: Text('Find questions with missing text',
                       style: TextStyle(fontSize: 11)),
                   dense: true,
                 ),

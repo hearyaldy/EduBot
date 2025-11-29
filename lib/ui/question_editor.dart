@@ -241,7 +241,7 @@ class _QuestionEditorState extends State<QuestionEditor>
 
             // Question Type
             DropdownButtonFormField<QuestionType>(
-              value: _selectedQuestionType,
+              initialValue: _selectedQuestionType,
               decoration: const InputDecoration(
                 labelText: 'Question Type *',
                 border: OutlineInputBorder(),
@@ -401,7 +401,7 @@ class _QuestionEditorState extends State<QuestionEditor>
         children: [
           // Subject
           DropdownButtonFormField<String>(
-            value: _selectedSubject,
+            initialValue: _selectedSubject,
             decoration: const InputDecoration(
               labelText: 'Subject *',
               border: OutlineInputBorder(),
@@ -467,7 +467,7 @@ class _QuestionEditorState extends State<QuestionEditor>
 
           // Grade Level
           DropdownButtonFormField<int>(
-            value: _selectedGradeLevel,
+            initialValue: _selectedGradeLevel,
             decoration: const InputDecoration(
               labelText: 'Grade Level *',
               border: OutlineInputBorder(),
@@ -489,7 +489,7 @@ class _QuestionEditorState extends State<QuestionEditor>
 
           // Difficulty
           DropdownButtonFormField<DifficultyTag>(
-            value: _selectedDifficulty,
+            initialValue: _selectedDifficulty,
             decoration: const InputDecoration(
               labelText: 'Difficulty Level *',
               border: OutlineInputBorder(),
@@ -524,7 +524,7 @@ class _QuestionEditorState extends State<QuestionEditor>
 
           // Cognitive Level
           DropdownButtonFormField<BloomsTaxonomy>(
-            value: _selectedCognitiveLevel,
+            initialValue: _selectedCognitiveLevel,
             decoration: const InputDecoration(
               labelText: 'Cognitive Level (Bloom\'s Taxonomy) *',
               border: OutlineInputBorder(),
@@ -621,10 +621,10 @@ class _QuestionEditorState extends State<QuestionEditor>
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: Colors.green.shade200),
             ),
-            child: Column(
+            child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
+                Row(
                   children: [
                     Icon(Icons.lightbulb, color: Colors.green),
                     SizedBox(width: 8),
@@ -634,16 +634,14 @@ class _QuestionEditorState extends State<QuestionEditor>
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                const Text(
+                SizedBox(height: 8),
+                Text(
                     '• Use clear, concise language appropriate for the grade level'),
-                const Text(
-                    '• Include relevant context or real-world applications'),
-                const Text(
+                Text('• Include relevant context or real-world applications'),
+                Text(
                     '• Ensure answer choices are plausible for multiple choice'),
-                const Text(
-                    '• Add detailed explanations to help students learn'),
-                const Text(
+                Text('• Add detailed explanations to help students learn'),
+                Text(
                     '• Tag questions with relevant keywords for easy discovery'),
               ],
             ),

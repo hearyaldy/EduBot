@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/question.dart';
 import '../models/student_progress.dart';
@@ -36,7 +35,8 @@ class DatabaseService {
 
       // Register adapters
       if (!Hive.isAdapterRegistered(2)) {
-        debugPrint('📝 DatabaseService: Registering StudentProgress adapter...');
+        debugPrint(
+            '📝 DatabaseService: Registering StudentProgress adapter...');
         Hive.registerAdapter(StudentProgressAdapter());
         debugPrint('✅ DatabaseService: Adapter registered');
       } else {
@@ -162,6 +162,48 @@ class DatabaseService {
   /// Delete question by ID
   Future<void> deleteQuestion(String id) async {
     await questionsBox.delete(id);
+  }
+
+  /// Remove duplicate questions from local database
+  /// Returns the number of duplicates removed
+  Future<Map<String, dynamic>> removeDuplicates() async {
+    await initialize();
+    final allQuestions = getAllQuestions();
+    final total = allQuestions.length;
+
+    // Create content hash map to find duplicates
+    final Map<String, Question> uniqueByContent = {};
+    final List<String> duplicateIds = [];
+
+    for (final question in allQuestions) {
+      final contentHash = '${question.questionText.toLowerCase().trim()}|'
+          '${question.subject.toLowerCase().trim()}|'
+          '${question.topic.toLowerCase().trim()}|'
+          '${question.answerKey.toLowerCase().trim()}';
+
+      if (uniqueByContent.containsKey(contentHash)) {
+        // This is a duplicate - mark for deletion
+        duplicateIds.add(question.id);
+      } else {
+        uniqueByContent[contentHash] = question;
+      }
+    }
+
+    // Delete duplicates
+    for (final id in duplicateIds) {
+      await questionsBox.delete(id);
+    }
+
+    debugPrint(
+        '🗑️ Removed ${duplicateIds.length} duplicate questions from local database');
+    debugPrint('📊 Unique questions remaining: ${uniqueByContent.length}');
+
+    return {
+      'total': total,
+      'duplicates_removed': duplicateIds.length,
+      'unique_remaining': uniqueByContent.length,
+      'duplicate_ids': duplicateIds,
+    };
   }
 
   /// Batch save questions

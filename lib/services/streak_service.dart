@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/streak_data.dart';
+import 'firebase_service.dart';
 
 class StreakService {
   static const String _streakDataKey = 'streak_data';
@@ -17,6 +18,8 @@ class StreakService {
   Future<void> initialize() async {
     _prefs = await SharedPreferences.getInstance();
     await _loadStreakData();
+    // Sync with Firestore after loading local data
+    await _syncFromFirestore();
   }
 
   Future<void> _loadStreakData() async {
@@ -41,9 +44,86 @@ class StreakService {
     try {
       final jsonString = jsonEncode(_currentStreakData!.toJson());
       await _prefs?.setString(_streakDataKey, jsonString);
+      // Also sync to Firestore
+      await _syncToFirestore();
     } catch (e) {
       debugPrint('Error saving streak data: $e');
     }
+  }
+
+  /// Sync streak data to Firestore
+  Future<void> _syncToFirestore() async {
+    if (_currentStreakData == null) return;
+
+    try {
+      await FirebaseService.instance
+          .saveStreakData(_currentStreakData!.toJson());
+    } catch (e) {
+      debugPrint('Error syncing streak to Firestore: $e');
+    }
+  }
+
+  /// Sync streak data from Firestore (merge with local)
+  Future<void> _syncFromFirestore() async {
+    try {
+      final firestoreData = await FirebaseService.instance.getStreakData();
+      if (firestoreData == null) {
+        // No Firestore data - upload local data
+        if (_currentStreakData != null) {
+          debugPrint('📤 Uploading local streak data to Firestore...');
+          await _syncToFirestore();
+        }
+        return;
+      }
+
+      // Parse Firestore data
+      final firestoreStreak = StreakData.fromJson(firestoreData);
+      final localStreak = _currentStreakData ?? StreakData.initial();
+
+      // Merge: take the better values
+      final mergedStreak = StreakData(
+        currentStreak: firestoreStreak.currentStreak > localStreak.currentStreak
+            ? firestoreStreak.currentStreak
+            : localStreak.currentStreak,
+        longestStreak: firestoreStreak.longestStreak > localStreak.longestStreak
+            ? firestoreStreak.longestStreak
+            : localStreak.longestStreak,
+        lastUsedDate:
+            firestoreStreak.lastUsedDate.isAfter(localStreak.lastUsedDate)
+                ? firestoreStreak.lastUsedDate
+                : localStreak.lastUsedDate,
+        firstUsedDate:
+            firestoreStreak.firstUsedDate.isBefore(localStreak.firstUsedDate)
+                ? firestoreStreak.firstUsedDate
+                : localStreak.firstUsedDate,
+        totalDaysUsed: firestoreStreak.totalDaysUsed > localStreak.totalDaysUsed
+            ? firestoreStreak.totalDaysUsed
+            : localStreak.totalDaysUsed,
+        usageDates: _mergeUsageDates(
+            localStreak.usageDates, firestoreStreak.usageDates),
+      );
+
+      _currentStreakData = mergedStreak;
+
+      // Save merged data locally
+      final jsonString = jsonEncode(mergedStreak.toJson());
+      await _prefs?.setString(_streakDataKey, jsonString);
+
+      // Update Firestore with merged data
+      await FirebaseService.instance.saveStreakData(mergedStreak.toJson());
+
+      debugPrint(
+          '✅ Streak data synced from Firestore (current: ${mergedStreak.currentStreak}, longest: ${mergedStreak.longestStreak})');
+    } catch (e) {
+      debugPrint('Error syncing streak from Firestore: $e');
+    }
+  }
+
+  /// Merge usage dates from local and Firestore
+  List<DateTime> _mergeUsageDates(List<DateTime> local, List<DateTime> remote) {
+    final allDates = <DateTime>{...local, ...remote};
+    final sortedDates = allDates.toList()..sort();
+    return sortedDates;
   }
 
   StreakData get streakData => _currentStreakData ?? StreakData.initial();
@@ -88,9 +168,8 @@ class StreakService {
     }
 
     // Update longest streak
-    final newLongestStreak = newStreak > data.longestStreak
-        ? newStreak
-        : data.longestStreak;
+    final newLongestStreak =
+        newStreak > data.longestStreak ? newStreak : data.longestStreak;
 
     // Add today to usage dates
     final updatedUsageDates = List<DateTime>.from(data.usageDates)..add(now);
@@ -117,11 +196,11 @@ class StreakService {
   /// Check if a streak number is a milestone
   bool _isMilestone(int streak) {
     return streak == 3 ||
-           streak == 7 ||
-           streak == 14 ||
-           streak == 30 ||
-           streak == 50 ||
-           streak == 100;
+        streak == 7 ||
+        streak == 14 ||
+        streak == 30 ||
+        streak == 50 ||
+        streak == 100;
   }
 
   /// Get milestone text for display

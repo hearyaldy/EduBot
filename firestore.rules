@@ -2,6 +2,13 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    
+    // Helper function to check if user is superadmin
+    function isSuperadmin() {
+      return request.auth != null && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.accountType == 'superadmin';
+    }
 
     // Question Bank - Global shared questions
     match /questionBank/{questionId} {
@@ -14,14 +21,25 @@ service cloud.firestore {
 
     // User profiles
     match /users/{userId} {
-      // Users can read their own profile
+      // Users can read their own profile OR superadmins can read all profiles
+      allow read: if request.auth != null && 
+                    (request.auth.uid == userId || isSuperadmin());
+
+      // Users can write their own profile OR superadmins can write all profiles
+      allow write: if request.auth != null && 
+                     (request.auth.uid == userId || isSuperadmin());
+    }
+
+    // Child profiles (nested under users) - using childProfiles subcollection
+    match /users/{userId}/childProfiles/{childId} {
+      // Users can read their own children's profiles
       allow read: if request.auth != null && request.auth.uid == userId;
 
-      // Users can write their own profile
+      // Users can write their own children's profiles
       allow write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Child profiles (nested under users)
+    // Also support the children subcollection for backwards compatibility
     match /users/{userId}/children/{childId} {
       // Users can read their own children's profiles
       allow read: if request.auth != null && request.auth.uid == userId;

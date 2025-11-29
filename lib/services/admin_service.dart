@@ -51,60 +51,84 @@ class AdminService {
   // Admin dashboard methods - actual implementations
   Future<List<AdminUser>> getAllUsers({
     int page = 1,
-    int limit = 50,
+    int limit = 0, // Changed default to 0 to get all users
     String? searchQuery,
     AccountType? accountTypeFilter,
     UserStatus? statusFilter,
   }) async {
     try {
       final firebaseService = FirebaseService.instance;
-      final querySnapshot = await firebaseService.firestore
-          .collection('users')
-          .orderBy('createdAt', descending: true)
-          .limit(limit)
-          .get();
+      QuerySnapshot querySnapshot;
+
+      if (limit > 0) {
+        querySnapshot = await firebaseService.firestore
+            .collection('users')
+            .orderBy('createdAt', descending: true)
+            .limit(limit)
+            .get();
+      } else {
+        querySnapshot = await firebaseService.firestore
+            .collection('users')
+            .orderBy('createdAt', descending: true)
+            .get();
+      }
 
       final usersList = <AdminUser>[];
-      
+
       for (final doc in querySnapshot.docs) {
-        final userData = doc.data();
-        
-        // Map Firestore fields to AdminUser expected fields
-        final adminUser = AdminUser.fromSupabaseUser({
-          'id': doc.id,
-          'email': userData['email']?.toString() ?? '',
-          'name': userData['displayName']?.toString() ?? userData['name']?.toString(),
-          'account_type': userData['accountType']?.toString() ?? 'guest',
-          'status': userData['status']?.toString() ?? 'active',
-          'is_email_verified': userData['emailVerified'] ?? userData['isEmailVerified'] ?? false,
-          'created_at': _formatTimestamp(userData['createdAt']),
-          'updated_at': _formatTimestamp(userData['updatedAt'] ?? userData['lastSignInAt']),
-          'premium_expires_at': _formatTimestamp(userData['premiumExpiresAt']),
-          'total_questions': userData['totalQuestions'] ?? 0,
-          'daily_questions': userData['dailyQuestions'] ?? 0,
-          'last_question_at': _formatTimestamp(userData['lastQuestionAt']),
-          'metadata': userData['metadata'],
-        });
+        final userData = doc.data() as Map<String, dynamic>?;
+        if (userData == null) continue;
 
-        // Apply filters
-        bool shouldInclude = true;
+        try {
+          // Map Firestore fields to AdminUser expected fields
+          final adminUser = AdminUser.fromSupabaseUser({
+            'id': doc.id,
+            'email': userData['email']?.toString() ?? '',
+            'name': userData['displayName']?.toString() ??
+                userData['name']?.toString(),
+            'account_type': userData['accountType']?.toString() ?? 'guest',
+            'status': userData['status']?.toString() ?? 'active',
+            'is_email_verified': userData['emailVerified'] ??
+                userData['isEmailVerified'] ??
+                false,
+            'created_at': _formatTimestamp(userData['createdAt']) ??
+                DateTime.now().toIso8601String(),
+            'updated_at': _formatTimestamp(
+                    userData['updatedAt'] ?? userData['lastSignInAt']) ??
+                DateTime.now().toIso8601String(),
+            'premium_expires_at':
+                _formatTimestamp(userData['premiumExpiresAt']),
+            'total_questions': userData['totalQuestions'] ?? 0,
+            'daily_questions': userData['dailyQuestions'] ?? 0,
+            'last_question_at': _formatTimestamp(userData['lastQuestionAt']),
+            'metadata': userData['metadata'],
+          });
 
-        if (searchQuery != null && searchQuery.isNotEmpty) {
-          final searchLower = searchQuery.toLowerCase();
-          shouldInclude = adminUser.email.toLowerCase().contains(searchLower) ||
-              (adminUser.name?.toLowerCase().contains(searchLower) ?? false);
-        }
+          // Apply filters
+          bool shouldInclude = true;
 
-        if (shouldInclude && accountTypeFilter != null) {
-          shouldInclude = adminUser.accountType == accountTypeFilter;
-        }
+          if (searchQuery != null && searchQuery.isNotEmpty) {
+            final searchLower = searchQuery.toLowerCase();
+            shouldInclude = adminUser.email
+                    .toLowerCase()
+                    .contains(searchLower) ||
+                (adminUser.name?.toLowerCase().contains(searchLower) ?? false);
+          }
 
-        if (shouldInclude && statusFilter != null) {
-          shouldInclude = adminUser.status == statusFilter;
-        }
+          if (shouldInclude && accountTypeFilter != null) {
+            shouldInclude = adminUser.accountType == accountTypeFilter;
+          }
 
-        if (shouldInclude) {
-          usersList.add(adminUser);
+          if (shouldInclude && statusFilter != null) {
+            shouldInclude = adminUser.status == statusFilter;
+          }
+
+          if (shouldInclude) {
+            usersList.add(adminUser);
+          }
+        } catch (userError) {
+          debugPrint('Error parsing user data for user ${doc.id}: $userError');
+          continue; // Skip this user and continue with others
         }
       }
 
@@ -118,9 +142,8 @@ class AdminService {
   Future<Map<String, dynamic>> getUserStats() async {
     try {
       final firebaseService = FirebaseService.instance;
-      final querySnapshot = await firebaseService.firestore
-          .collection('users')
-          .get();
+      final querySnapshot =
+          await firebaseService.firestore.collection('users').get();
 
       int totalUsers = 0;
       int premiumUsers = 0;
@@ -215,15 +238,16 @@ class AdminService {
   Future<bool> upgradeToPremium(String userId, {DateTime? expiresAt}) async {
     try {
       final firebaseService = FirebaseService.instance;
-      final success = await firebaseService.updatePremiumStatus(
+      await firebaseService.updatePremiumStatus(
         isPremium: true,
         expiresAt: expiresAt,
       );
-      
+
       // Update specific user document
       await firebaseService.firestore.collection('users').doc(userId).update({
         'accountType': 'premium',
-        'premiumExpiresAt': expiresAt != null ? Timestamp.fromDate(expiresAt) : null,
+        'premiumExpiresAt':
+            expiresAt != null ? Timestamp.fromDate(expiresAt) : null,
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
@@ -238,7 +262,7 @@ class AdminService {
   Future<bool> downgradeFromPremium(String userId) async {
     try {
       final firebaseService = FirebaseService.instance;
-      
+
       // Update specific user document
       await firebaseService.firestore.collection('users').doc(userId).update({
         'accountType': 'registered', // Back to registered user
@@ -257,7 +281,7 @@ class AdminService {
   Future<bool> suspendUser(String userId, String reason) async {
     try {
       final firebaseService = FirebaseService.instance;
-      
+
       // Update specific user document
       await firebaseService.firestore.collection('users').doc(userId).update({
         'status': 'suspended',
@@ -276,7 +300,7 @@ class AdminService {
   Future<bool> unsuspendUser(String userId) async {
     try {
       final firebaseService = FirebaseService.instance;
-      
+
       // Update specific user document
       await firebaseService.firestore.collection('users').doc(userId).update({
         'status': 'active',

@@ -318,7 +318,7 @@ class QuestionBankService {
   void _addYear1MathQuestions() {
     // Add the Year 1 questions from the previous implementation
     final year1Questions = [
-      Question(
+      const Question(
         id: 'y1_math_numbers_001',
         questionText: 'How many apples are there?',
         questionType: QuestionType.fillInTheBlank,
@@ -337,7 +337,7 @@ class QuestionBankService {
           cognitiveLevel: BloomsTaxonomy.remember,
         ),
       ),
-      Question(
+      const Question(
         id: 'y1_math_numbers_002',
         questionText: 'Which number is bigger, 15 or 23?',
         questionType: QuestionType.multipleChoice,
@@ -368,7 +368,7 @@ class QuestionBankService {
   void _addYear6MathQuestions() {
     // Add Year 6 questions
     final year6Questions = [
-      Question(
+      const Question(
         id: 'y6_math_time_001',
         questionText:
             'What is the time difference between 2:30 PM in Kuala Lumpur and the same moment in Tokyo?',
@@ -415,7 +415,8 @@ class QuestionBankService {
 
         print('Loaded ${questions.length} questions from JSON');
       } else {
-        throw FormatException('Invalid JSON format. Expected questions array.');
+        throw const FormatException(
+            'Invalid JSON format. Expected questions array.');
       }
     } catch (e) {
       throw Exception('Failed to load questions from JSON: $e');
