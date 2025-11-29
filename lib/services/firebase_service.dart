@@ -826,6 +826,39 @@ class FirebaseService {
     }
   }
 
+  /// Delete all questions for a specific lesson (by subject, grade, and topic)
+  Future<void> deleteQuestionsForLesson(
+      String subject, int gradeLevel, String topic) async {
+    if (!_isInitialized) {
+      debugPrint(
+          'Firebase not initialized. Cannot delete questions for lesson.');
+      return;
+    }
+
+    try {
+      // Query questions matching the lesson criteria
+      final snapshot = await _firestore
+          .collection('questionBank')
+          .where('subject', isEqualTo: subject)
+          .where('grade_level', isEqualTo: gradeLevel)
+          .where('topic', isEqualTo: topic)
+          .get();
+
+      // Delete each matching question
+      final batch = _firestore.batch();
+      for (final doc in snapshot.docs) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+
+      debugPrint(
+          'Deleted ${snapshot.docs.length} questions for lesson: $subject, Grade $gradeLevel, $topic');
+    } catch (e) {
+      debugPrint('Failed to delete questions for lesson from Firestore: $e');
+      rethrow;
+    }
+  }
+
   /// Get a real-time stream of questions from the shared question bank
   Stream<QuerySnapshot<Map<String, dynamic>>> getQuestionBankStream({
     String? subject,

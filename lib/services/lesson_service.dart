@@ -118,6 +118,67 @@ class LessonService {
     }
   }
 
+  /// Delete a lesson by ID
+  /// Returns true if deletion was successful, false otherwise
+  Future<bool> deleteLesson(String lessonId) async {
+    await initialize();
+
+    try {
+      // First, check if it's a hardcoded lesson
+      final hardcodedIndex =
+          _lessons.indexWhere((lesson) => lesson.id == lessonId);
+      if (hardcodedIndex != -1) {
+        _lessons.removeAt(hardcodedIndex);
+        debugPrint('Deleted hardcoded lesson: $lessonId');
+        return true;
+      }
+
+      // Check if it's from question bank (matches pattern: qb_<subject>_<grade>_<topic>)
+      if (lessonId.startsWith('qb_')) {
+        // For question bank lessons, we need to delete the underlying questions
+        // Parse the lesson ID to get subject, grade, and topic
+        // Format: qb_<subject>_<grade>_<topic>
+        final parts = lessonId.replaceFirst('qb_', '').split('_');
+        if (parts.length >= 3) {
+          final subject = parts[0];
+          final gradeStr = parts[1].replaceAll('grade', '');
+          final grade = int.tryParse(gradeStr) ?? 0;
+          final topic = parts.sublist(2).join('_');
+
+          // Delete questions from local database that match this lesson
+          await _databaseService.initialize();
+          final allQuestions = _databaseService.getAllQuestions();
+          for (final question in allQuestions) {
+            if (question.subject.toLowerCase() == subject.toLowerCase() &&
+                question.gradeLevel == grade &&
+                question.topic.toLowerCase() == topic.toLowerCase()) {
+              await _databaseService.deleteQuestion(question.id);
+            }
+          }
+
+          // Delete from Firestore if available
+          if (FirebaseService.isInitialized) {
+            try {
+              await _firebaseService.deleteQuestionsForLesson(
+                  subject, grade, topic);
+            } catch (e) {
+              debugPrint('Error deleting from Firestore: $e');
+            }
+          }
+
+          debugPrint('Deleted question bank lesson: $lessonId');
+          return true;
+        }
+      }
+
+      debugPrint('Lesson not found: $lessonId');
+      return false;
+    } catch (e) {
+      debugPrint('Error deleting lesson: $e');
+      return false;
+    }
+  }
+
   /// Generate lessons from question bank (database + Firestore)
   Future<List<Lesson>> getLessonsFromQuestionBank() async {
     try {
