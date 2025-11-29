@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../core/theme/app_colors.dart';
 import '../models/lesson.dart';
+import '../providers/app_provider.dart';
 import '../services/lesson_service.dart';
 import '../services/database_service.dart';
 import 'exercise_practice_screen.dart';
@@ -1034,16 +1036,18 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                 _resetLessonProgress(lesson);
               },
             ),
-            _buildOptionTile(
-              icon: Icons.delete_rounded,
-              iconColor: Colors.red,
-              title: 'Delete Lesson',
-              subtitle: 'Remove this lesson permanently',
-              onTap: () {
-                Navigator.pop(context);
-                _confirmDeleteLesson(lesson);
-              },
-            ),
+            // Only show delete option for superadmin users
+            if (Provider.of<AppProvider>(context, listen: false).isSuperadmin)
+              _buildOptionTile(
+                icon: Icons.delete_rounded,
+                iconColor: Colors.red,
+                title: 'Delete Lesson',
+                subtitle: 'Remove this lesson permanently',
+                onTap: () {
+                  Navigator.pop(context);
+                  _confirmDeleteLesson(lesson);
+                },
+              ),
             const SizedBox(height: 16),
           ],
         ),
