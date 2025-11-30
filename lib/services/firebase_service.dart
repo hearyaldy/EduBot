@@ -1105,6 +1105,21 @@ class FirebaseService {
     }
   }
 
+  /// Delete an AI-generated lesson from Firestore
+  Future<void> deleteAILesson(String lessonId) async {
+    if (!_isInitialized) {
+      throw Exception('Firebase not initialized. Cannot delete AI lesson.');
+    }
+
+    try {
+      await _firestore.collection('aiLessons').doc(lessonId).delete();
+      debugPrint('AI lesson deleted from Firestore: $lessonId');
+    } catch (e) {
+      debugPrint('Failed to delete AI lesson from Firestore: $e');
+      rethrow;
+    }
+  }
+
   // Handle Firebase Auth exceptions
   String _handleAuthException(FirebaseAuthException e) {
     switch (e.code) {

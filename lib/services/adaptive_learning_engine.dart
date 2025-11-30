@@ -696,8 +696,9 @@ class AdaptiveLearningEngine {
         final topic = topicEntry.key;
         final attempts = topicEntry.value;
 
-        if (attempts.length < 2)
+        if (attempts.length < 2) {
           continue; // Need minimum attempts to identify gap
+        }
 
         final correctAttempts = attempts.where((p) => p.isCorrect).length;
         final accuracy = correctAttempts / attempts.length;

@@ -123,16 +123,18 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
                                 '$greeting, $displayName! 👋',
                                 style: AppTextStyles.bodyLarge.copyWith(
                                   color: Colors.white,
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 20,
                                 ),
                               ),
                               const SizedBox(height: 5),
                               Text(
                                 isAuthenticated
-                                    ? 'Ready to tackle homework together?'
-                                    : 'Ready to get homework help?',
+                                    ? 'Let\'s learn something awesome today! 🚀'
+                                    : 'Ready for some learning fun? 🎯',
                                 style: AppTextStyles.bodyMedium.copyWith(
-                                  color: Colors.white.withValues(alpha: 0.8),
+                                  color: Colors.white.withValues(alpha: 0.9),
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ],
@@ -166,44 +168,104 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
                   padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
-                      // Primary Scan Button
-                      ModernButton(
-                        text: 'Scan Homework Problem',
-                        icon: Icons.camera_alt,
-                        height: 70,
-                        gradientColors: const [
-                          AppColors.info,
-                          AppColors.primary,
-                        ],
-                        onPressed: () => _navigateToScan(context),
+                      // Primary Scan Button - Kid Friendly
+                      Container(
+                        height: 80,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [
+                              Color(0xFF667EEA),
+                              Color(0xFF764BA2),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF667EEA).withValues(alpha: 0.4),
+                              blurRadius: 15,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(24),
+                            onTap: () => _navigateToScan(context),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 24),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.2),
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    child: const Icon(
+                                      Icons.camera_alt_rounded,
+                                      color: Colors.white,
+                                      size: 28,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  const Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '📸 Scan Homework',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      SizedBox(height: 2),
+                                      Text(
+                                        'Take a photo and get help!',
+                                        style: TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
 
                       const SizedBox(height: 20),
 
-                      // Secondary Actions
+                      // Secondary Actions - Kid Friendly
                       Row(
                         children: [
                           Expanded(
-                            child: _buildEnhancedActionCard(
+                            child: _buildKidFriendlyActionCard(
+                              emoji: '💬',
                               title: 'Ask Question',
-                              subtitle: 'Type or speak',
-                              icon: Icons.chat_bubble_outline,
+                              subtitle: 'Type or speak!',
                               gradientColors: const [
-                                Color(0xFF667eea),
-                                Color(0xFF764ba2),
+                                Color(0xFFFF6B6B),
+                                Color(0xFFFF8E53),
                               ],
                               onTap: () => _navigateToAsk(context),
                             ),
                           ),
-                          const SizedBox(width: 15),
+                          const SizedBox(width: 12),
                           Expanded(
-                            child: _buildEnhancedActionCard(
+                            child: _buildKidFriendlyActionCard(
+                              emoji: '✏️',
                               title: 'Practice',
-                              subtitle: 'Exercises',
-                              icon: Icons.quiz_outlined,
+                              subtitle: 'Fun exercises!',
                               gradientColors: const [
-                                Color(0xFF11998e),
-                                Color(0xFF38ef7d),
+                                Color(0xFF4CAF50),
+                                Color(0xFF45B649),
                               ],
                               onTap: () => _navigateToExercises(context),
                             ),
@@ -211,19 +273,19 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
                         ],
                       ),
 
-                      const SizedBox(height: 15),
+                      const SizedBox(height: 12),
 
                       // Third Row Actions
                       Row(
                         children: [
                           Expanded(
-                            child: _buildEnhancedActionCard(
-                              title: 'Saved Problems',
+                            child: _buildKidFriendlyActionCard(
+                              emoji: '📚',
+                              title: 'My History',
                               subtitle: 'Review anytime',
-                              icon: Icons.bookmark_outline,
                               gradientColors: const [
-                                Color(0xFFf093fb),
-                                Color(0xFFf5576c),
+                                Color(0xFFFF9800),
+                                Color(0xFFFF5722),
                               ],
                               onTap: () => _navigateToSaved(context),
                             ),
@@ -276,23 +338,23 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Color(0xFF6a11cb),
-                Color(0xFF2575fc),
+                Color(0xFF667EEA),
+                Color(0xFF764BA2),
               ],
             ),
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF6a11cb).withValues(alpha: 0.3),
-                blurRadius: 10,
-                offset: const Offset(0, 5),
+                color: const Color(0xFF667EEA).withValues(alpha: 0.4),
+                blurRadius: 15,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
           child: Material(
             color: Colors.transparent,
             child: InkWell(
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(24),
               onTap: () {
                 // Navigate to ManageProfilesScreen using direct navigation
                 Navigator.of(context).push(
@@ -306,19 +368,14 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
                 child: Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(14),
+                      padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.3),
-                          width: 1,
-                        ),
+                        shape: BoxShape.circle,
                       ),
-                      child: const Icon(
-                        Icons.people,
-                        color: Colors.white,
-                        size: 28,
+                      child: const Text(
+                        '👨‍👩‍👧‍👦',
+                        style: TextStyle(fontSize: 28),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -327,28 +384,36 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'Manage Child Profiles',
+                            'Manage Profiles',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 18,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '$profileCount of $maxProfiles profile${maxProfiles > 1 ? 's' : ''} created',
+                            '$profileCount of $maxProfiles profile${maxProfiles > 1 ? 's' : ''} 🎯',
                             style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.8),
+                              color: Colors.white.withValues(alpha: 0.9),
                               fontSize: 14,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    Icon(
-                      Icons.arrow_forward_ios,
-                      color: Colors.white.withValues(alpha: 0.8),
-                      size: 18,
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        color: Colors.white.withValues(alpha: 0.9),
+                        size: 18,
+                      ),
                     ),
                   ],
                 ),
@@ -443,6 +508,87 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
     );
   }
 
+  // Kid-friendly action card with emojis
+  Widget _buildKidFriendlyActionCard({
+    required String emoji,
+    required String title,
+    required String subtitle,
+    required List<Color> gradientColors,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      height: 130,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: gradientColors,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: gradientColors.first.withValues(alpha: 0.4),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(24),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Emoji in a circle
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    emoji,
+                    style: const TextStyle(fontSize: 28),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    fontSize: 15,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.9),
+                    fontWeight: FontWeight.w500,
+                    fontSize: 12,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildRecentActivity() {
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
@@ -454,36 +600,100 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Recent Help', style: AppTextStyles.headline3),
-                TextButton.icon(
-                  onPressed: () => _navigateToBadges(context),
-                  icon: const Icon(Icons.emoji_events, size: 18),
-                  label: const Text('Badges'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.primary,
+                const Row(
+                  children: [
+                    Text(
+                      '📝 Recent Help',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () => _navigateToBadges(context),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.emoji_events,
+                                size: 18, color: Colors.white),
+                            const SizedBox(width: 6),
+                            const Text(
+                              'Badges',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 15),
             if (recentQuestions.isEmpty)
-              GlassCard(
-                padding: const EdgeInsets.all(20),
+              Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withValues(alpha: 0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
                 child: Column(
                   children: [
-                    const Icon(Icons.history,
-                        size: 48, color: AppColors.gray400),
-                    const SizedBox(height: 12),
-                    Text(
-                      'No recent activities',
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        color: AppColors.gray500,
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                        ),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.history,
+                          size: 40, color: Colors.white),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'No activities yet! 🎯',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Start by scanning or asking a question!',
-                      style: AppTextStyles.bodySmall,
+                      'Start learning by scanning homework\nor asking a question above!',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade600,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -521,61 +731,77 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
     required IconData icon,
     VoidCallback? onTap,
   }) {
-    return GlassCard(
-      padding: const EdgeInsets.all(15),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(20),
         onTap: onTap,
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    AppColors.success,
-                    AppColors.success.withValues(alpha: 0.8),
-                  ],
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF4CAF50), Color(0xFF45A049)],
                 ),
-                borderRadius: BorderRadius.circular(20),
+                shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: Colors.white, size: 16),
+              child: Icon(icon, color: Colors.white, size: 20),
             ),
-            const SizedBox(width: 15),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     title,
-                    style: AppTextStyles.bodyLarge.copyWith(
-                      fontWeight: FontWeight.w600,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: Colors.black87,
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(subtitle, style: AppTextStyles.bodySmall),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.access_time,
+                          size: 14, color: Colors.grey),
+                      const SizedBox(width: 4),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: statusColor,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                status,
-                style: AppTextStyles.bodySmall.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
             if (onTap != null)
-              const Icon(
-                Icons.arrow_forward_ios,
-                size: 14,
-                color: AppColors.gray400,
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 16,
+                  color: Colors.blue,
+                ),
               ),
           ],
         ),

@@ -325,7 +325,7 @@ class _AILessonGeneratorScreenState extends State<AILessonGeneratorScreen>
                       ),
                     ),
                     Text(
-                      'Create 10 AI-powered lessons instantly',
+                      'Create AI-powered lessons with custom questions',
                       style: TextStyle(
                         fontSize: 13,
                         color: Colors.white70,
@@ -666,7 +666,7 @@ class _AILessonGeneratorScreenState extends State<AILessonGeneratorScreen>
                           color: Colors.amber, size: 20),
                       const SizedBox(width: 8),
                       Text(
-                        'Will generate 10 unique lessons',
+                        'Will generate 1 lesson with $_numberOfQuestions questions',
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
                           color: Colors.purple.shade700,
@@ -700,7 +700,7 @@ class _AILessonGeneratorScreenState extends State<AILessonGeneratorScreen>
                   Icon(Icons.auto_awesome_rounded, size: 24),
                   SizedBox(width: 12),
                   Text(
-                    'Generate 10 AI Lessons',
+                    'Generate AI Lesson',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -826,7 +826,7 @@ class _AILessonGeneratorScreenState extends State<AILessonGeneratorScreen>
                     width: 100,
                     height: 100,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
+                      gradient: const LinearGradient(
                         colors: [Colors.purple, Colors.indigo],
                       ),
                       shape: BoxShape.circle,
@@ -929,7 +929,7 @@ class _AILessonGeneratorScreenState extends State<AILessonGeneratorScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      '🎉 Lessons Generated!',
+                      '🎉 Lesson Generated!',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -937,7 +937,9 @@ class _AILessonGeneratorScreenState extends State<AILessonGeneratorScreen>
                       ),
                     ),
                     Text(
-                      '${_generatedLessons.length} lessons are now available',
+                      _generatedLessons.isNotEmpty
+                          ? '${_generatedLessons.first.exercises.length} questions created and ready to practice!'
+                          : 'Lesson is now available',
                       style: const TextStyle(
                         color: Colors.white70,
                       ),
@@ -1131,45 +1133,60 @@ class _AILessonGeneratorScreenState extends State<AILessonGeneratorScreen>
 
       final generatedLessons = <Lesson>[];
 
-      // Generate 10 lessons
-      for (int i = 0; i < 10; i++) {
-        setState(() {
-          _generationProgress = (i + 0.5) / 10;
-          _statusMessage =
-              'Generating lesson ${i + 1} of 10...\n${_getTopicVariation(i)}';
-        });
+      // Generate 1 lesson with multiple questions
+      setState(() {
+        _generationProgress = 0.5;
+        _statusMessage =
+            'Generating lesson with $_numberOfQuestions questions...\nTopic: $_selectedTopic${_customTopic.isNotEmpty ? " - $_customTopic" : ""}';
+      });
 
-        final lesson = await _generateSingleLesson(
-          apiKey: apiKey,
-          lessonIndex: i + 1,
-          topicVariation: _getTopicVariation(i),
-        );
+      debugPrint('🤖 Starting AI lesson generation...');
+      final lesson = await _generateSingleLesson(
+        apiKey: apiKey,
+        lessonIndex: 1,
+        topicVariation: _customTopic.isNotEmpty ? _customTopic : _selectedTopic,
+      );
 
-        if (lesson != null) {
-          generatedLessons.add(lesson);
+      if (lesson != null) {
+        debugPrint('✅ Lesson generated successfully: ${lesson.lessonTitle}');
+        debugPrint('   Questions: ${lesson.exercises.length}');
+        generatedLessons.add(lesson);
 
-          // Save to Firebase and local database
-          await _saveLessonToDatabase(lesson);
-        }
-
-        setState(() {
-          _generationProgress = (i + 1) / 10;
-        });
+        // Save to Firebase and local database
+        debugPrint('💾 Saving lesson to database...');
+        await _saveLessonToDatabase(lesson);
+        debugPrint('✅ Lesson saved successfully!');
+      } else {
+        debugPrint('❌ Failed to generate lesson - lesson is null');
       }
 
       setState(() {
+        _generationProgress = 1.0;
         _generatedLessons = generatedLessons;
         _isGenerating = false;
       });
 
+      debugPrint('📊 Generation complete. Lessons in list: ${_generatedLessons.length}');
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-                'Successfully generated ${generatedLessons.length} lessons! 🎉'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        if (lesson != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  'Successfully generated 1 lesson with ${lesson.exercises.length} questions! 🎉'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to generate lesson. Please try again.'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
       }
     } catch (e) {
       setState(() {
@@ -1329,10 +1346,15 @@ Respond with this exact JSON structure (no markdown, just JSON):
       "question_type": "multiple_choice|fill_blank|calculation|true_false|short_answer",
       "choices": ["A) Option 1", "B) Option 2", "C) Option 3", "D) Option 4"],
       "answer_key": "The correct answer",
-      "explanation": "Detailed step-by-step explanation of how to solve this"
+      "explanation": "🔧 How to Solve:\\nStep-by-step solving instructions here\\n\\n💡 Tips:\\nHelpful tips and tricks here\\n\\n📝 Example:\\nA concrete example showing the solution"
     }
   ]
 }
+
+IMPORTANT: Format the "explanation" field with these sections separated by the markers shown above:
+- 🔧 How to Solve: (step-by-step instructions)
+- 💡 Tips: (helpful hints and tricks)
+- 📝 Example: (a concrete example)
 
 For non-multiple-choice questions, leave "choices" as an empty array [].
 ''';
@@ -1374,12 +1396,16 @@ For non-multiple-choice questions, leave "choices" as an empty array [].
 
       for (var i = 0; i < questionsJson.length; i++) {
         final q = questionsJson[i];
+        final choicesRaw = q['choices'] as List<dynamic>? ?? [];
+        final choices = choicesRaw.map((c) => c.toString()).toList();
+
         exercises.add(Exercise(
           questionNumber: i + 1,
           questionText: q['question_text'] ?? '',
           inputType: _mapQuestionType(q['question_type'] ?? 'text'),
           answerKey: q['answer_key'] ?? '',
           explanation: q['explanation'] ?? '',
+          choices: choices,
         ));
       }
 
@@ -1448,7 +1474,7 @@ For non-multiple-choice questions, leave "choices" as an empty array [].
           difficulty: _getDifficultyTag(lesson.difficulty),
           answerKey: exercise.answerKey,
           explanation: exercise.explanation,
-          choices: [],
+          choices: exercise.choices,
           metadata: const QuestionMetadata(),
           targetLanguage: lesson.targetLanguage,
         );

@@ -2616,7 +2616,7 @@ class _QuestionBankManagerState extends State<QuestionBankManager>
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.info_outline,
+                          const Icon(Icons.info_outline,
                               color: Colors.blue, size: 20),
                           const SizedBox(width: 12),
                           Expanded(
@@ -2908,11 +2908,11 @@ class _QuestionBankManagerState extends State<QuestionBankManager>
                   ),
                 ),
               ),
-              Row(
+              const Row(
                 children: [
                   Icon(Icons.check_circle, color: Colors.green, size: 32),
-                  const SizedBox(width: 12),
-                  const Text(
+                  SizedBox(width: 12),
+                  Text(
                     'Firestore Cleanup Complete',
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
@@ -3082,11 +3082,11 @@ class _QuestionBankManagerState extends State<QuestionBankManager>
                 ),
               ),
               const SizedBox(height: 16),
-              Row(
+              const Row(
                 children: [
                   Icon(Icons.check_circle, color: Colors.green, size: 32),
-                  const SizedBox(width: 12),
-                  const Text(
+                  SizedBox(width: 12),
+                  Text(
                     'All Duplicates Cleaned',
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),

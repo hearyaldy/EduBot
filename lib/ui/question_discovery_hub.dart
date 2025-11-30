@@ -1069,7 +1069,7 @@ class _QuestionDiscoveryHubState extends State<QuestionDiscoveryHub>
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: _selectedGrade,
+                          initialValue: _selectedGrade,
                           isExpanded: true,
                           decoration: const InputDecoration(
                             labelText: 'Grade Level',
@@ -1097,7 +1097,7 @@ class _QuestionDiscoveryHubState extends State<QuestionDiscoveryHub>
                       const SizedBox(width: 16),
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: _selectedStandard,
+                          initialValue: _selectedStandard,
                           isExpanded: true,
                           decoration: const InputDecoration(
                             labelText: 'Curriculum Standard',

@@ -99,13 +99,15 @@ class LessonService {
         .toList();
   }
 
-  /// Get all lessons (including ones from question bank)
+  /// Get all lessons (including ones from question bank and AI-generated)
   Future<List<Lesson>> getAllLessons() async {
     await initialize();
 
     if (_useOnlyQuestionBank) {
       // Only return lessons from the question bank
-      return await getLessonsFromQuestionBank();
+      final questionBankLessons = await getLessonsFromQuestionBank();
+      final aiLessons = await getAILessonsFromFirestore();
+      return [...questionBankLessons, ...aiLessons];
     } else {
       // Get hardcoded lessons
       final hardcodedLessons = List<Lesson>.from(_lessons);
@@ -113,8 +115,120 @@ class LessonService {
       // Get lessons from question bank
       final questionBankLessons = await getLessonsFromQuestionBank();
 
-      // Combine them (hardcoded first, then question bank)
-      return [...hardcodedLessons, ...questionBankLessons];
+      // Get AI-generated lessons from Firestore
+      final aiLessons = await getAILessonsFromFirestore();
+
+      // Combine them (AI lessons first for visibility, then hardcoded, then question bank)
+      return [...aiLessons, ...hardcodedLessons, ...questionBankLessons];
+    }
+  }
+
+  /// Get AI-generated lessons with local caching
+  /// Loads from local cache first, syncs from Firestore only when needed
+  Future<List<Lesson>> getAILessonsFromFirestore({bool forceRefresh = false}) async {
+    try {
+      // Initialize database for caching
+      await _databaseService.initialize();
+
+      // Try to load from local cache first (unless force refresh)
+      if (!forceRefresh) {
+        final cachedLessons = await _loadAILessonsFromCache();
+        if (cachedLessons.isNotEmpty) {
+          debugPrint('Loaded ${cachedLessons.length} AI lessons from local cache (no Firestore read)');
+          return cachedLessons;
+        }
+      }
+
+      // No cache or force refresh - load from Firestore
+      if (!FirebaseService.isInitialized) {
+        debugPrint('Firebase not initialized, returning empty AI lessons');
+        return [];
+      }
+
+      debugPrint('Fetching AI lessons from Firestore...');
+      final lessonData = await _firebaseService.getAILessonsFromFirestore();
+      final lessons = lessonData
+          .map((data) {
+            try {
+              // Deep convert Map<dynamic, dynamic> to Map<String, dynamic>
+              final Map<String, dynamic> stringData = _deepConvertMap(data);
+              return Lesson.fromJson(stringData);
+            } catch (e) {
+              debugPrint('Error parsing AI lesson from Firestore: $e');
+              return null;
+            }
+          })
+          .whereType<Lesson>()
+          .toList();
+
+      debugPrint('Loaded ${lessons.length} AI lessons from Firestore');
+
+      // Save to local cache for next time
+      if (lessons.isNotEmpty) {
+        await _saveAILessonsToCache(lessons);
+        debugPrint('Cached ${lessons.length} AI lessons locally');
+      }
+
+      return lessons;
+    } catch (e) {
+      debugPrint('Error loading AI lessons: $e');
+
+      // Fallback to cache on error
+      try {
+        final cachedLessons = await _loadAILessonsFromCache();
+        if (cachedLessons.isNotEmpty) {
+          debugPrint('Using cached AI lessons due to Firestore error');
+          return cachedLessons;
+        }
+      } catch (cacheError) {
+        debugPrint('Cache fallback also failed: $cacheError');
+      }
+
+      return [];
+    }
+  }
+
+  /// Load AI lessons from local cache
+  Future<List<Lesson>> _loadAILessonsFromCache() async {
+    try {
+      await _databaseService.initialize();
+
+      // Get all lessons stored locally with 'ai_' prefix
+      final allLessonsJson = await _databaseService.getAILessonsFromCache();
+
+      final lessons = allLessonsJson
+          .map((json) {
+            try {
+              return Lesson.fromJson(json);
+            } catch (e) {
+              debugPrint('Error parsing cached lesson: $e');
+              return null;
+            }
+          })
+          .whereType<Lesson>()
+          .toList();
+
+      return lessons;
+    } catch (e) {
+      debugPrint('Error loading from cache: $e');
+      return [];
+    }
+  }
+
+  /// Save AI lessons to local cache
+  Future<void> _saveAILessonsToCache(List<Lesson> lessons) async {
+    try {
+      await _databaseService.initialize();
+
+      // Clear old cached AI lessons first
+      await _databaseService.clearAILessonsCache();
+
+      // Save each lesson to cache
+      for (final lesson in lessons) {
+        await _databaseService.cacheAILesson(lesson.toJson());
+      }
+    } catch (e) {
+      debugPrint('Error saving to cache: $e');
     }
   }
 
@@ -130,6 +244,35 @@ class LessonService {
       if (hardcodedIndex != -1) {
         _lessons.removeAt(hardcodedIndex);
         debugPrint('Deleted hardcoded lesson: $lessonId');
+        return true;
+      }
+
+      // Check if it's an AI-generated lesson (matches pattern: ai_<subject>_g<grade>_<timestamp>)
+      if (lessonId.startsWith('ai_')) {
+        // Delete from Firestore
+        if (FirebaseService.isInitialized) {
+          try {
+            await _firebaseService.deleteAILesson(lessonId);
+            debugPrint('Deleted AI lesson from Firestore: $lessonId');
+          } catch (e) {
+            debugPrint('Error deleting AI lesson from Firestore: $e');
+            return false;
+          }
+        }
+
+        // Delete from local cache
+        await _databaseService.initialize();
+        await _databaseService.deleteCachedAILesson(lessonId);
+
+        // Delete associated questions from local database
+        final allQuestions = _databaseService.getAllQuestions();
+        for (final question in allQuestions) {
+          if (question.id.startsWith(lessonId)) {
+            await _databaseService.deleteQuestion(question.id);
+          }
+        }
+
+        debugPrint('Deleted AI lesson: $lessonId');
         return true;
       }
 

@@ -67,8 +67,33 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Refresh lessons when returning to this screen (e.g., from AI generator)
+    if (ModalRoute.of(context)?.isCurrent == true) {
+      _refreshLessons();
+    }
+  }
+
+  @override
   void dispose() {
     super.dispose();
+  }
+
+  Future<void> _refreshLessons() async {
+    try {
+      // Force refresh from Firestore to get newly created lessons
+      final lessons = await _lessonService.getAILessonsFromFirestore(forceRefresh: true);
+      final allLessons = await _lessonService.getAllLessons();
+
+      if (mounted) {
+        setState(() {
+          _lessons = allLessons;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error refreshing lessons: $e');
+    }
   }
 
   Future<void> _loadLessons() async {
@@ -219,9 +244,9 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                const Row(
                   children: [
-                    const Text(
+                    Text(
                       'Practice Time! ',
                       style: TextStyle(
                         fontSize: 24,
@@ -229,7 +254,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                         color: Colors.white,
                       ),
                     ),
-                    const Text('🎯', style: TextStyle(fontSize: 24)),
+                    Text('🎯', style: TextStyle(fontSize: 24)),
                   ],
                 ),
                 Text(
@@ -761,6 +786,9 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
+                      // AI-Generated badge
+                      if (lesson.id.startsWith('ai_'))
+                        _buildAIBadge(),
                       _buildTag(
                         lesson.subject,
                         color,
@@ -941,6 +969,54 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAIBadge() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFF667EEA),
+            Color(0xFF764BA2),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF667EEA).withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: const Icon(
+              Icons.auto_awesome_rounded,
+              size: 12,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(width: 6),
+          const Text(
+            'AI Generated',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
           ),
         ],

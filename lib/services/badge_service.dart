@@ -197,7 +197,7 @@ class BadgeService {
       );
 
       debugPrint(
-          '✅ Badge data synced from Firestore (${unlockedCount}/${totalCount} unlocked)');
+          '✅ Badge data synced from Firestore ($unlockedCount/$totalCount unlocked)');
     } catch (e) {
       debugPrint('Error syncing badges from Firestore: $e');
     }
