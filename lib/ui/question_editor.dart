@@ -408,8 +408,11 @@ class _QuestionEditorState extends State<QuestionEditor>
             ),
             items: [
               'Mathematics',
+              'Matematik',
               'Science',
+              'Sains',
               'English',
+              'Bahasa Melayu',
               'History',
               'Geography',
               'Physics',

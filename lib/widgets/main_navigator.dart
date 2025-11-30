@@ -11,6 +11,7 @@ import '../screens/settings_screen.dart';
 import '../screens/admin_dashboard_screen.dart';
 import '../screens/premium_screen.dart';
 import '../screens/subject_management_screen.dart';
+import '../screens/ai_lesson_generator_screen.dart';
 import '../ui/question_bank_manager.dart';
 import '../ui/analytics_dashboard.dart';
 import '../ui/adaptive_learning_interface.dart';
@@ -142,11 +143,12 @@ class _MainNavigatorState extends State<MainNavigator> {
       tooltip: 'Menu',
       heroTag: 'speed-dial-hero-tag',
       children: [
+        // ========== GENERAL SECTION (Blue tones) ==========
         SpeedDialChild(
           child: const Icon(Icons.history),
-          backgroundColor: Colors.blue,
+          backgroundColor: const Color(0xFF2196F3),
           foregroundColor: Colors.white,
-          label: 'History',
+          label: '📚 History',
           labelStyle: const TextStyle(
             fontSize: 14,
             color: Colors.black87,
@@ -160,9 +162,9 @@ class _MainNavigatorState extends State<MainNavigator> {
         ),
         SpeedDialChild(
           child: const Icon(Icons.settings),
-          backgroundColor: Colors.grey,
+          backgroundColor: const Color(0xFF607D8B),
           foregroundColor: Colors.white,
-          label: 'Settings',
+          label: '⚙️ Settings',
           labelStyle: const TextStyle(
             fontSize: 14,
             color: Colors.black87,
@@ -174,11 +176,13 @@ class _MainNavigatorState extends State<MainNavigator> {
             MaterialPageRoute(builder: (context) => const SettingsScreen()),
           ),
         ),
+
+        // ========== LEARNING TOOLS SECTION (Purple tones) ==========
         SpeedDialChild(
           child: const Icon(Icons.explore),
-          backgroundColor: Colors.deepPurple,
+          backgroundColor: const Color(0xFF9C27B0),
           foregroundColor: Colors.white,
-          label: 'Discover',
+          label: '🔍 Discover',
           labelStyle: const TextStyle(
             fontSize: 14,
             color: Colors.black87,
@@ -193,9 +197,9 @@ class _MainNavigatorState extends State<MainNavigator> {
         ),
         SpeedDialChild(
           child: const Icon(Icons.psychology),
-          backgroundColor: Colors.indigo,
+          backgroundColor: const Color(0xFF673AB7),
           foregroundColor: Colors.white,
-          label: 'AI Learning',
+          label: '🧠 AI Learning',
           labelStyle: const TextStyle(
             fontSize: 14,
             color: Colors.black87,
@@ -208,12 +212,31 @@ class _MainNavigatorState extends State<MainNavigator> {
                 builder: (context) => const AdaptiveLearningInterface()),
           ),
         ),
+
+        // ========== ADMIN SECTION (Orange/Red tones) ==========
         if (_isAdmin) ...[
           SpeedDialChild(
-            child: const Icon(Icons.quiz),
-            backgroundColor: Colors.purple,
+            child: const Icon(Icons.auto_awesome),
+            backgroundColor: const Color(0xFFE91E63),
             foregroundColor: Colors.white,
-            label: 'Question Bank',
+            label: '🤖 AI Lesson Generator',
+            labelStyle: const TextStyle(
+              fontSize: 14,
+              color: Colors.black87,
+              fontWeight: FontWeight.w600,
+            ),
+            labelBackgroundColor: Colors.white,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => AiLessonGeneratorScreen()),
+            ),
+          ),
+          SpeedDialChild(
+            child: const Icon(Icons.quiz),
+            backgroundColor: const Color(0xFFFF5722),
+            foregroundColor: Colors.white,
+            label: '❓ Question Bank',
             labelStyle: const TextStyle(
               fontSize: 14,
               color: Colors.black87,
@@ -228,9 +251,9 @@ class _MainNavigatorState extends State<MainNavigator> {
           ),
           SpeedDialChild(
             child: const Icon(Icons.analytics),
-            backgroundColor: Colors.teal,
+            backgroundColor: const Color(0xFF009688),
             foregroundColor: Colors.white,
-            label: 'Analytics',
+            label: '📊 Analytics',
             labelStyle: const TextStyle(
               fontSize: 14,
               color: Colors.black87,
@@ -245,9 +268,9 @@ class _MainNavigatorState extends State<MainNavigator> {
           ),
           SpeedDialChild(
             child: const Icon(Icons.subject),
-            backgroundColor: Colors.purple,
+            backgroundColor: const Color(0xFFFF9800),
             foregroundColor: Colors.white,
-            label: 'Subject Management',
+            label: '📖 Subject Management',
             labelStyle: const TextStyle(
               fontSize: 14,
               color: Colors.black87,
@@ -262,9 +285,9 @@ class _MainNavigatorState extends State<MainNavigator> {
           ),
           SpeedDialChild(
             child: const Icon(Icons.dashboard),
-            backgroundColor: Colors.orange,
+            backgroundColor: const Color(0xFFF44336),
             foregroundColor: Colors.white,
-            label: 'Admin',
+            label: '🎛️ Admin Dashboard',
             labelStyle: const TextStyle(
               fontSize: 14,
               color: Colors.black87,
@@ -278,11 +301,13 @@ class _MainNavigatorState extends State<MainNavigator> {
             ),
           ),
         ],
+
+        // ========== PREMIUM SECTION (Gold) ==========
         SpeedDialChild(
-          child: const Icon(Icons.star),
-          backgroundColor: Colors.amber,
+          child: const Icon(Icons.workspace_premium),
+          backgroundColor: const Color(0xFFFFB300),
           foregroundColor: Colors.white,
-          label: 'Premium Upgrade',
+          label: '⭐ Premium Upgrade',
           labelStyle: const TextStyle(
             fontSize: 14,
             color: Colors.black87,

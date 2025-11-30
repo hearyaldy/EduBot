@@ -4,6 +4,7 @@ class Exercise {
   final String inputType;
   final String answerKey;
   final String explanation;
+  final List<String> choices;
   final String? userAnswer;
   final bool isCompleted;
   final bool isCorrect;
@@ -14,6 +15,7 @@ class Exercise {
     required this.inputType,
     required this.answerKey,
     required this.explanation,
+    this.choices = const [],
     this.userAnswer,
     this.isCompleted = false,
     this.isCorrect = false,
@@ -25,6 +27,7 @@ class Exercise {
     String? inputType,
     String? answerKey,
     String? explanation,
+    List<String>? choices,
     String? userAnswer,
     bool? isCompleted,
     bool? isCorrect,
@@ -35,6 +38,7 @@ class Exercise {
       inputType: inputType ?? this.inputType,
       answerKey: answerKey ?? this.answerKey,
       explanation: explanation ?? this.explanation,
+      choices: choices ?? this.choices,
       userAnswer: userAnswer ?? this.userAnswer,
       isCompleted: isCompleted ?? this.isCompleted,
       isCorrect: isCorrect ?? this.isCorrect,
@@ -48,6 +52,7 @@ class Exercise {
       'input_type': inputType,
       'answer_key': answerKey,
       'explanation': explanation,
+      'choices': choices,
       'user_answer': userAnswer,
       'is_completed': isCompleted,
       'is_correct': isCorrect,
@@ -61,6 +66,7 @@ class Exercise {
       inputType: json['input_type'] ?? 'text',
       answerKey: json['answer_key'] ?? '',
       explanation: json['explanation'] ?? '',
+      choices: (json['choices'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
       userAnswer: json['user_answer'],
       isCompleted: json['is_completed'] ?? false,
       isCorrect: json['is_correct'] ?? false,

@@ -902,31 +902,103 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: const Color(0xFFF5F7FA),
       body: Consumer<AppProvider>(
         builder: (context, provider, child) {
           return Column(
             children: [
-              GradientHeader(
-                title: 'Ask a Question',
-                subtitle: 'Get help with any homework problem',
-                gradientColors: const [
-                  AppColors.askGradient1,
-                  AppColors.askGradient2,
-                  AppColors.askGradient3,
-                ],
-                child: provider.currentExplanation != null
-                    ? Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: ModernButton(
-                          text: 'Ask New Question',
-                          onPressed: _clearQuestion,
-                          icon: Icons.refresh,
-                          backgroundColor: Colors.white.withValues(alpha: 0.2),
-                          textColor: Colors.white,
+              // Kid-friendly colorful header
+              Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFFFA8BFF),
+                      Color(0xFF2BD2FF),
+                      Color(0xFF2BFF88),
+                    ],
+                  ),
+                ),
+                child: SafeArea(
+                  bottom: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: IconButton(
+                                icon: const Icon(Icons.arrow_back_rounded,
+                                    color: Colors.white),
+                                onPressed: () => Navigator.pop(context),
+                              ),
+                            ),
+                            const Spacer(),
+                          ],
                         ),
-                      )
-                    : null,
+                        const SizedBox(height: 16),
+                        const Text(
+                          '❓ Ask Anything!',
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'I\'m here to help you learn! 🤖💡',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.white.withValues(alpha: 0.9),
+                          ),
+                        ),
+                        if (provider.currentExplanation != null) ...[
+                          const SizedBox(height: 16),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(16),
+                                onTap: _clearQuestion,
+                                child: const Padding(
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 20, vertical: 12),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.refresh_rounded,
+                                          color: Colors.white),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'Ask New Question',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
               ),
               Expanded(
                 child: SingleChildScrollView(
@@ -959,19 +1031,56 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
   }
 
   Widget _buildQuestionInput() {
-    return Card(
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFFFFFFF),
+            Color(0xFFF8F9FF),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFFA8BFF).withValues(alpha: 0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'What would you like help with?',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFA8BFF), Color(0xFF2BD2FF)],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Text('💬', style: TextStyle(fontSize: 24)),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'What can I help you with? 🤔',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
 
             // Subject Selection
             DropdownButtonFormField<String>(
@@ -1927,33 +2036,108 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            boxShadow: [AppTheme.subtleShadow],
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, -2),
+              ),
+            ],
           ),
           child: SafeArea(
             child: Row(
               children: [
                 Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _isLoading ? null : _submitQuestion,
-                    icon: _isLoading
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.send),
-                    label:
-                        Text(_isLoading ? 'Getting Answer...' : 'Get Answer'),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: _isLoading
+                          ? LinearGradient(
+                              colors: [
+                                Colors.grey.shade300,
+                                Colors.grey.shade400,
+                              ],
+                            )
+                          : const LinearGradient(
+                              colors: [
+                                Color(0xFFFA8BFF),
+                                Color(0xFF2BD2FF),
+                              ],
+                            ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: _isLoading
+                          ? []
+                          : [
+                              BoxShadow(
+                                color: const Color(0xFFFA8BFF)
+                                    .withValues(alpha: 0.3),
+                                blurRadius: 12,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: _isLoading ? null : _submitQuestion,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              if (_isLoading)
+                                const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white),
+                                  ),
+                                )
+                              else
+                                const Icon(Icons.send_rounded,
+                                    color: Colors.white),
+                              const SizedBox(width: 12),
+                              Text(
+                                _isLoading
+                                    ? 'Getting Your Answer... 🤔'
+                                    : 'Get My Answer! 🚀',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
                 if (provider.currentExplanation != null) ...[
                   const SizedBox(width: 12),
-                  IconButton.filledTonal(
-                    onPressed: () =>
-                        _playAudio(provider.currentExplanation!.answer),
-                    icon: const Icon(Icons.volume_up),
-                    tooltip: 'Play answer',
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF2BFF88), Color(0xFF2BD2FF)],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () =>
+                            _playAudio(provider.currentExplanation!.answer),
+                        child: const Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Icon(Icons.volume_up, color: Colors.white),
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ],

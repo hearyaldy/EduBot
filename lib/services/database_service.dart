@@ -12,18 +12,24 @@ class DatabaseService {
   static const String _progressBoxName = 'student_progress';
   static const String _analyticsBoxName = 'analytics_cache';
   static const String _settingsBoxName = 'app_settings';
+  static const String _aiLessonsCacheName = 'ai_lessons_cache';
+  static const String _practiceSessionsBoxName = 'practice_sessions';
 
   Box<Map>? _questionsBox;
   Box<StudentProgress>? _progressBox;
   Box<Map>? _analyticsBox;
   Box<dynamic>? _settingsBox;
+  Box<Map>? _aiLessonsCache;
+  Box<Map>? _practiceSessionsBox;
 
   bool _isInitialized = false;
 
   /// Initialize Hive database
   Future<void> initialize() async {
     if (_isInitialized) {
-      debugPrint('💾 DatabaseService: Already initialized, skipping');
+      debugPrint('💾 DatabaseService: Already initialized');
+      // Still need to check if new boxes need to be opened (e.g., AI cache)
+      await _ensureAllBoxesOpen();
       return;
     }
 
@@ -91,12 +97,32 @@ class DatabaseService {
         debugPrint('   ✅ Opened new settings box');
       }
 
+      debugPrint('📂 DatabaseService: Opening AI lessons cache box...');
+      if (Hive.isBoxOpen(_aiLessonsCacheName)) {
+        debugPrint('   Box already open, using existing');
+        _aiLessonsCache = Hive.box<Map>(_aiLessonsCacheName);
+      } else {
+        _aiLessonsCache = await Hive.openBox<Map>(_aiLessonsCacheName);
+        debugPrint('   ✅ Opened new AI lessons cache box');
+      }
+
+      debugPrint('📂 DatabaseService: Opening practice sessions box...');
+      if (Hive.isBoxOpen(_practiceSessionsBoxName)) {
+        debugPrint('   Box already open, using existing');
+        _practiceSessionsBox = Hive.box<Map>(_practiceSessionsBoxName);
+      } else {
+        _practiceSessionsBox = await Hive.openBox<Map>(_practiceSessionsBoxName);
+        debugPrint('   ✅ Opened new practice sessions box');
+      }
+
       _isInitialized = true;
       debugPrint('🎉 DatabaseService: Initialization complete!');
       debugPrint('   - Questions: ${_questionsBox?.length ?? 0} entries');
       debugPrint('   - Progress: ${_progressBox?.length ?? 0} entries');
       debugPrint('   - Analytics: ${_analyticsBox?.length ?? 0} entries');
       debugPrint('   - Settings: ${_settingsBox?.length ?? 0} entries');
+      debugPrint('   - AI Lessons Cache: ${_aiLessonsCache?.length ?? 0} entries');
+      debugPrint('   - Practice Sessions: ${_practiceSessionsBox?.length ?? 0} entries');
     } catch (e, stackTrace) {
       debugPrint('❌ DatabaseService ERROR in initialize: $e');
       debugPrint('📍 Stack trace: $stackTrace');
@@ -668,12 +694,216 @@ class DatabaseService {
     };
   }
 
+  // ==================== HELPER METHODS ====================
+
+  /// Ensure all boxes are open (including newly added ones)
+  Future<void> _ensureAllBoxesOpen() async {
+    try {
+      // Check and open AI lessons cache if not already open
+      if (_aiLessonsCache == null || !Hive.isBoxOpen(_aiLessonsCacheName)) {
+        debugPrint('📂 Opening AI lessons cache box (was not open)...');
+        if (Hive.isBoxOpen(_aiLessonsCacheName)) {
+          _aiLessonsCache = Hive.box<Map>(_aiLessonsCacheName);
+        } else {
+          _aiLessonsCache = await Hive.openBox<Map>(_aiLessonsCacheName);
+        }
+        debugPrint('✅ AI lessons cache box now open');
+      }
+
+      // Check and open practice sessions if not already open
+      if (_practiceSessionsBox == null || !Hive.isBoxOpen(_practiceSessionsBoxName)) {
+        debugPrint('📂 Opening practice sessions box (was not open)...');
+        if (Hive.isBoxOpen(_practiceSessionsBoxName)) {
+          _practiceSessionsBox = Hive.box<Map>(_practiceSessionsBoxName);
+        } else {
+          _practiceSessionsBox = await Hive.openBox<Map>(_practiceSessionsBoxName);
+        }
+        debugPrint('✅ Practice sessions box now open');
+      }
+    } catch (e) {
+      debugPrint('❌ Error ensuring boxes open: $e');
+    }
+  }
+
+  // ==================== AI LESSONS CACHE METHODS ====================
+
+  /// Get all cached AI lessons from local storage
+  Future<List<Map<String, dynamic>>> getAILessonsFromCache() async {
+    if (_aiLessonsCache == null) {
+      debugPrint('⚠️ AI lessons cache box not initialized');
+      return [];
+    }
+
+    try {
+      final lessons = <Map<String, dynamic>>[];
+      for (var i = 0; i < _aiLessonsCache!.length; i++) {
+        final lessonMap = _aiLessonsCache!.getAt(i);
+        if (lessonMap != null) {
+          lessons.add(Map<String, dynamic>.from(lessonMap));
+        }
+      }
+      debugPrint('📚 Loaded ${lessons.length} AI lessons from cache');
+      return lessons;
+    } catch (e) {
+      debugPrint('❌ Error getting AI lessons from cache: $e');
+      return [];
+    }
+  }
+
+  /// Cache an AI lesson to local storage
+  Future<void> cacheAILesson(Map<String, dynamic> lessonJson) async {
+    if (_aiLessonsCache == null) {
+      debugPrint('⚠️ AI lessons cache box not initialized');
+      return;
+    }
+
+    try {
+      final lessonId = lessonJson['id'];
+      if (lessonId == null) {
+        debugPrint('⚠️ Cannot cache lesson without ID');
+        return;
+      }
+
+      // Store with the lesson ID as key
+      await _aiLessonsCache!.put(lessonId, lessonJson);
+      debugPrint('✅ Cached AI lesson: $lessonId');
+    } catch (e) {
+      debugPrint('❌ Error caching AI lesson: $e');
+    }
+  }
+
+  /// Clear all cached AI lessons
+  Future<void> clearAILessonsCache() async {
+    if (_aiLessonsCache == null) {
+      debugPrint('⚠️ AI lessons cache box not initialized');
+      return;
+    }
+
+    try {
+      await _aiLessonsCache!.clear();
+      debugPrint('🗑️ Cleared AI lessons cache');
+    } catch (e) {
+      debugPrint('❌ Error clearing AI lessons cache: $e');
+    }
+  }
+
+  /// Delete a specific cached AI lesson by ID
+  Future<void> deleteCachedAILesson(String lessonId) async {
+    if (_aiLessonsCache == null) {
+      debugPrint('⚠️ AI lessons cache box not initialized');
+      return;
+    }
+
+    try {
+      await _aiLessonsCache!.delete(lessonId);
+      debugPrint('🗑️ Deleted cached AI lesson: $lessonId');
+    } catch (e) {
+      debugPrint('❌ Error deleting cached AI lesson: $e');
+    }
+  }
+
+  // ==================== PRACTICE SESSION METHODS ====================
+
+  /// Save a practice session to local storage
+  Future<void> savePracticeSession(Map<String, dynamic> sessionJson) async {
+    await initialize();
+
+    if (_practiceSessionsBox == null) {
+      debugPrint('⚠️ Practice sessions box not initialized');
+      return;
+    }
+
+    try {
+      final sessionId = sessionJson['id'] as String;
+      await _practiceSessionsBox!.put(sessionId, sessionJson);
+      debugPrint('💾 Saved practice session: $sessionId');
+    } catch (e) {
+      debugPrint('❌ Error saving practice session: $e');
+      rethrow;
+    }
+  }
+
+  /// Get all practice sessions from local storage
+  Future<List<Map<String, dynamic>>> getAllPracticeSessions() async {
+    await initialize();
+
+    if (_practiceSessionsBox == null) {
+      debugPrint('⚠️ Practice sessions box not initialized');
+      return [];
+    }
+
+    try {
+      final sessions = <Map<String, dynamic>>[];
+      for (var i = 0; i < _practiceSessionsBox!.length; i++) {
+        final sessionMap = _practiceSessionsBox!.getAt(i);
+        if (sessionMap != null) {
+          sessions.add(Map<String, dynamic>.from(sessionMap));
+        }
+      }
+      debugPrint('📚 Loaded ${sessions.length} practice sessions from storage');
+      return sessions;
+    } catch (e) {
+      debugPrint('❌ Error getting practice sessions: $e');
+      return [];
+    }
+  }
+
+  /// Get practice sessions for a specific child profile
+  Future<List<Map<String, dynamic>>> getPracticeSessionsByChild(String childProfileId) async {
+    final allSessions = await getAllPracticeSessions();
+    return allSessions
+        .where((session) => session['child_profile_id'] == childProfileId)
+        .toList();
+  }
+
+  /// Get practice sessions for a specific lesson
+  Future<List<Map<String, dynamic>>> getPracticeSessionsByLesson(String lessonId) async {
+    final allSessions = await getAllPracticeSessions();
+    return allSessions
+        .where((session) => session['lesson_id'] == lessonId)
+        .toList();
+  }
+
+  /// Delete a specific practice session by ID
+  Future<void> deletePracticeSession(String sessionId) async {
+    if (_practiceSessionsBox == null) {
+      debugPrint('⚠️ Practice sessions box not initialized');
+      return;
+    }
+
+    try {
+      await _practiceSessionsBox!.delete(sessionId);
+      debugPrint('🗑️ Deleted practice session: $sessionId');
+    } catch (e) {
+      debugPrint('❌ Error deleting practice session: $e');
+    }
+  }
+
+  /// Clear all practice sessions
+  Future<void> clearAllPracticeSessions() async {
+    if (_practiceSessionsBox == null) {
+      debugPrint('⚠️ Practice sessions box not initialized');
+      return;
+    }
+
+    try {
+      await _practiceSessionsBox!.clear();
+      debugPrint('🗑️ Cleared all practice sessions');
+    } catch (e) {
+      debugPrint('❌ Error clearing practice sessions: $e');
+    }
+  }
+
+  // ====================================================================
+
   /// Close database connections
   Future<void> close() async {
     await _questionsBox?.close();
     await _progressBox?.close();
     await _analyticsBox?.close();
     await _settingsBox?.close();
+    await _aiLessonsCache?.close();
+    await _practiceSessionsBox?.close();
     _isInitialized = false;
   }
 }

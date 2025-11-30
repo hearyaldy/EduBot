@@ -5,9 +5,11 @@ import '../core/theme/app_text_styles.dart';
 import '../models/lesson.dart';
 import '../models/exercise.dart';
 import '../models/question.dart';
+import '../models/practice_session.dart';
 import '../services/lesson_service.dart';
 import '../services/student_progress_service.dart';
 import '../services/ai_service.dart';
+import '../services/database_service.dart';
 import '../providers/app_provider.dart';
 
 class ExercisePracticeScreen extends StatefulWidget {
@@ -26,6 +28,7 @@ class _ExercisePracticeScreenState extends State<ExercisePracticeScreen> {
   final LessonService _lessonService = LessonService();
   final StudentProgressService _progressService = StudentProgressService();
   final AIService _aiService = AIService();
+  final DatabaseService _databaseService = DatabaseService();
   final TextEditingController _answerController = TextEditingController();
   final PageController _pageController = PageController();
 
@@ -36,7 +39,13 @@ class _ExercisePracticeScreenState extends State<ExercisePracticeScreen> {
   bool _isAnswerSubmitted = false;
   bool _isCorrect = false;
   int _correctAnswers = 0;
+  int _incorrectAnswers = 0;
+  int _skippedQuestions = 0;
   DateTime? _questionStartTime;
+
+  // Practice session tracking
+  PracticeSession? _currentSession;
+  DateTime? _sessionStartTime;
 
   // AI Hints state
   bool _isLoadingAIHints = false;
@@ -69,11 +78,38 @@ class _ExercisePracticeScreenState extends State<ExercisePracticeScreen> {
     super.initState();
     _exercises = List.from(widget.lesson.exercises);
     _questionStartTime = DateTime.now();
+    _sessionStartTime = DateTime.now();
     _loadProgress();
+    _initializePracticeSession();
 
     _answerController.addListener(() {
       setState(() {});
     });
+  }
+
+  Future<void> _initializePracticeSession() async {
+    final appProvider = context.read<AppProvider>();
+    final childProfile = appProvider.activeProfile;
+
+    _currentSession = PracticeSession(
+      id: 'session_${DateTime.now().millisecondsSinceEpoch}',
+      lessonId: widget.lesson.id,
+      lessonTitle: widget.lesson.lessonTitle,
+      subject: widget.lesson.subject,
+      topic: widget.lesson.topic,
+      gradeLevel: widget.lesson.gradeLevel,
+      childProfileId: childProfile?.id,
+      childName: childProfile?.name,
+      startTime: _sessionStartTime ?? DateTime.now(),
+      totalQuestions: _exercises.length,
+      correctAnswers: 0,
+      incorrectAnswers: 0,
+      skippedQuestions: 0,
+      accuracyPercentage: 0.0,
+      isCompleted: false,
+    );
+
+    debugPrint('📝 Practice session initialized: ${_currentSession?.id}');
   }
 
   @override
@@ -520,7 +556,34 @@ class _ExercisePracticeScreenState extends State<ExercisePracticeScreen> {
     );
   }
 
+  /// Helper method to check if a choice matches the answer key
+  /// Handles various formats like "A) Answer", "Answer", "A", etc.
+  bool _isChoiceCorrect(String choice, String answerKey) {
+    final choiceLower = choice.trim().toLowerCase();
+    final answerLower = answerKey.trim().toLowerCase();
+
+    // Direct match
+    if (choiceLower == answerLower) return true;
+
+    // Remove common prefixes like "A) ", "B. ", "1) ", etc. and compare
+    final choiceWithoutPrefix = choice.replaceFirst(RegExp(r'^[A-Da-d0-9][).]\s*'), '').trim().toLowerCase();
+    final answerWithoutPrefix = answerKey.replaceFirst(RegExp(r'^[A-Da-d0-9][).]\s*'), '').trim().toLowerCase();
+
+    if (choiceWithoutPrefix == answerWithoutPrefix) return true;
+    if (choiceWithoutPrefix == answerLower) return true;
+    if (choiceLower == answerWithoutPrefix) return true;
+
+    // Check if answer key is just a letter (A, B, C, D) and choice starts with it
+    if (answerKey.trim().length <= 2 && choice.toLowerCase().startsWith(answerKey.toLowerCase())) {
+      return true;
+    }
+
+    return false;
+  }
+
   Widget _buildAnswerInput() {
+    final hasChoices = _currentExercise.choices.isNotEmpty;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -546,15 +609,15 @@ class _ExercisePracticeScreenState extends State<ExercisePracticeScreen> {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
-                  Icons.edit_rounded,
+                  hasChoices ? Icons.checklist_rounded : Icons.edit_rounded,
                   color: _themeColor,
                   size: 20,
                 ),
               ),
               const SizedBox(width: 12),
-              const Text(
-                'Your Answer ✏️',
-                style: TextStyle(
+              Text(
+                hasChoices ? 'Select Your Answer ✅' : 'Your Answer ✏️',
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
@@ -563,7 +626,87 @@ class _ExercisePracticeScreenState extends State<ExercisePracticeScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          TextField(
+          // Show multiple choice buttons if choices exist
+          if (hasChoices)
+            ...(_currentExercise.choices.asMap().entries.map((entry) {
+              final choice = entry.value;
+              final isSelected = _answerController.text == choice;
+              final isCorrectChoice = _isChoiceCorrect(choice, _currentExercise.answerKey);
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: InkWell(
+                  onTap: _isAnswerSubmitted
+                      ? null
+                      : () {
+                          setState(() {
+                            _answerController.text = choice;
+                          });
+                        },
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: _isAnswerSubmitted
+                          ? (isCorrectChoice
+                              ? Colors.green.shade50
+                              : (isSelected ? Colors.red.shade50 : Colors.grey.shade50))
+                          : (isSelected
+                              ? _themeColor.withValues(alpha: 0.1)
+                              : Colors.grey.shade50),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: _isAnswerSubmitted
+                            ? (isCorrectChoice
+                                ? Colors.green
+                                : (isSelected ? Colors.red : Colors.grey.shade300))
+                            : (isSelected ? _themeColor : Colors.grey.shade300),
+                        width: _isAnswerSubmitted && isCorrectChoice ? 2 : 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: _isAnswerSubmitted
+                                ? (isCorrectChoice
+                                    ? Colors.green
+                                    : (isSelected ? Colors.red : Colors.grey.shade300))
+                                : (isSelected ? _themeColor : Colors.grey.shade300),
+                          ),
+                          child: Center(
+                            child: _isAnswerSubmitted && isCorrectChoice
+                                ? const Icon(Icons.check, color: Colors.white, size: 18)
+                                : (_isAnswerSubmitted && isSelected
+                                    ? const Icon(Icons.close, color: Colors.white, size: 18)
+                                    : (isSelected
+                                        ? const Icon(Icons.circle, color: Colors.white, size: 12)
+                                        : null)),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            choice,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }))
+          else
+            // Show text field for non-multiple choice questions
+            TextField(
             controller: _answerController,
             enabled: !_isAnswerSubmitted,
             style: const TextStyle(fontSize: 16),
@@ -1460,8 +1603,8 @@ class _ExercisePracticeScreenState extends State<ExercisePracticeScreen> {
     final userAnswer = _answerController.text.trim();
     final correctAnswer = _currentExercise.answerKey.trim();
 
-    // Simple answer comparison (can be enhanced for more flexible matching)
-    final isCorrect = userAnswer.toLowerCase() == correctAnswer.toLowerCase();
+    // Smart answer comparison that handles different formats
+    final isCorrect = _isChoiceCorrect(userAnswer, correctAnswer);
 
     // Calculate response time
     final responseTime = _questionStartTime != null
@@ -1471,8 +1614,15 @@ class _ExercisePracticeScreenState extends State<ExercisePracticeScreen> {
     setState(() {
       _isAnswerSubmitted = true;
       _isCorrect = isCorrect;
-      if (isCorrect) _correctAnswers++;
+      if (isCorrect) {
+        _correctAnswers++;
+      } else {
+        _incorrectAnswers++;
+      }
     });
+
+    // Update practice session
+    _updatePracticeSession();
 
     // Update progress in the lesson service
     _lessonService.updateExerciseProgress(
@@ -1601,14 +1751,19 @@ class _ExercisePracticeScreenState extends State<ExercisePracticeScreen> {
     }
   }
 
-  void _finishLesson() {
-    Navigator.pop(context);
+  Future<void> _finishLesson() async {
+    await _completePracticeSession();
+    if (mounted) {
+      Navigator.pop(context);
+    }
   }
 
   void _restartLesson() {
     setState(() {
       _currentExerciseIndex = 0;
       _correctAnswers = 0;
+      _incorrectAnswers = 0;
+      _skippedQuestions = 0;
       _resetExercise();
     });
     _pageController.animateToPage(
@@ -1616,6 +1771,75 @@ class _ExercisePracticeScreenState extends State<ExercisePracticeScreen> {
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
     );
+    // Reinitialize practice session
+    _initializePracticeSession();
+  }
+
+  void _updatePracticeSession() {
+    if (_currentSession == null) return;
+
+    final totalAnswered = _correctAnswers + _incorrectAnswers;
+    final accuracy = totalAnswered > 0
+        ? (_correctAnswers / totalAnswered * 100)
+        : 0.0;
+
+    _currentSession = _currentSession!.copyWith(
+      correctAnswers: _correctAnswers,
+      incorrectAnswers: _incorrectAnswers,
+      skippedQuestions: _skippedQuestions,
+      accuracyPercentage: accuracy,
+    );
+
+    debugPrint('📊 Session updated - Correct: $_correctAnswers, Incorrect: $_incorrectAnswers, Accuracy: ${accuracy.toStringAsFixed(1)}%');
+  }
+
+  Future<void> _completePracticeSession() async {
+    if (_currentSession == null) return;
+
+    try {
+      final endTime = DateTime.now();
+      final duration = _sessionStartTime != null
+          ? endTime.difference(_sessionStartTime!)
+          : Duration.zero;
+
+      // Calculate final statistics
+      final totalAnswered = _correctAnswers + _incorrectAnswers;
+      _skippedQuestions = _exercises.length - totalAnswered;
+
+      final accuracy = totalAnswered > 0
+          ? (_correctAnswers / totalAnswered * 100)
+          : 0.0;
+
+      // Update session with final data
+      _currentSession = _currentSession!.copyWith(
+        endTime: endTime,
+        correctAnswers: _correctAnswers,
+        incorrectAnswers: _incorrectAnswers,
+        skippedQuestions: _skippedQuestions,
+        accuracyPercentage: accuracy,
+        duration: duration,
+        isCompleted: true,
+        metadata: {
+          'lesson_type': widget.lesson.id.startsWith('ai_') ? 'ai_generated' : 'standard',
+          'difficulty': widget.lesson.difficulty.toString(),
+          'total_time_seconds': duration.inSeconds,
+        },
+      );
+
+      // Save to database
+      await _databaseService.savePracticeSession(_currentSession!.toJson());
+
+      debugPrint('✅ Practice session completed and saved:');
+      debugPrint('   - Session ID: ${_currentSession!.id}');
+      debugPrint('   - Lesson: ${_currentSession!.lessonTitle}');
+      debugPrint('   - Score: $_correctAnswers/${_exercises.length}');
+      debugPrint('   - Accuracy: ${accuracy.toStringAsFixed(1)}%');
+      debugPrint('   - Duration: ${duration.inMinutes}m ${duration.inSeconds % 60}s');
+      debugPrint('   - Performance: ${_currentSession!.performanceEmoji} ${_currentSession!.performanceLabel}');
+    } catch (e) {
+      debugPrint('❌ Error saving practice session: $e');
+      // Don't block user from exiting even if save fails
+    }
   }
 
   void _showSnackBar(String message, {bool isError = false}) {
