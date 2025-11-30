@@ -229,7 +229,7 @@ class _MainNavigatorState extends State<MainNavigator> {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(
-                  builder: (context) => AiLessonGeneratorScreen()),
+                  builder: (context) => const AILessonGeneratorScreen()),
             ),
           ),
           SpeedDialChild(
