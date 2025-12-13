@@ -4,6 +4,7 @@ import '../providers/app_provider.dart';
 import '../models/child_profile.dart';
 import '../utils/app_theme.dart';
 import '../screens/manage_profiles_screen.dart';
+import '../services/firebase_service.dart';
 
 class ProfileSwitcherWidget extends StatelessWidget {
   final bool isCompact;
@@ -163,15 +164,35 @@ class ProfileSwitcherWidget extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    activeProfile?.name ?? 'No Profile',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.textPrimary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          activeProfile?.name ?? 'No Profile',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textPrimary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (activeProfile != null) ...[
+                        const SizedBox(width: 6),
+                        FutureBuilder<bool>(
+                          future: FirebaseService.instance.isProfileSyncedToFirestore(activeProfile.id),
+                          builder: (context, snapshot) {
+                            final isSynced = snapshot.data ?? false;
+                            return Icon(
+                              isSynced ? Icons.cloud_done : Icons.cloud_off,
+                              size: 12,
+                              color: isSynced ? AppTheme.success : AppTheme.textSecondary,
+                            );
+                          },
+                        ),
+                      ],
+                    ],
                   ),
                   const SizedBox(height: 2),
                   Text(

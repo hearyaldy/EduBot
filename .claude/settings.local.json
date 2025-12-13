@@ -10,7 +10,18 @@
       "Bash(curl:*)",
       "Bash(find:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(flutter doctor:*)",
+      "Bash(Select-String -Pattern \"Firebase|auth|sign\")",
+      "Bash(.gradlew signingReport:*)",
+      "Bash(Select-String -Pattern \"SHA\")",
+      "Bash(flutter pub get:*)",
+      "Bash(adb shell:*)",
+      "Bash(ping:*)",
+      "Bash(adb root:*)",
+      "Bash(adb:*)",
+      "Bash(git log:*)",
+      "Bash(npm install:*)"
     ],
     "deny": [],
     "ask": []

@@ -232,6 +232,50 @@ class LessonService {
     }
   }
 
+  /// Update lesson progress after completing exercises
+  Future<void> updateLessonProgress({
+    required String lessonId,
+    required int completedExercises,
+    required int totalExercises,
+  }) async {
+    await _databaseService.initialize();
+
+    await _databaseService.saveLessonProgress(
+      lessonId: lessonId,
+      completedExercises: completedExercises,
+      totalExercises: totalExercises,
+    );
+
+    debugPrint('✅ Updated lesson progress: $lessonId ($completedExercises/$totalExercises)');
+  }
+
+  /// Apply saved progress to a list of lessons
+  Future<List<Lesson>> applyProgressToLessons(List<Lesson> lessons) async {
+    try {
+      await _databaseService.initialize();
+      final allProgress = await _databaseService.getAllLessonProgress();
+
+      if (allProgress.isEmpty) {
+        return lessons; // No progress saved yet
+      }
+
+      // Apply progress to each lesson
+      return lessons.map((lesson) {
+        final progress = allProgress[lesson.id];
+        if (progress != null) {
+          return lesson.copyWith(
+            completedExercises: progress['completed_exercises'] as int? ?? 0,
+            isCompleted: progress['is_completed'] as bool? ?? false,
+          );
+        }
+        return lesson;
+      }).toList();
+    } catch (e) {
+      debugPrint('Error applying progress to lessons: $e');
+      return lessons; // Return original lessons if error
+    }
+  }
+
   /// Delete a lesson by ID
   /// Returns true if deletion was successful, false otherwise
   Future<bool> deleteLesson(String lessonId) async {

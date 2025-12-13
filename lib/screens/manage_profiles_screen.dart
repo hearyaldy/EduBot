@@ -4,6 +4,7 @@ import '../providers/app_provider.dart';
 import '../models/child_profile.dart';
 import '../utils/app_theme.dart';
 import '../screens/premium_screen.dart';
+import '../services/firebase_service.dart';
 
 class ManageProfilesScreen extends StatelessWidget {
   const ManageProfilesScreen({super.key});
@@ -176,6 +177,31 @@ class ManageProfilesScreen extends StatelessWidget {
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
+            ),
+            // Sync status indicator
+            FutureBuilder<bool>(
+              future: FirebaseService.instance.isProfileSyncedToFirestore(profile.id),
+              builder: (context, snapshot) {
+                final isSynced = snapshot.data ?? false;
+                final isLoading = snapshot.connectionState == ConnectionState.waiting;
+
+                if (isLoading) {
+                  return const SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  );
+                }
+
+                return Tooltip(
+                  message: isSynced ? 'Synced to cloud' : 'Local only',
+                  child: Icon(
+                    isSynced ? Icons.cloud_done : Icons.cloud_off,
+                    size: 16,
+                    color: isSynced ? AppTheme.success : AppTheme.textSecondary,
+                  ),
+                );
+              },
             ),
             if (isActive) ...[
               const SizedBox(width: 8),
