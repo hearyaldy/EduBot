@@ -1736,6 +1736,41 @@ For non-multiple-choice questions, leave "choices" as an empty array [].
 ''';
   }
 
+  String _removeTrailingCommas(String jsonString) {
+    // Simple state machine to track if we're inside quotes
+    final buffer = StringBuffer();
+    bool inString = false;
+    bool escaped = false;
+
+    for (int i = 0; i < jsonString.length; i++) {
+      final char = jsonString[i];
+      final nextChar = i + 1 < jsonString.length ? jsonString[i + 1] : '';
+
+      // Track string state
+      if (char == '"' && !escaped) {
+        inString = !inString;
+      }
+      escaped = char == '\\' && !escaped;
+
+      // Remove trailing comma if we're not in a string
+      if (!inString && char == ',') {
+        // Look ahead to see if next non-whitespace is ] or }
+        int j = i + 1;
+        while (j < jsonString.length && (jsonString[j] == ' ' || jsonString[j] == '\n' || jsonString[j] == '\r' || jsonString[j] == '\t')) {
+          j++;
+        }
+        if (j < jsonString.length && (jsonString[j] == ']' || jsonString[j] == '}')) {
+          // Skip this comma (trailing comma found)
+          continue;
+        }
+      }
+
+      buffer.write(char);
+    }
+
+    return buffer.toString();
+  }
+
   Lesson? _parseLesson(String content, int lessonIndex, String topicVariation) {
     try {
       // Clean up the response
@@ -1772,7 +1807,8 @@ For non-multiple-choice questions, leave "choices" as an empty array [].
 
       // Fix common JSON issues
       // Remove trailing commas before closing brackets/braces
-      cleanContent = cleanContent.replaceAll(RegExp(r',(\s*[}\]])'), r'$1');
+      // More careful approach - only outside of quotes
+      cleanContent = _removeTrailingCommas(cleanContent);
 
       // Escape unescaped quotes in text (common in Malay content)
       // This is a basic fix - might need more sophisticated handling
