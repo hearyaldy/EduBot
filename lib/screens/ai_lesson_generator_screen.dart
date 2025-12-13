@@ -52,6 +52,8 @@ class _AILessonGeneratorScreenState extends State<AILessonGeneratorScreen>
     'Language Arts',
     'History',
     'Sejarah',
+    'Bible',
+    'Alkitab',
     'Bahasa Melayu',
   ];
 
@@ -243,6 +245,88 @@ class _AILessonGeneratorScreenState extends State<AILessonGeneratorScreen>
       'Tokoh Negara',
       'Warisan Sejarah',
       'Peristiwa Penting Negara',
+    ],
+    'Bible': [
+      // Old Testament Stories
+      'Creation and Fall',
+      'Noah and the Flood',
+      'Abraham and Faith',
+      'Moses and the Exodus',
+      'Ten Commandments',
+      'David and Goliath',
+      'Daniel and Friends',
+      'Prophets and Prophecy',
+      // New Testament Stories
+      'Life of Jesus',
+      'Parables of Jesus',
+      'Miracles of Jesus',
+      'Crucifixion and Resurrection',
+      'Acts of the Apostles',
+      'Paul\'s Missionary Journeys',
+      // Adventist Fundamental Beliefs
+      'The Godhead (Trinity)',
+      'Salvation by Grace',
+      'The Sabbath (Seventh Day)',
+      'Second Coming of Christ',
+      'Sanctuary and Judgment',
+      'State of the Dead',
+      'The Remnant Church',
+      'Spirit of Prophecy',
+      'Baptism and Lord\'s Supper',
+      // Christian Living
+      'Prayer and Bible Study',
+      'Stewardship and Tithe',
+      'Health and Temperance',
+      'Christian Character',
+      'Witnessing and Mission',
+      'Family and Relationships',
+      'Sabbath School',
+      // Prophecy and Last Days
+      'Book of Revelation',
+      'Daniel\'s Prophecies',
+      'Signs of the Times',
+      'The Great Controversy',
+    ],
+    'Alkitab': [
+      // Cerita Perjanjian Lama
+      'Penciptaan dan Kejatuhan',
+      'Nuh dan Air Bah',
+      'Abraham dan Iman',
+      'Musa dan Keluaran',
+      'Sepuluh Perintah Allah',
+      'Daud dan Goliat',
+      'Daniel dan Sahabat',
+      'Para Nabi dan Nubuatan',
+      // Cerita Perjanjian Baru
+      'Kehidupan Yesus',
+      'Perumpamaan Yesus',
+      'Mujizat Yesus',
+      'Penyaliban dan Kebangkitan',
+      'Kisah Para Rasul',
+      'Perjalanan Misi Paulus',
+      // Kepercayaan Fundamental Advent
+      'Allah Tritunggal',
+      'Keselamatan oleh Kasih Karunia',
+      'Hari Sabat (Hari Ketujuh)',
+      'Kedatangan Kristus Kedua Kali',
+      'Bait Suci dan Penghakiman',
+      'Keadaan Orang Mati',
+      'Gereja Sisa',
+      'Roh Nubuat',
+      'Baptisan dan Perjamuan Kudus',
+      // Kehidupan Kristen
+      'Doa dan Pendalaman Alkitab',
+      'Penatalayanan dan Persepuluhan',
+      'Kesehatan dan Pantang',
+      'Karakter Kristen',
+      'Kesaksian dan Misi',
+      'Keluarga dan Hubungan',
+      'Sekolah Sabat',
+      // Nubuatan dan Akhir Zaman
+      'Kitab Wahyu',
+      'Nubuatan Daniel',
+      'Tanda-tanda Zaman',
+      'Kontroversi Besar',
     ],
     'Bahasa Melayu': [
       'Tatabahasa',
@@ -1556,6 +1640,24 @@ CURRICULUM ALIGNMENT:
 - Follow age-appropriate learning objectives for this grade level
 - Use context appropriate for the selected education system
 - Include real-world examples relevant to students in this curriculum''';
+    }
+
+    // Add special context for Bible/Alkitab subjects
+    if (_selectedSubject == 'Bible' || _selectedSubject == 'Alkitab') {
+      curriculumContext += '''
+
+SEVENTH-DAY ADVENTIST CONTEXT (IMPORTANT):
+- Base content on Seventh-day Adventist beliefs and teachings
+- Reference the 28 Fundamental Beliefs where applicable
+- Emphasize the seventh-day Sabbath (Saturday) as God's holy day
+- Include Adventist distinctive doctrines: Sanctuary, State of the Dead, Spirit of Prophecy
+- Use Ellen G. White's writings as supplementary guidance when relevant
+- Focus on Bible-based faith, grace, and character development
+- Include practical Christian living and witnessing
+- Emphasize health reform and wholistic lifestyle (8 Natural Remedies)
+- Reference the Great Controversy theme when discussing prophecy
+- Use Sabbath School lesson format when appropriate
+- Make content suitable for Adventist education and home study''';
     }
 
     return '''
