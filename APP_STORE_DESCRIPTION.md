@@ -1,6 +1,6 @@
 # EduBot - App Store Publishing Information
 
-## Version 2.1.0
+## Version 2.1.1 (Latest)
 
 ---
 
@@ -120,6 +120,22 @@ We're constantly improving based on parent feedback!
 
 ## What's New in This Version (500 characters max)
 
+**Version 2.1.1 - Bug Fixes & Bible Subject**
+
+📖 NEW: Bible subject with Adventist beliefs (32 topics in English & Indonesian)
+
+🐛 FIXED: Malay language lesson generation JSON errors
+🐛 FIXED: Trailing comma parsing issues
+🐛 FIXED: Special characters in quotes breaking JSON
+
+✨ IMPROVED: Better error messages with troubleshooting steps
+✨ IMPROVED: Enhanced debug logging for AI responses
+✨ IMPROVED: More reliable lesson generation in Bahasa Malaysia
+
+Perfect for Adventist schools and Sabbath School!
+
+---
+
 **Version 2.1.0 - Multi-Curriculum Update**
 
 🌍 NEW: Support for 9 education systems (US Common Core, AP, Malaysian KSSR, Singapore, UK, Cambridge, IB, Indonesian, Australian)
@@ -138,7 +154,7 @@ We're constantly improving based on parent feedback!
 
 ## Keywords (100 characters max - comma separated)
 
-homework help, education, learning, AI tutor, math, science, parent helper, curriculum, study, practice
+homework help, education, AI tutor, math, science, bible study, adventist, parent helper, curriculum
 
 ---
 
