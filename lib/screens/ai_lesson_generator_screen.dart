@@ -1626,7 +1626,12 @@ IMPORTANT RULES:
         : 'Use only ${_questionTypes[_selectedQuestionType]} format';
 
     final languageInstruction = _selectedLanguage == 'Malay'
-        ? 'Generate all content in Bahasa Malaysia.'
+        ? '''Generate all content in Bahasa Malaysia.
+IMPORTANT for Bahasa Malaysia:
+- Ensure all text is properly escaped in JSON
+- No trailing commas in arrays or objects
+- Use standard apostrophes ('), not smart quotes ('')
+- Double-check JSON syntax is valid'''
         : 'Generate all content in English.';
 
     final difficultyGuide = {
@@ -1765,7 +1770,16 @@ For non-multiple-choice questions, leave "choices" as an empty array [].
         }
       }
 
+      // Fix common JSON issues
+      // Remove trailing commas before closing brackets/braces
+      cleanContent = cleanContent.replaceAll(RegExp(r',(\s*[}\]])'), r'$1');
+
+      // Escape unescaped quotes in text (common in Malay content)
+      // This is a basic fix - might need more sophisticated handling
+
       debugPrint('🔍 Attempting to parse JSON...');
+      debugPrint('First 200 chars: ${cleanContent.substring(0, cleanContent.length > 200 ? 200 : cleanContent.length)}');
+
       final json = jsonDecode(cleanContent);
       debugPrint('✅ JSON parsed successfully');
 
@@ -1810,6 +1824,28 @@ For non-multiple-choice questions, leave "choices" as an empty array [].
       );
     } catch (e, stackTrace) {
       debugPrint('❌ Error parsing lesson: $e');
+
+      // Try to extract line number from FormatException
+      if (e is FormatException) {
+        final match = RegExp(r'line (\d+)').firstMatch(e.message);
+        if (match != null) {
+          final lineNum = int.parse(match.group(1)!);
+          debugPrint('Error at line $lineNum');
+
+          // Show context around the error
+          try {
+            final lines = content.split('\n');
+            final start = (lineNum - 3).clamp(0, lines.length);
+            final end = (lineNum + 3).clamp(0, lines.length);
+            debugPrint('Context around error:');
+            for (int i = start; i < end; i++) {
+              final marker = i == lineNum - 1 ? ' >>> ' : '     ';
+              debugPrint('$marker${i + 1}: ${lines[i]}');
+            }
+          } catch (_) {}
+        }
+      }
+
       debugPrint('Stack trace: $stackTrace');
 
       // Show user-friendly error message
@@ -1817,13 +1853,17 @@ For non-multiple-choice questions, leave "choices" as an empty array [].
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Failed to parse AI response: ${e.toString()}\n\nTry:\n'
-              '1. Check your internet connection\n'
-              '2. Try a different topic\n'
-              '3. Reduce number of questions',
+              'JSON Parse Error: ${e.toString()}\n\n'
+              'This often happens with:\n'
+              '• Complex Malay text with special characters\n'
+              '• Very long lessons\n\n'
+              'Try:\n'
+              '1. Use simpler topics\n'
+              '2. Reduce to 5 questions\n'
+              '3. Select "English" language instead',
             ),
             backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
+            duration: const Duration(seconds: 6),
           ),
         );
       }
