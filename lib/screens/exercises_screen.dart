@@ -6,6 +6,7 @@ import '../providers/app_provider.dart';
 import '../services/lesson_service.dart';
 import '../services/database_service.dart';
 import 'exercise_practice_screen.dart';
+import 'package:intl/intl.dart';
 
 class ExercisesScreen extends StatefulWidget {
   const ExercisesScreen({super.key});
@@ -21,6 +22,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
   bool _isLoading = true;
   String _selectedSubject = 'All';
   int _selectedGrade = 0; // 0 means all grades
+  String _sortBy = 'newest'; // newest, oldest, subject, difficulty, grade
 
   final List<String> _subjects = [
     'All',
@@ -86,9 +88,12 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
       final lessons = await _lessonService.getAILessonsFromFirestore(forceRefresh: true);
       final allLessons = await _lessonService.getAllLessons();
 
+      // Apply saved progress to lessons
+      final lessonsWithProgress = await _lessonService.applyProgressToLessons(allLessons);
+
       if (mounted) {
         setState(() {
-          _lessons = allLessons;
+          _lessons = lessonsWithProgress;
         });
       }
     } catch (e) {
@@ -103,8 +108,12 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
 
     try {
       final lessons = await _lessonService.getAllLessons();
+
+      // Apply saved progress to lessons
+      final lessonsWithProgress = await _lessonService.applyProgressToLessons(lessons);
+
       setState(() {
-        _lessons = lessons;
+        _lessons = lessonsWithProgress;
         _isLoading = false;
       });
     } catch (e) {
@@ -116,7 +125,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
   }
 
   List<Lesson> get _filteredLessons {
-    return _lessons.where((lesson) {
+    var filtered = _lessons.where((lesson) {
       final matchesSubject = _selectedSubject == 'All' ||
           lesson.subject.toLowerCase() == _selectedSubject.toLowerCase();
       final matchesGrade =
@@ -124,6 +133,39 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
 
       return matchesSubject && matchesGrade;
     }).toList();
+
+    // Apply sorting
+    switch (_sortBy) {
+      case 'newest':
+        filtered.sort((a, b) {
+          // Lessons without timestamp are treated as oldest
+          if (a.createdAt == null && b.createdAt == null) return 0;
+          if (a.createdAt == null) return 1; // a is older
+          if (b.createdAt == null) return -1; // b is older
+          return b.createdAt!.compareTo(a.createdAt!);
+        });
+        break;
+      case 'oldest':
+        filtered.sort((a, b) {
+          // Lessons without timestamp are treated as oldest
+          if (a.createdAt == null && b.createdAt == null) return 0;
+          if (a.createdAt == null) return -1; // a is older
+          if (b.createdAt == null) return 1; // b is older
+          return a.createdAt!.compareTo(b.createdAt!);
+        });
+        break;
+      case 'subject':
+        filtered.sort((a, b) => a.subject.compareTo(b.subject));
+        break;
+      case 'difficulty':
+        filtered.sort((a, b) => a.difficulty.index.compareTo(b.difficulty.index));
+        break;
+      case 'grade':
+        filtered.sort((a, b) => a.gradeLevel.compareTo(b.gradeLevel));
+        break;
+    }
+
+    return filtered;
   }
 
   Color _getSubjectColor(String subject) {
@@ -136,6 +178,26 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
 
   String _getSubjectEmoji(String subject) {
     return _subjectEmojis[subject] ?? '📖';
+  }
+
+  String _formatCreatedDate(DateTime? createdAt) {
+    if (createdAt == null) return '';
+
+    final now = DateTime.now();
+    final difference = now.difference(createdAt);
+
+    if (difference.inDays == 0) {
+      return 'Today';
+    } else if (difference.inDays == 1) {
+      return 'Yesterday';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays} days ago';
+    } else if (difference.inDays < 30) {
+      final weeks = (difference.inDays / 7).floor();
+      return weeks == 1 ? '1 week ago' : '$weeks weeks ago';
+    } else {
+      return DateFormat('MMM d, yyyy').format(createdAt);
+    }
   }
 
   Color _getDifficultyColor(DifficultyLevel difficulty) {
@@ -376,7 +438,74 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
             }).toList(),
           ),
         ),
+        const SizedBox(height: 12),
+        // Sort options
+        Row(
+          children: [
+            const Icon(Icons.sort, size: 18, color: Colors.grey),
+            const SizedBox(width: 8),
+            const Text(
+              'Sort by:',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildSortChip('Newest', 'newest', Icons.new_releases),
+                    _buildSortChip('Oldest', 'oldest', Icons.history),
+                    _buildSortChip('Subject', 'subject', Icons.category),
+                    _buildSortChip('Difficulty', 'difficulty', Icons.trending_up),
+                    _buildSortChip('Grade', 'grade', Icons.school),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ],
+    );
+  }
+
+  Widget _buildSortChip(String label, String value, IconData icon) {
+    final isSelected = _sortBy == value;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: ChoiceChip(
+        selected: isSelected,
+        onSelected: (selected) {
+          setState(() {
+            _sortBy = value;
+          });
+        },
+        avatar: Icon(
+          icon,
+          size: 16,
+          color: isSelected ? Colors.white : Colors.purple,
+        ),
+        label: Text(label),
+        labelStyle: TextStyle(
+          color: isSelected ? Colors.white : Colors.purple,
+          fontWeight: FontWeight.w600,
+          fontSize: 13,
+        ),
+        backgroundColor: Colors.purple.withOpacity(0.1),
+        selectedColor: Colors.purple,
+        checkmarkColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(
+            color: isSelected ? Colors.purple : Colors.purple.withOpacity(0.3),
+          ),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      ),
     );
   }
 
@@ -782,71 +911,197 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                   ),
                   const SizedBox(height: 12),
                   // Tags row
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      // AI-Generated badge
-                      if (lesson.id.startsWith('ai_'))
-                        _buildAIBadge(),
-                      _buildTag(
-                        lesson.subject,
-                        color,
-                        _getSubjectEmoji(lesson.subject),
-                      ),
-                      _buildTag(
-                        lesson.difficultyLabel,
-                        difficultyColor,
-                        null,
-                        icon: _getDifficultyIcon(lesson.difficulty),
-                      ),
-                      _buildTag(
-                        'Grade ${lesson.gradeLevel}',
-                        Colors.indigo,
-                        '🎓',
-                      ),
-                    ],
+                  Consumer<AppProvider>(
+                    builder: (context, provider, child) {
+                      final activeProfile = provider.activeProfile;
+
+                      return Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          // AI-Generated badge
+                          if (lesson.id.startsWith('ai_'))
+                            _buildAIBadge(),
+                          _buildTag(
+                            lesson.subject,
+                            color,
+                            _getSubjectEmoji(lesson.subject),
+                          ),
+                          _buildTag(
+                            lesson.difficultyLabel,
+                            difficultyColor,
+                            null,
+                            icon: _getDifficultyIcon(lesson.difficulty),
+                          ),
+                          _buildTag(
+                            'Grade ${lesson.gradeLevel}',
+                            Colors.indigo,
+                            '🎓',
+                          ),
+                          // Attempt tracking badge
+                          if (activeProfile != null)
+                            FutureBuilder<Map<String, dynamic>>(
+                              future: _databaseService.getPracticeSessionStats(
+                                childProfileId: activeProfile.id,
+                                lessonId: lesson.id,
+                              ),
+                              builder: (context, snapshot) {
+                                if (snapshot.hasData) {
+                                  final stats = snapshot.data!;
+                                  final attemptCount = stats['attempt_count'] as int;
+                                  final hasAttempted = stats['has_attempted'] as bool;
+
+                                  if (hasAttempted && attemptCount > 0) {
+                                    return _buildTag(
+                                      '$attemptCount ${attemptCount == 1 ? 'attempt' : 'attempts'}',
+                                      Colors.orange,
+                                      '🔄',
+                                    );
+                                  }
+                                }
+                                return const SizedBox.shrink();
+                              },
+                            ),
+                        ],
+                      );
+                    },
                   ),
                   const SizedBox(height: 16),
                   // Progress and info row
-                  Row(
-                    children: [
-                      // Progress bar
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
+                  Consumer<AppProvider>(
+                    builder: (context, provider, child) {
+                      final activeProfile = provider.activeProfile;
+
+                      return Row(
+                        children: [
+                          // Progress bar
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Icon(
-                                  Icons.assignment_outlined,
-                                  size: 16,
-                                  color: Colors.grey.shade500,
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.assignment_outlined,
+                                      size: 16,
+                                      color: Colors.grey.shade500,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${lesson.exercises.length} exercises',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey.shade600,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Icon(
+                                      Icons.timer_outlined,
+                                      size: 16,
+                                      color: Colors.grey.shade500,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      lesson.durationText,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey.shade600,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '${lesson.exercises.length} exercises',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey.shade600,
+                                // Created date on new line
+                                if (lesson.createdAt != null) ...[
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.calendar_today,
+                                        size: 14,
+                                        color: Colors.grey.shade500,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'Created: ${_formatCreatedDate(lesson.createdAt)}',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.grey.shade600,
+                                          fontWeight: FontWeight.w500,
+                                          fontStyle: FontStyle.italic,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ),
-                                const SizedBox(width: 12),
-                                Icon(
-                                  Icons.timer_outlined,
-                                  size: 16,
-                                  color: Colors.grey.shade500,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  lesson.durationText,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey.shade600,
+                                ],
+                                // Best score indicator and last practiced
+                                if (activeProfile != null)
+                                  FutureBuilder<Map<String, dynamic>>(
+                                    future: _databaseService.getPracticeSessionStats(
+                                      childProfileId: activeProfile.id,
+                                      lessonId: lesson.id,
+                                    ),
+                                    builder: (context, snapshot) {
+                                      if (snapshot.hasData) {
+                                        final stats = snapshot.data!;
+                                        final hasAttempted = stats['has_attempted'] as bool;
+                                        if (hasAttempted) {
+                                          final bestScore = stats['best_score'] as int;
+                                          final totalQuestions = stats['total_questions'] as int;
+                                          final bestAccuracy = stats['best_accuracy'] as double;
+                                          final lastAttemptedStr = stats['last_attempted'] as String?;
+
+                                          return Padding(
+                                            padding: const EdgeInsets.only(top: 4),
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Row(
+                                                  children: [
+                                                    Icon(
+                                                      Icons.star,
+                                                      size: 14,
+                                                      color: Colors.amber.shade600,
+                                                    ),
+                                                    const SizedBox(width: 4),
+                                                    Text(
+                                                      'Best: $bestScore/$totalQuestions (${bestAccuracy.toStringAsFixed(0)}%)',
+                                                      style: TextStyle(
+                                                        fontSize: 11,
+                                                        color: Colors.amber.shade700,
+                                                        fontWeight: FontWeight.w600,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                if (lastAttemptedStr != null) ...[
+                                                  const SizedBox(height: 3),
+                                                  Row(
+                                                    children: [
+                                                      Icon(
+                                                        Icons.history,
+                                                        size: 13,
+                                                        color: Colors.blue.shade600,
+                                                      ),
+                                                      const SizedBox(width: 4),
+                                                      Text(
+                                                        'Last practiced: ${_formatCreatedDate(DateTime.parse(lastAttemptedStr))}',
+                                                        style: TextStyle(
+                                                          fontSize: 11,
+                                                          color: Colors.blue.shade700,
+                                                          fontWeight: FontWeight.w500,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ],
+                                              ],
+                                            ),
+                                          );
+                                        }
+                                      }
+                                      return const SizedBox.shrink();
+                                    },
                                   ),
-                                ),
-                              ],
-                            ),
                             const SizedBox(height: 8),
                             Stack(
                               children: [
@@ -933,8 +1188,10 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                             size: 28,
                           ),
                         ),
-                    ],
-                  ),
+                      ],
+                    );
+                  },
+                ),
                 ],
               ),
             ),

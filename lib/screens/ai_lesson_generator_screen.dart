@@ -28,6 +28,7 @@ class _AILessonGeneratorScreenState extends State<AILessonGeneratorScreen>
   final EnvironmentConfig _config = EnvironmentConfig.instance;
 
   // Form state
+  String _selectedCurriculum = 'my_kssr'; // NEW: Curriculum selection
   String _selectedSubject = 'Mathematics';
   int _selectedGrade = 4;
   DifficultyLevel _selectedDifficulty = DifficultyLevel.intermediate;
@@ -48,10 +49,13 @@ class _AILessonGeneratorScreenState extends State<AILessonGeneratorScreen>
     'Science',
     'Sains',
     'English',
+    'Language Arts',
+    'History',
+    'Sejarah',
     'Bahasa Melayu',
   ];
 
-  final List<int> _grades = [1, 2, 3, 4, 5, 6];
+  final List<int> _grades = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
   final Map<String, String> _questionTypes = {
     'mixed': 'Mixed (All Types)',
@@ -65,6 +69,64 @@ class _AILessonGeneratorScreenState extends State<AILessonGeneratorScreen>
   final Map<String, String> _languages = {
     'English': 'English',
     'Malay': 'Bahasa Malaysia',
+  };
+
+  // Curriculum/Syllabus options
+  final Map<String, Map<String, String>> _curricula = {
+    'us_common_core': {
+      'name': 'American Common Core',
+      'flag': '🇺🇸',
+      'grade_label': 'Grade',
+      'description': 'US Common Core State Standards'
+    },
+    'us_ap': {
+      'name': 'American AP (Advanced Placement)',
+      'flag': '🇺🇸',
+      'grade_label': 'Grade',
+      'description': 'College Board AP Curriculum'
+    },
+    'my_kssr': {
+      'name': 'Malaysian KSSR/KSSM',
+      'flag': '🇲🇾',
+      'grade_label': 'Year',
+      'description': 'Malaysian National Curriculum'
+    },
+    'sg_primary': {
+      'name': 'Singapore Primary',
+      'flag': '🇸🇬',
+      'grade_label': 'Primary',
+      'description': 'Singapore MOE Syllabus'
+    },
+    'id_merdeka': {
+      'name': 'Indonesian Kurikulum Merdeka',
+      'flag': '🇮🇩',
+      'grade_label': 'Kelas',
+      'description': 'Indonesian National Curriculum'
+    },
+    'cambridge': {
+      'name': 'Cambridge Primary',
+      'flag': '🌍',
+      'grade_label': 'Stage',
+      'description': 'Cambridge International'
+    },
+    'ib_pyp': {
+      'name': 'IB Primary Years',
+      'flag': '🌍',
+      'grade_label': 'PYP',
+      'description': 'International Baccalaureate PYP'
+    },
+    'uk_national': {
+      'name': 'UK National Curriculum',
+      'flag': '🇬🇧',
+      'grade_label': 'Year',
+      'description': 'England & Wales Curriculum'
+    },
+    'australia_ac': {
+      'name': 'Australian Curriculum',
+      'flag': '🇦🇺',
+      'grade_label': 'Year',
+      'description': 'Australian National Curriculum'
+    },
   };
 
   // Subject-specific topics based on KSSR curriculum
@@ -126,6 +188,61 @@ class _AILessonGeneratorScreenState extends State<AILessonGeneratorScreen>
       'Parts of Speech',
       'Punctuation',
       'Synonyms and Antonyms',
+    ],
+    'Language Arts': [
+      'Literature Analysis',
+      'Poetry',
+      'Literary Devices',
+      'Rhetorical Analysis',
+      'Argumentative Writing',
+      'Narrative Writing',
+      'Expository Writing',
+      'Grammar and Usage',
+      'Vocabulary in Context',
+      'Reading Comprehension',
+      'Critical Thinking',
+      'Essay Writing',
+      'Research Skills',
+      'Citations and MLA/APA',
+      'Shakespeare',
+      'American Literature',
+      'World Literature',
+    ],
+    'History': [
+      'American Revolution',
+      'Civil War',
+      'World War I',
+      'World War II',
+      'Cold War',
+      'Civil Rights Movement',
+      'Ancient Civilizations',
+      'Medieval Europe',
+      'Renaissance',
+      'Industrial Revolution',
+      'Colonialism',
+      'Modern America',
+      'Constitutional History',
+      'Great Depression',
+      'Westward Expansion',
+      'Immigration',
+      'Native American History',
+    ],
+    'Sejarah': [
+      'Tamadun Awal Dunia',
+      'Zaman Prasejarah Malaysia',
+      'Kerajaan Awal Asia Tenggara',
+      'Kesultanan Melayu Melaka',
+      'Kedatangan Kuasa Barat',
+      'Penjajahan British',
+      'Pendudukan Jepun',
+      'Kemerdekaan Malaya',
+      'Pembentukan Malaysia',
+      'Rukun Negara',
+      'Perlembagaan Malaysia',
+      'Sistem Pemerintahan',
+      'Tokoh Negara',
+      'Warisan Sejarah',
+      'Peristiwa Penting Negara',
     ],
     'Bahasa Melayu': [
       'Tatabahasa',
@@ -195,6 +312,16 @@ class _AILessonGeneratorScreenState extends State<AILessonGeneratorScreen>
       4: 'DSKP KSSR BM THN 4 SK (SEMAKAN 2017)',
       5: 'DSKP KSSR BM THN 5 SK (SEMAKAN 2017)',
       6: 'DSKP KSSR BM THN 6 SK (SEMAKAN 2017)',
+    },
+    'Sejarah': {
+      4: 'DSKP KSSR SEJARAH TAHUN 4 SK (SEMAKAN 2017)',
+      5: 'DSKP KSSR SEJARAH TAHUN 5 SK (SEMAKAN 2017)',
+      6: 'DSKP KSSR SEJARAH TAHUN 6 SK (SEMAKAN 2017)',
+      7: 'DSKP KSSM SEJARAH TINGKATAN 1',
+      8: 'DSKP KSSM SEJARAH TINGKATAN 2',
+      9: 'DSKP KSSM SEJARAH TINGKATAN 3',
+      10: 'DSKP KSSM SEJARAH TINGKATAN 4',
+      11: 'DSKP KSSM SEJARAH TINGKATAN 5',
     },
   };
 
@@ -347,7 +474,79 @@ class _AILessonGeneratorScreenState extends State<AILessonGeneratorScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Curriculum Source Info Card
+          // Curriculum/Syllabus Selector
+          _buildSectionCard(
+            isDark: isDark,
+            icon: Icons.public_rounded,
+            iconColor: Colors.purple,
+            title: 'Education System / Curriculum',
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.purple.shade200),
+              ),
+              child: DropdownButton<String>(
+                value: _selectedCurriculum,
+                isExpanded: true,
+                underline: const SizedBox(),
+                icon: Icon(Icons.arrow_drop_down, color: Colors.purple.shade600),
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      _selectedCurriculum = value;
+                    });
+                  }
+                },
+                items: _curricula.entries.map((entry) {
+                  final curriculum = entry.value;
+                  return DropdownMenuItem<String>(
+                    value: entry.key,
+                    child: Row(
+                      children: [
+                        Text(
+                          curriculum['flag']!,
+                          style: const TextStyle(fontSize: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                curriculum['name']!,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              Text(
+                                curriculum['description']!,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Curriculum Info Card (shows details about selected curriculum)
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -377,7 +576,7 @@ class _AILessonGeneratorScreenState extends State<AILessonGeneratorScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '📚 $_curriculumSourceName',
+                            '${_curricula[_selectedCurriculum]!['flag']} ${_curricula[_selectedCurriculum]!['name']}',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
@@ -386,7 +585,7 @@ class _AILessonGeneratorScreenState extends State<AILessonGeneratorScreen>
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Official Malaysian Ministry of Education curriculum',
+                            _curricula[_selectedCurriculum]!['description']!,
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.grey.shade600,
@@ -397,31 +596,33 @@ class _AILessonGeneratorScreenState extends State<AILessonGeneratorScreen>
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.7),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.description_outlined,
-                          color: Colors.indigo.shade600, size: 18),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _currentDskpDocument,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.indigo.shade700,
+                if (_selectedCurriculum == 'my_kssr') ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.7),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.description_outlined,
+                            color: Colors.indigo.shade600, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _currentDskpDocument,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.indigo.shade700,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
@@ -634,11 +835,15 @@ class _AILessonGeneratorScreenState extends State<AILessonGeneratorScreen>
                   style: TextStyle(color: Colors.grey.shade700),
                 ),
                 Text(
+                  '• Curriculum: ${_curricula[_selectedCurriculum]!['name']}',
+                  style: TextStyle(color: Colors.grey.shade700),
+                ),
+                Text(
                   '• Topic: $_selectedTopic${_customTopic.isNotEmpty ? " ($_customTopic)" : ""}',
                   style: TextStyle(color: Colors.grey.shade700),
                 ),
                 Text(
-                  '• Grade: Year $_selectedGrade',
+                  '• Grade: ${_curricula[_selectedCurriculum]!['grade_label']} $_selectedGrade',
                   style: TextStyle(color: Colors.grey.shade700),
                 ),
                 Text(
@@ -1316,24 +1521,56 @@ IMPORTANT RULES:
       DifficultyLevel.advanced: 'challenging with complex multi-step problems',
     };
 
-    return '''
-Generate a lesson with exactly $_numberOfQuestions questions for:
-
-Subject: $_selectedSubject
-Topic: $_selectedTopic${_customTopic.isNotEmpty ? " - $_customTopic" : ""}
-Subtopic Focus: $topicVariation
-Grade Level: Year $_selectedGrade (Tahun $_selectedGrade - Malaysian KSSR)
-Difficulty: ${difficultyGuide[_selectedDifficulty]}
-$questionTypeInstruction
-$languageInstruction
-
+    // Build curriculum-specific context
+    String curriculumContext = '';
+    if (_selectedCurriculum == 'my_kssr') {
+      curriculumContext = '''
 DSKP CURRICULUM ALIGNMENT (MANDATORY):
 - Reference Document: $_currentDskpDocument
 - All questions MUST align with Standard Kandungan (SK) and Standard Pembelajaran (SP) from DSKP
 - Follow the learning outcomes specified in DSKP for Year $_selectedGrade $_selectedSubject
 - Match the Performance Standards (TP - Tahap Penguasaan) for assessment
 - Use Malaysian context: RM for currency, Malaysian names (Ali, Aminah, Kumar, Mei Ling), local scenarios
-- Include real-world examples from Malaysian daily life
+- Include real-world examples from Malaysian daily life''';
+    } else if (_selectedCurriculum == 'us_common_core') {
+      curriculumContext = '''
+COMMON CORE CURRICULUM ALIGNMENT (MANDATORY):
+- Align with Common Core State Standards for Grade $_selectedGrade
+- Follow the grade-level standards and learning progressions
+- Use appropriate academic vocabulary for this grade level
+- Use American context: USD for currency, common American names, US scenarios
+- Include real-world examples from American daily life''';
+    } else if (_selectedCurriculum == 'us_ap') {
+      curriculumContext = '''
+AP CURRICULUM ALIGNMENT (MANDATORY):
+- Align with College Board AP curriculum standards for Grade $_selectedGrade
+- Include college-level rigor and analytical thinking
+- Prepare students for AP exams with appropriate question styles
+- Use advanced academic vocabulary and concepts
+- Include real-world examples appropriate for high school level''';
+    } else {
+      // Generic curriculum alignment for other systems
+      curriculumContext = '''
+CURRICULUM ALIGNMENT:
+- Align with ${_curricula[_selectedCurriculum]!['name']} standards for ${_curricula[_selectedCurriculum]!['grade_label']} $_selectedGrade
+- Follow age-appropriate learning objectives for this grade level
+- Use context appropriate for the selected education system
+- Include real-world examples relevant to students in this curriculum''';
+    }
+
+    return '''
+Generate a lesson with exactly $_numberOfQuestions questions for:
+
+Curriculum: ${_curricula[_selectedCurriculum]!['name']}
+Subject: $_selectedSubject
+Topic: $_selectedTopic${_customTopic.isNotEmpty ? " - $_customTopic" : ""}
+Subtopic Focus: $topicVariation
+Grade Level: ${_curricula[_selectedCurriculum]!['grade_label']} $_selectedGrade
+Difficulty: ${difficultyGuide[_selectedDifficulty]}
+$questionTypeInstruction
+$languageInstruction
+
+$curriculumContext
 
 Respond with this exact JSON structure (no markdown, just JSON):
 {
@@ -1427,6 +1664,7 @@ For non-multiple-choice questions, leave "choices" as an empty array [].
         exercises: exercises,
         difficulty: _selectedDifficulty,
         estimatedDuration: exercises.length * 2,
+        createdAt: DateTime.now(),
       );
     } catch (e) {
       debugPrint('Error parsing lesson: $e');

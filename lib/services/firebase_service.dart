@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter/foundation.dart';
 import '../firebase_options.dart';
 
@@ -35,8 +36,21 @@ class FirebaseService {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
+
+      // Initialize App Check with debug provider for development
+      // In production, use proper providers (Play Integrity, App Attest, etc.)
+      await FirebaseAppCheck.instance.activate(
+        androidProvider: kDebugMode
+            ? AndroidProvider.debug
+            : AndroidProvider.playIntegrity,
+        appleProvider: kDebugMode
+            ? AppleProvider.debug
+            : AppleProvider.appAttest,
+      );
+
       _isInitialized = true;
       debugPrint('Firebase initialized successfully');
+      debugPrint('App Check activated');
     } catch (e) {
       debugPrint('Firebase initialization failed: $e');
       _isInitialized = false;
@@ -99,6 +113,9 @@ class FirebaseService {
   }
 
   static Future<User?> signIn(String email, String password) async {
+    debugPrint('🔐 SignIn attempt started for: $email');
+    debugPrint('🔧 Firebase initialized: $_isInitialized');
+
     if (!_isInitialized) {
       if (!_hasShownWarning) {
         debugPrint(
@@ -108,11 +125,21 @@ class FirebaseService {
       return null;
     }
     try {
+      debugPrint('📡 Calling Firebase signInWithEmailAndPassword...');
       UserCredential result = await FirebaseAuth.instance
-          .signInWithEmailAndPassword(email: email, password: password);
+          .signInWithEmailAndPassword(email: email, password: password)
+          .timeout(
+            const Duration(seconds: 30),
+            onTimeout: () {
+              debugPrint('❌ SignIn timeout after 30 seconds');
+              throw Exception('Sign-in request timed out. Please check your internet connection.');
+            },
+          );
+      debugPrint('✅ SignIn successful! User ID: ${result.user?.uid}');
       return result.user;
     } catch (e) {
-      debugPrint('SignIn error: $e');
+      debugPrint('❌ SignIn error: $e');
+      debugPrint('❌ Error type: ${e.runtimeType}');
       rethrow;
     }
   }
@@ -617,6 +644,28 @@ class FirebaseService {
     }
   }
 
+  // Check if a child profile is synced to Firestore
+  Future<bool> isProfileSyncedToFirestore(String profileId) async {
+    if (!_isInitialized) return false;
+
+    final userId = currentUserId;
+    if (userId == null) return false;
+
+    try {
+      final doc = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('childProfiles')
+          .doc(profileId)
+          .get();
+
+      return doc.exists;
+    } catch (e) {
+      debugPrint('Error checking profile sync status: $e');
+      return false;
+    }
+  }
+
   // ===== STREAK DATA SYNC =====
 
   /// Save streak data to Firestore
@@ -1118,6 +1167,303 @@ class FirebaseService {
       debugPrint('Failed to delete AI lesson from Firestore: $e');
       rethrow;
     }
+  }
+
+  // ===== PRACTICE SESSION MANAGEMENT =====
+
+  /// Save a practice session to Firestore
+  Future<void> savePracticeSessionToFirestore(
+    Map<String, dynamic> sessionData,
+  ) async {
+    if (!_isInitialized) {
+      debugPrint('⚠️ Firebase not initialized. Cannot save practice session.');
+      return;
+    }
+
+    final userId = currentUserId;
+    if (userId == null) {
+      debugPrint('⚠️ Cannot save practice session: No user logged in');
+      return;
+    }
+
+    try {
+      final sessionId = sessionData['id'] as String;
+      debugPrint('💾 Saving practice session to Firestore: $sessionId');
+
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('practiceSessions')
+          .doc(sessionId)
+          .set({
+        ...sessionData,
+        'userId': userId,
+        'syncedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      debugPrint('✅ Practice session saved to Firestore successfully');
+    } catch (e) {
+      debugPrint('❌ Failed to save practice session to Firestore: $e');
+      // Don't rethrow - we don't want to block the user if cloud sync fails
+    }
+  }
+
+  /// Get all practice sessions for the current user from Firestore
+  Future<List<Map<String, dynamic>>> getPracticeSessionsFromFirestore() async {
+    if (!_isInitialized) {
+      debugPrint('⚠️ Firebase not initialized.');
+      return [];
+    }
+
+    final userId = currentUserId;
+    if (userId == null) {
+      debugPrint('⚠️ Cannot get practice sessions: No user logged in');
+      return [];
+    }
+
+    try {
+      debugPrint('📥 Fetching practice sessions from Firestore...');
+      final snapshot = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('practiceSessions')
+          .orderBy('start_time', descending: true)
+          .get();
+
+      debugPrint(
+          '✅ Retrieved ${snapshot.docs.length} practice sessions from Firestore');
+      return snapshot.docs.map((doc) => doc.data()).toList();
+    } catch (e) {
+      debugPrint('❌ Failed to get practice sessions from Firestore: $e');
+      return [];
+    }
+  }
+
+  /// Get practice sessions for a specific child profile from Firestore
+  Future<List<Map<String, dynamic>>> getPracticeSessionsByChildFromFirestore(
+    String childProfileId,
+  ) async {
+    if (!_isInitialized) {
+      debugPrint('⚠️ Firebase not initialized.');
+      return [];
+    }
+
+    final userId = currentUserId;
+    if (userId == null) {
+      debugPrint('⚠️ Cannot get practice sessions: No user logged in');
+      return [];
+    }
+
+    try {
+      debugPrint(
+          '📥 Fetching practice sessions for child: $childProfileId from Firestore...');
+      final snapshot = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('practiceSessions')
+          .where('child_profile_id', isEqualTo: childProfileId)
+          .orderBy('start_time', descending: true)
+          .get();
+
+      debugPrint(
+          '✅ Retrieved ${snapshot.docs.length} practice sessions for child from Firestore');
+      return snapshot.docs.map((doc) => doc.data()).toList();
+    } catch (e) {
+      debugPrint('❌ Failed to get practice sessions by child from Firestore: $e');
+      return [];
+    }
+  }
+
+  /// Get practice sessions for a specific lesson from Firestore
+  Future<List<Map<String, dynamic>>> getPracticeSessionsByLessonFromFirestore(
+    String lessonId,
+  ) async {
+    if (!_isInitialized) {
+      debugPrint('⚠️ Firebase not initialized.');
+      return [];
+    }
+
+    final userId = currentUserId;
+    if (userId == null) {
+      debugPrint('⚠️ Cannot get practice sessions: No user logged in');
+      return [];
+    }
+
+    try {
+      debugPrint(
+          '📥 Fetching practice sessions for lesson: $lessonId from Firestore...');
+      final snapshot = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('practiceSessions')
+          .where('lesson_id', isEqualTo: lessonId)
+          .orderBy('start_time', descending: true)
+          .get();
+
+      debugPrint(
+          '✅ Retrieved ${snapshot.docs.length} practice sessions for lesson from Firestore');
+      return snapshot.docs.map((doc) => doc.data()).toList();
+    } catch (e) {
+      debugPrint('❌ Failed to get practice sessions by lesson from Firestore: $e');
+      return [];
+    }
+  }
+
+  /// Get practice sessions for a specific child and lesson from Firestore
+  Future<List<Map<String, dynamic>>>
+      getPracticeSessionsByChildAndLessonFromFirestore({
+    required String childProfileId,
+    required String lessonId,
+  }) async {
+    if (!_isInitialized) {
+      debugPrint('⚠️ Firebase not initialized.');
+      return [];
+    }
+
+    final userId = currentUserId;
+    if (userId == null) {
+      debugPrint('⚠️ Cannot get practice sessions: No user logged in');
+      return [];
+    }
+
+    try {
+      debugPrint(
+          '📥 Fetching practice sessions for child: $childProfileId and lesson: $lessonId from Firestore...');
+      final snapshot = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('practiceSessions')
+          .where('child_profile_id', isEqualTo: childProfileId)
+          .where('lesson_id', isEqualTo: lessonId)
+          .orderBy('start_time', descending: true)
+          .get();
+
+      debugPrint(
+          '✅ Retrieved ${snapshot.docs.length} practice sessions for child and lesson from Firestore');
+      return snapshot.docs.map((doc) => doc.data()).toList();
+    } catch (e) {
+      debugPrint(
+          '❌ Failed to get practice sessions by child and lesson from Firestore: $e');
+      return [];
+    }
+  }
+
+  /// Get practice session statistics from Firestore
+  Future<Map<String, dynamic>> getPracticeSessionStatsFromFirestore({
+    required String childProfileId,
+    required String lessonId,
+  }) async {
+    final sessions = await getPracticeSessionsByChildAndLessonFromFirestore(
+      childProfileId: childProfileId,
+      lessonId: lessonId,
+    );
+
+    if (sessions.isEmpty) {
+      return {
+        'attempt_count': 0,
+        'has_attempted': false,
+        'best_accuracy': 0.0,
+        'best_score': 0,
+        'total_questions': 0,
+        'last_attempted': null,
+      };
+    }
+
+    // Calculate statistics
+    final attemptCount = sessions.length;
+    double bestAccuracy = 0.0;
+    int bestScore = 0;
+    int totalQuestions = 0;
+    DateTime? lastAttempted;
+
+    for (final session in sessions) {
+      final accuracy = (session['accuracy_percentage'] as num?)?.toDouble() ?? 0.0;
+      final correctAnswers = (session['correct_answers'] as num?)?.toInt() ?? 0;
+      final totalQ = (session['total_questions'] as num?)?.toInt() ?? 0;
+
+      if (accuracy > bestAccuracy) {
+        bestAccuracy = accuracy;
+      }
+      if (correctAnswers > bestScore) {
+        bestScore = correctAnswers;
+        totalQuestions = totalQ;
+      }
+
+      // Get most recent attempt date
+      if (session['start_time'] != null) {
+        try {
+          final attemptDate = session['start_time'] is Timestamp
+              ? (session['start_time'] as Timestamp).toDate()
+              : DateTime.parse(session['start_time'] as String);
+          if (lastAttempted == null || attemptDate.isAfter(lastAttempted)) {
+            lastAttempted = attemptDate;
+          }
+        } catch (e) {
+          debugPrint('Error parsing date: $e');
+        }
+      }
+    }
+
+    return {
+      'attempt_count': attemptCount,
+      'has_attempted': true,
+      'best_accuracy': bestAccuracy,
+      'best_score': bestScore,
+      'total_questions': totalQuestions,
+      'last_attempted': lastAttempted?.toIso8601String(),
+    };
+  }
+
+  /// Delete a practice session from Firestore
+  Future<void> deletePracticeSessionFromFirestore(String sessionId) async {
+    if (!_isInitialized) {
+      debugPrint('⚠️ Firebase not initialized.');
+      return;
+    }
+
+    final userId = currentUserId;
+    if (userId == null) {
+      debugPrint('⚠️ Cannot delete practice session: No user logged in');
+      return;
+    }
+
+    try {
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('practiceSessions')
+          .doc(sessionId)
+          .delete();
+      debugPrint('🗑️ Deleted practice session from Firestore: $sessionId');
+    } catch (e) {
+      debugPrint('❌ Failed to delete practice session from Firestore: $e');
+    }
+  }
+
+  /// Get practice sessions stream for real-time updates
+  Stream<QuerySnapshot<Map<String, dynamic>>>
+      getPracticeSessionsStreamFromFirestore({
+    String? childProfileId,
+  }) {
+    if (!_isInitialized) {
+      return const Stream.empty();
+    }
+
+    final userId = currentUserId;
+    if (userId == null) {
+      return const Stream.empty();
+    }
+
+    Query<Map<String, dynamic>> query = _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('practiceSessions');
+
+    if (childProfileId != null) {
+      query = query.where('child_profile_id', isEqualTo: childProfileId);
+    }
+
+    return query.orderBy('start_time', descending: true).snapshots();
   }
 
   // Handle Firebase Auth exceptions

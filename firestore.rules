@@ -110,6 +110,15 @@ service cloud.firestore {
       allow write: if request.auth != null && request.auth.uid == userId;
     }
 
+    // Practice Sessions (nested under users)
+    match /users/{userId}/practiceSessions/{sessionId} {
+      // Users can read their own practice sessions
+      allow read: if request.auth != null && request.auth.uid == userId;
+
+      // Users can write their own practice sessions
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
     // Admin collection (super restricted)
     match /admin/{document=**} {
       // Only allow if user has custom claim 'admin: true'

@@ -10,6 +10,7 @@ import '../services/lesson_service.dart';
 import '../services/student_progress_service.dart';
 import '../services/ai_service.dart';
 import '../services/database_service.dart';
+import '../services/firebase_service.dart';
 import '../providers/app_provider.dart';
 
 class ExercisePracticeScreen extends StatefulWidget {
@@ -1826,12 +1827,32 @@ class _ExercisePracticeScreenState extends State<ExercisePracticeScreen> {
         },
       );
 
-      // Save to database
-      await _databaseService.savePracticeSession(_currentSession!.toJson());
+      final sessionJson = _currentSession!.toJson();
+
+      // Save to local database
+      await _databaseService.savePracticeSession(sessionJson);
+
+      // Sync to Firestore (cloud backup)
+      final firebaseService = FirebaseService.instance;
+      if (FirebaseService.isInitialized) {
+        await firebaseService.savePracticeSessionToFirestore(sessionJson);
+        debugPrint('☁️ Practice session synced to Firestore');
+      } else {
+        debugPrint('⚠️ Firebase not initialized - session saved locally only');
+      }
+
+      // Update lesson progress
+      final lessonService = LessonService();
+      await lessonService.updateLessonProgress(
+        lessonId: widget.lesson.id,
+        completedExercises: _correctAnswers,
+        totalExercises: _exercises.length,
+      );
 
       debugPrint('✅ Practice session completed and saved:');
       debugPrint('   - Session ID: ${_currentSession!.id}');
       debugPrint('   - Lesson: ${_currentSession!.lessonTitle}');
+      debugPrint('   - Child Profile: ${_currentSession!.childProfileId ?? "None"}');
       debugPrint('   - Score: $_correctAnswers/${_exercises.length}');
       debugPrint('   - Accuracy: ${accuracy.toStringAsFixed(1)}%');
       debugPrint('   - Duration: ${duration.inMinutes}m ${duration.inSeconds % 60}s');

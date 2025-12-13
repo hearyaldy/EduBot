@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/question.dart';
 import '../models/student_progress.dart';
+import 'firebase_service.dart';
 
 class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
@@ -864,6 +865,83 @@ class DatabaseService {
         .toList();
   }
 
+  /// Get practice sessions for a specific child and lesson
+  Future<List<Map<String, dynamic>>> getPracticeSessionsByChildAndLesson({
+    required String childProfileId,
+    required String lessonId,
+  }) async {
+    final allSessions = await getAllPracticeSessions();
+    return allSessions
+        .where((session) =>
+            session['child_profile_id'] == childProfileId &&
+            session['lesson_id'] == lessonId)
+        .toList();
+  }
+
+  /// Get practice session statistics for a child and lesson
+  Future<Map<String, dynamic>> getPracticeSessionStats({
+    required String childProfileId,
+    required String lessonId,
+  }) async {
+    final sessions = await getPracticeSessionsByChildAndLesson(
+      childProfileId: childProfileId,
+      lessonId: lessonId,
+    );
+
+    if (sessions.isEmpty) {
+      return {
+        'attempt_count': 0,
+        'has_attempted': false,
+        'best_accuracy': 0.0,
+        'best_score': 0,
+        'total_questions': 0,
+        'last_attempted': null,
+      };
+    }
+
+    // Calculate statistics
+    final attemptCount = sessions.length;
+    double bestAccuracy = 0.0;
+    int bestScore = 0;
+    int totalQuestions = 0;
+    DateTime? lastAttempted;
+
+    for (final session in sessions) {
+      final accuracy = (session['accuracy_percentage'] as num?)?.toDouble() ?? 0.0;
+      final correctAnswers = (session['correct_answers'] as num?)?.toInt() ?? 0;
+      final totalQ = (session['total_questions'] as num?)?.toInt() ?? 0;
+
+      if (accuracy > bestAccuracy) {
+        bestAccuracy = accuracy;
+      }
+      if (correctAnswers > bestScore) {
+        bestScore = correctAnswers;
+        totalQuestions = totalQ;
+      }
+
+      // Get most recent attempt date
+      if (session['start_time'] != null) {
+        try {
+          final attemptDate = DateTime.parse(session['start_time'] as String);
+          if (lastAttempted == null || attemptDate.isAfter(lastAttempted)) {
+            lastAttempted = attemptDate;
+          }
+        } catch (e) {
+          debugPrint('Error parsing date: $e');
+        }
+      }
+    }
+
+    return {
+      'attempt_count': attemptCount,
+      'has_attempted': true,
+      'best_accuracy': bestAccuracy,
+      'best_score': bestScore,
+      'total_questions': totalQuestions,
+      'last_attempted': lastAttempted?.toIso8601String(),
+    };
+  }
+
   /// Delete a specific practice session by ID
   Future<void> deletePracticeSession(String sessionId) async {
     if (_practiceSessionsBox == null) {
@@ -891,6 +969,148 @@ class DatabaseService {
       debugPrint('🗑️ Cleared all practice sessions');
     } catch (e) {
       debugPrint('❌ Error clearing practice sessions: $e');
+    }
+  }
+
+  /// Sync all local practice sessions to Firestore
+  /// Returns a map with sync statistics
+  Future<Map<String, dynamic>> syncPracticeSessionsToFirestore() async {
+    await initialize();
+
+    int synced = 0;
+    int failed = 0;
+    final List<String> errors = [];
+
+    try {
+      // Get all local sessions
+      final sessions = await getAllPracticeSessions();
+      debugPrint('📤 Starting sync of ${sessions.length} practice sessions to Firestore...');
+
+      // Get firebase service instance
+      final firebaseService = FirebaseService.instance;
+
+      if (!FirebaseService.isInitialized) {
+        debugPrint('⚠️ Firebase not initialized. Cannot sync to Firestore.');
+        return {
+          'synced': 0,
+          'failed': sessions.length,
+          'total': sessions.length,
+          'errors': ['Firebase not initialized'],
+        };
+      }
+
+      // Sync each session
+      for (final session in sessions) {
+        try {
+          await firebaseService.savePracticeSessionToFirestore(session);
+          synced++;
+          debugPrint('✅ Synced session ${synced}/${sessions.length}');
+        } catch (e) {
+          failed++;
+          errors.add('Failed to sync session ${session['id']}: $e');
+          debugPrint('❌ Failed to sync session: $e');
+        }
+      }
+
+      debugPrint('📊 Sync complete: $synced synced, $failed failed');
+
+      return {
+        'synced': synced,
+        'failed': failed,
+        'total': sessions.length,
+        'errors': errors,
+      };
+    } catch (e) {
+      debugPrint('❌ Error during batch sync: $e');
+      return {
+        'synced': synced,
+        'failed': failed,
+        'total': synced + failed,
+        'errors': [...errors, 'Batch sync error: $e'],
+      };
+    }
+  }
+
+  // ==================== LESSON PROGRESS METHODS ====================
+
+  /// Save lesson progress (completion status and exercise count)
+  Future<void> saveLessonProgress({
+    required String lessonId,
+    required int completedExercises,
+    required int totalExercises,
+  }) async {
+    await initialize();
+
+    try {
+      final progressData = {
+        'lesson_id': lessonId,
+        'completed_exercises': completedExercises,
+        'total_exercises': totalExercises,
+        'is_completed': completedExercises >= totalExercises,
+        'last_updated': DateTime.now().toIso8601String(),
+      };
+
+      await _settingsBox?.put('lesson_progress_$lessonId', progressData);
+      debugPrint('💾 Saved lesson progress: $lessonId ($completedExercises/$totalExercises)');
+    } catch (e) {
+      debugPrint('❌ Error saving lesson progress: $e');
+    }
+  }
+
+  /// Get lesson progress by lesson ID
+  Future<Map<String, dynamic>?> getLessonProgress(String lessonId) async {
+    await initialize();
+
+    try {
+      final progressData = _settingsBox?.get('lesson_progress_$lessonId');
+      if (progressData != null) {
+        return Map<String, dynamic>.from(progressData as Map);
+      }
+    } catch (e) {
+      debugPrint('❌ Error getting lesson progress: $e');
+    }
+    return null;
+  }
+
+  /// Get all lesson progress data
+  Future<Map<String, Map<String, dynamic>>> getAllLessonProgress() async {
+    await initialize();
+
+    final Map<String, Map<String, dynamic>> allProgress = {};
+
+    try {
+      final keys = _settingsBox?.keys ?? [];
+      for (final key in keys) {
+        if (key.toString().startsWith('lesson_progress_')) {
+          final lessonId = key.toString().replaceFirst('lesson_progress_', '');
+          final progressData = _settingsBox?.get(key);
+          if (progressData != null) {
+            allProgress[lessonId] = Map<String, dynamic>.from(progressData as Map);
+          }
+        }
+      }
+      debugPrint('📚 Loaded progress for ${allProgress.length} lessons');
+    } catch (e) {
+      debugPrint('❌ Error getting all lesson progress: $e');
+    }
+
+    return allProgress;
+  }
+
+  /// Clear all lesson progress
+  Future<void> clearAllLessonProgress() async {
+    await initialize();
+
+    try {
+      final keys = _settingsBox?.keys.toList() ?? [];
+      for (final key in keys) {
+        if (key.toString().startsWith('lesson_progress_')) {
+          await _settingsBox?.delete(key);
+        }
+      }
+      debugPrint('🗑️ Cleared all lesson progress');
+    } catch (e) {
+      debugPrint('❌ Error clearing lesson progress: $e');
     }
   }
 

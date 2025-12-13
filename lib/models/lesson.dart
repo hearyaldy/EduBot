@@ -18,8 +18,9 @@ class Lesson {
   final String? iconPath;
   final bool isCompleted;
   final int completedExercises;
+  final DateTime? createdAt;
 
-  const Lesson({
+  Lesson({
     required this.id,
     required this.lessonTitle,
     required this.targetLanguage,
@@ -35,6 +36,7 @@ class Lesson {
     this.iconPath,
     this.isCompleted = false,
     this.completedExercises = 0,
+    this.createdAt,
   });
 
   double get progressPercentage {
@@ -79,6 +81,7 @@ class Lesson {
     String? iconPath,
     bool? isCompleted,
     int? completedExercises,
+    DateTime? createdAt,
   }) {
     return Lesson(
       id: id ?? this.id,
@@ -96,6 +99,7 @@ class Lesson {
       iconPath: iconPath ?? this.iconPath,
       isCompleted: isCompleted ?? this.isCompleted,
       completedExercises: completedExercises ?? this.completedExercises,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 
@@ -116,6 +120,7 @@ class Lesson {
       'icon_path': iconPath,
       'is_completed': isCompleted,
       'completed_exercises': completedExercises,
+      'created_at': createdAt?.toIso8601String(),
     };
   }
 
@@ -138,6 +143,9 @@ class Lesson {
       iconPath: json['icon_path'],
       isCompleted: json['is_completed'] ?? false,
       completedExercises: json['completed_exercises'] ?? 0,
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'] as String)
+          : null,
     );
   }
 
