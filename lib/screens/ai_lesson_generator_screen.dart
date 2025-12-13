@@ -1548,13 +1548,45 @@ class _AILessonGeneratorScreenState extends State<AILessonGeneratorScreen>
         final content = data['choices']?[0]?['message']?['content'];
 
         if (content != null) {
+          debugPrint('✅ Received AI response, parsing...');
           return _parseLesson(content, lessonIndex, topicVariation);
+        } else {
+          debugPrint('❌ No content in API response');
+          debugPrint('Response body: ${response.body}');
         }
       } else {
-        debugPrint('API Error: ${response.statusCode} - ${response.body}');
+        debugPrint('❌ API Error: ${response.statusCode}');
+        debugPrint('Response body: ${response.body}');
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'API Error (${response.statusCode}): Failed to generate lesson.\n\n'
+                'Check:\n'
+                '1. Your OpenRouter API key is valid\n'
+                '2. You have credits remaining\n'
+                '3. Your internet connection',
+              ),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
       }
-    } catch (e) {
-      debugPrint('Error generating lesson: $e');
+    } catch (e, stackTrace) {
+      debugPrint('❌ Exception generating lesson: $e');
+      debugPrint('Stack trace: $stackTrace');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
     }
     return null;
   }
@@ -1703,6 +1735,7 @@ For non-multiple-choice questions, leave "choices" as an empty array [].
     try {
       // Clean up the response
       String cleanContent = content.trim();
+      debugPrint('📝 Raw AI response length: ${cleanContent.length} characters');
 
       // Remove any thinking tags
       final thinkRegex = RegExp(r'<think>.*?</think>', dotAll: true);
@@ -1721,13 +1754,20 @@ For non-multiple-choice questions, leave "choices" as an empty array [].
 
       // Extract JSON if needed
       if (!cleanContent.startsWith('{')) {
+        debugPrint('⚠️ Content does not start with {, attempting to extract JSON...');
         final jsonMatch = RegExp(r'\{[\s\S]*\}').firstMatch(cleanContent);
         if (jsonMatch != null) {
           cleanContent = jsonMatch.group(0) ?? cleanContent;
+        } else {
+          debugPrint('❌ Could not find JSON in response');
+          debugPrint('First 500 chars: ${cleanContent.substring(0, cleanContent.length > 500 ? 500 : cleanContent.length)}');
+          throw Exception('No valid JSON found in AI response');
         }
       }
 
+      debugPrint('🔍 Attempting to parse JSON...');
       final json = jsonDecode(cleanContent);
+      debugPrint('✅ JSON parsed successfully');
 
       // Parse questions
       final questionsJson = json['questions'] as List? ?? [];
@@ -1768,8 +1808,25 @@ For non-multiple-choice questions, leave "choices" as an empty array [].
         estimatedDuration: exercises.length * 2,
         createdAt: DateTime.now(),
       );
-    } catch (e) {
-      debugPrint('Error parsing lesson: $e');
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error parsing lesson: $e');
+      debugPrint('Stack trace: $stackTrace');
+
+      // Show user-friendly error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to parse AI response: ${e.toString()}\n\nTry:\n'
+              '1. Check your internet connection\n'
+              '2. Try a different topic\n'
+              '3. Reduce number of questions',
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
       return null;
     }
   }
